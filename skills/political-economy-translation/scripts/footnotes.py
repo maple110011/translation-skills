@@ -49,9 +49,12 @@ def from_pdftotext(pdf: str) -> str | None:
     try:
         r = subprocess.run([exe, "-layout", "-enc", "UTF-8", pdf, "-"],
                            capture_output=True, timeout=300)
-    except (OSError, subprocess.TimeoutExpired):
+    except (OSError, subprocess.TimeoutExpired) as e:
+        print(f"  ! pdftotext 调用异常：{e}", file=sys.stderr)
         return None
     if r.returncode != 0:
+        detail = r.stderr.decode("utf-8", errors="replace")[:200]
+        print(f"  ! pdftotext 退出码 {r.returncode}：{detail}", file=sys.stderr)
         return None
     return r.stdout.decode("utf-8", errors="replace")
 
