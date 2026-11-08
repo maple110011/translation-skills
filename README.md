@@ -22,7 +22,7 @@ translation-skills/
 
 - 不含《马克思恩格斯文集》（人民出版社 2009）中文译文、MECW 英文原文，也不含任何由原文衍生的 PDF、HTML、句级语料 `jsonl`、对齐表、页码映射或检索索引成品。工作区里的 `_marx_ref/`（约 919 MB）整份被 `.gitignore` 排除，从未提交。
 - 与马恩引文工具相关的只有**脚本代码**：`skills/political-economy-translation/scripts/marx_quotes.py`（从英文文献找引文并对到文集译文）、`marx_adopt.py`（采用表转决定表）、`references/marx-ref.md`（方法说明），以及 `tools/marxref-build/` 下 27 个索引构建脚本（约 160 KB）。这些文件里没有一句原著原文，中文长串均为注释与算法说明。
-- **这套索引构建脚本是项目内的工作脚本，尚待进一步优化**：覆盖不全（第 8、9 卷未进索引）、句级对齐约四分之一存在错位风险需人工核对、参数与卷次映射硬编码、外部语料源未锁版本、无回归测试。详见 [`tools/marxref-build/README.md`](tools/marxref-build/README.md)。
+- **这套索引构建脚本是项目内的工作脚本，有待进一步优化**：覆盖不全（第 8、9 卷未进索引）、句级对齐约四分之一存在错位风险需人工核对、参数与卷次映射硬编码、外部语料源未锁版本、无回归测试。详见 [`tools/marxref-build/README.md`](tools/marxref-build/README.md)。
 
 因此本仓库体积始终在几 MB 量级，不存在马恩语料把仓库撑到 GitHub 上限的问题；后续优化脚本也只增加代码、不增加语料。
 
