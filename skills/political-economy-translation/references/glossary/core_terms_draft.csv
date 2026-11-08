@@ -1,0 +1,135 @@
+﻿src,dst,alt,confidence,topic,status
+value,价值,,high,价值理论,待校对
+use-value,使用价值,,high,价值理论,待校对
+exchange-value,交换价值,,high,价值理论,待校对
+surplus value,剩余价值,,high,价值理论,待校对
+absolute surplus value,绝对剩余价值,,high,价值理论,待校对
+relative surplus value,相对剩余价值,,high,价值理论,待校对
+labor power,劳动力,劳动能力,medium,价值理论,待校对
+abstract labor,抽象劳动,,high,价值理论,待校对
+concrete labor,具体劳动,,high,价值理论,待校对
+socially necessary labor time,社会必要劳动时间,,high,价值理论,待校对
+value-form,价值形式,价值形态,medium,价值理论,待校对
+magnitude of value,价值量,,high,价值理论,待校对
+transformation problem,转形问题,转型问题／价值转形问题,medium,价值理论,待校对
+labor theory of value,劳动价值论,,high,价值理论,待校对
+commodity fetishism,商品拜物教,,high,价值理论,待校对
+equivalent form,等价形式,,high,价值理论,待校对
+relative form,相对形式,,high,价值理论,待校对
+simple value form,简单的价值形式,,high,价值理论,待校对
+money form,货币形式,,high,价值理论,待校对
+price of production,生产价格,,high,价值理论,待校对
+market price,市场价格,,high,价值理论,待校对
+labor values,劳动价值,劳动价值量,medium,价值理论,待校对
+direct prices,直接价格,,high,价值理论,待校对
+means of production,生产资料,,high,资本与生产,待校对
+relations of production,生产关系,,high,资本与生产,待校对
+forces of production,生产力,,high,资本与生产,待校对
+mode of production,生产方式,,high,资本与生产,待校对
+constant capital,不变资本,,high,资本与生产,待校对
+variable capital,可变资本,,high,资本与生产,待校对
+fixed capital,固定资本,,high,资本与生产,待校对
+circulating capital,流动资本,,high,资本与生产,待校对
+organic composition of capital,资本有机构成,,high,资本与生产,待校对
+technical composition of capital,资本技术构成,,high,资本与生产,待校对
+value composition of capital,资本价值构成,,high,资本与生产,待校对
+rate of surplus value,剩余价值率,,high,资本与生产,待校对
+rate of exploitation,剥削率,,high,资本与生产,待校对
+circuit of capital,资本循环,,high,资本与生产,待校对
+turnover,周转,,high,资本与生产,待校对
+turnover time,周转时间,,high,资本与生产,待校对
+department I,第I部类,,high,资本与生产,待校对
+department II,第II部类,,high,资本与生产,待校对
+simple reproduction,简单再生产,,high,资本与生产,待校对
+expanded reproduction,扩大再生产,,high,资本与生产,待校对
+primitive accumulation,原始积累,,high,资本与生产,待校对
+accumulation,积累,,high,资本与生产,待校对
+centralization of capital,资本集中,,high,资本与生产,待校对
+concentration of capital,资本积聚,,high,资本与生产,待校对
+reserve army of labor,产业后备军,劳动后备军,medium,资本与生产,待校对
+relative surplus population,相对过剩人口,,high,资本与生产,待校对
+tendency of the rate of profit to fall,利润率趋向下降规律,利润率下降趋势规律,medium,资本与生产,待校对
+counteracting tendencies,抵消趋势,,high,资本与生产,待校对
+labor process,劳动过程,劳工过程,medium,劳动过程,待校对
+labor process theory,劳动过程理论,,high,劳动过程,待校对
+deskilling,去技能化,去技术化,medium,劳动过程,待校对
+skill,技能,,high,劳动过程,待校对
+Taylorism,泰勒制,,high,劳动过程,待校对
+scientific management,科学管理,,high,劳动过程,待校对
+Fordism,福特制,,high,劳动过程,待校对
+post-Fordism,后福特制,,high,劳动过程,待校对
+neo-Fordism,新福特制,,high,劳动过程,待校对
+direct labor,直接劳动,,high,劳动过程,待校对
+indirect labor,间接劳动,,high,劳动过程,待校对
+productive labor,生产性劳动,,high,劳动过程,待校对
+unproductive labor,非生产性劳动,,high,劳动过程,待校对
+labor intensity,劳动强度,,high,劳动过程,待校对
+formal subsumption,形式吸纳,形式从属,medium,劳动过程,待校对
+real subsumption,实际吸纳,实际从属,medium,劳动过程,待校对
+control,控制,,high,劳动过程,待校对
+resistance,抵抗,,high,劳动过程,待校对
+consent,同意,认同,medium,劳动过程,待校对
+worker agency,工人能动性,,high,劳动过程,待校对
+precarity,不稳定性,脆弱性／不稳定状态,medium,劳动过程,待校对
+precarious employment,不稳定就业,不稳定就业状态,medium,劳动过程,待校对
+informalization,非正规化,,high,劳动过程,待校对
+labor market segmentation,劳动力市场分割,,high,劳动过程,待校对
+technical change,技术变迁,技术变化,medium,技术与组织,待校对
+technological determinism,技术决定论,,high,技术与组织,待校对
+social shaping of technology,技术的社会形塑,,high,技术与组织,待校对
+sociomateriality,社会物质性,,high,技术与组织,待校对
+mechanization,机械化,,high,技术与组织,待校对
+automation,自动化,,high,技术与组织,待校对
+algorithmic management,算法管理,,high,技术与组织,待校对
+financialization,金融化,,high,金融化,待校对
+financial capital,金融资本,,high,金融化,待校对
+fictitious capital,虚拟资本,虚构资本,medium,金融化,待校对
+interest-bearing capital,生息资本,带息资本,medium,金融化,待校对
+shareholder value,股东价值,,high,金融化,待校对
+value extraction,价值榨取,,high,金融化,待校对
+global value chain,全球价值链,,high,世界体系与价值链,待校对
+value chain,价值链,,high,世界体系与价值链,待校对
+commodity chain,商品链,,high,世界体系与价值链,待校对
+global commodity chain,全球商品链,,high,世界体系与价值链,待校对
+governance,治理,,high,世界体系与价值链,待校对
+upgrading,升级,,high,世界体系与价值链,待校对
+lead firm,主导企业,领导厂商,medium,世界体系与价值链,待校对
+outsourcing,外包,,high,世界体系与价值链,待校对
+offshoring,离岸外包,,high,世界体系与价值链,待校对
+imperialism,帝国主义,,high,世界体系与价值链,待校对
+dependency,依附,,high,世界体系与价值链,待校对
+unequal exchange,不平等交换,,high,世界体系与价值链,待校对
+core-periphery,中心—边缘,,high,世界体系与价值链,待校对
+world-systems,世界体系,,high,世界体系与价值链,待校对
+petty commodity production,小商品生产,,high,世界体系与价值链,待校对
+informal economy,非正规经济,,high,世界体系与价值链,待校对
+political economy,政治经济学,,high,方法论,待校对
+classical political economy,古典政治经济学,,high,方法论,待校对
+vulgar economy,庸俗经济学,,high,方法论,待校对
+heterodox economics,异端经济学,非正统经济学,medium,方法论,待校对
+critical realism,批判实在论,,high,方法论,待校对
+surplus approach,剩余方法,剩余进路,medium,方法论,待校对
+long period,长期,,high,方法论,待校对
+standard commodity,标准商品,,high,方法论,待校对
+standard system,标准体系,,high,方法论,待校对
+joint production,联合生产,,high,方法论,待校对
+single production,单一生产,,high,方法论,待校对
+subsistence wage,生存工资,维生工资,medium,方法论,待校对
+input-output,投入产出,,high,方法论,待校对
+statistical equilibrium,统计均衡,,high,方法论,待校对
+monetary expression of labor time,劳动时间的货币表现,劳动时间的货币表达,medium,方法论,待校对
+temporal single-system interpretation,时序单一体系解释,单一体系时序解释,medium,方法论,待校对
+Okishio theorem,置盐定理,,high,方法论,待校对
+Cambridge capital controversy,剑桥资本争论,,high,方法论,待校对
+reswitching,再转换,技术再转换,medium,方法论,待校对
+capital reversing,资本逆转,资本倒流,medium,方法论,待校对
+effective demand,有效需求,,high,方法论,待校对
+degree of monopoly,垄断程度,,high,方法论,待校对
+monopoly capital,垄断资本,,high,方法论,待校对
+social structure of accumulation,积累的社会结构,,high,方法论,待校对
+regulation approach,调节学派,,high,方法论,待校对
+long wave,长波,,high,方法论,待校对
+labor aristocracy,工人贵族,,high,阶级与国家,待校对
+class struggle,阶级斗争,,high,阶级与国家,待校对
+class composition,阶级构成,,high,阶级与国家,待校对
+hegemony,领导权,霸权,medium,阶级与国家,待校对

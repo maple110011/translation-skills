@@ -1,0 +1,286 @@
+#!/usr/bin/env python3
+"""Write a YAML front matter block describing the paper being translated.
+
+The point is not decoration. A translated paper gets reused for other things
+later — building a bibliography, checking which texts used a given rendering,
+re-translating after the source PDF changes, counting how much of a corpus is
+already done. None of that works if the metadata only exists in a chat log.
+
+What goes in, and why each field earns its place:
+
+* Identity — title, authors, year, journal, DOI. Needed to cite the thing and
+  to notice when two files are the same paper.
+* Provenance — source file, its hash, how the text was extracted. A hash is the
+  only way to answer "did I translate this PDF or an earlier version of it".
+* Process — date, glossary file, how many terms were pinned, whether a review
+  queue was raised. Lets a later pass know what state this translation is in.
+* Fidelity — block/paragraph/citation/formula counts and the check verdict.
+  Lets you filter a corpus by "translations that actually passed" instead of
+  trusting filenames.
+
+Nothing here is invented. Fields the script cannot read are left empty rather
+than guessed, and `draft: true` marks a block that still needs a human pass.
+
+Usage:
+    python paper_meta.py --init paper_原文.md -o _work/meta.yaml
+    python paper_meta.py --inject paper_zh.md --meta _work/meta.yaml
+    python paper_meta.py --check paper_zh.md
+"""
+
+import argparse
+import datetime
+import hashlib
+import os
+import re
+import sys
+
+FRONT = re.compile(r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*\r?\n", re.S)
+DOI = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Za-z0-9]+")
+YEAR = re.compile(r"\((?:19|20)\d{2}[a-z]?\)")
+H1 = re.compile(r"^#\s+(.+)$", re.M)
+KEYWORDS = re.compile(r"^\s*(?:key\s*words?|关键词)\s*[:：]\s*(.+)$", re.I | re.M)
+
+FIELDS = [
+    ("title", "原文标题，取自原文 H1；若 H1 是期刊名，手动改成论文标题"),
+    ("title_zh", "中译标题"),
+    ("authors", "作者，`姓, 名` 形式，列表"),
+    ("year", "出版年"),
+    ("journal", "期刊或出版社；书章填书名"),
+    ("volume", ""), ("issue", ""), ("pages", ""),
+    ("doi", ""),
+    ("type", "article | conference | preprint | chapter | lecture | survey"),
+    ("field", "领域标记：dl | ml | math | stat | prob | opt | other"),
+    ("venue_type", "发表形态：journal | conference | arxiv | workshop | book"),
+    ("language", "源语言，默认 en"),
+    ("translated_at", "翻译完成日期"),
+    ("translator", ""),
+    ("source_file", "源 PDF/docx 文件名"),
+    ("source_sha256", "源文件哈希，用于判断原文是否换过版本"),
+    ("extraction", "mineru-vlm | mineru-ocr | docx | native-md"),
+    ("glossary", "本篇项目术语表路径"),
+    ("terms_used", "项目术语表条目数"),
+    ("fidelity", "块数、段落数、引用数、公式数、校验结论"),
+    ("review_open", "待校对清单中未决条数"),
+    ("draft", "true 表示元信息还没人工核过"),
+]
+
+
+def read(path):
+    with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+        return fh.read()
+
+
+def strip_frontmatter(text):
+    m = FRONT.match(text)
+    return text[m.end():] if m else text
+
+
+def sha256(path, limit=None):
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        while True:
+            chunk = fh.read(1 << 20)
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def guess_title(text):
+    """First H1. MinerU often puts the journal name there instead, so this is a
+    starting point, not an answer — the caller is expected to correct it."""
+    lines = text.strip().split("\n")[:40]
+    for line in lines:
+        m = H1.match(line.strip())
+        if m:
+            return m.group(1).strip()
+    # No heading: the first non-empty, non-decorative line is usually the title.
+    for line in lines:
+        s = line.strip(" #>*|-")
+        if len(s) > 15 and not DOI.search(s):
+            return s
+    return ""
+
+
+def guess_year(text, path):
+    """Year from the filename first, then from the opening lines.
+
+    Scanning the whole body finds whatever year appears first — usually a
+    citation from the 1970s in the introduction, not the paper's own date.
+    """
+    name = os.path.basename(os.path.dirname(path)) + " " + os.path.basename(path)
+    for m in re.finditer(r"\b(19[5-9]\d|20[0-4]\d)\b", name):
+        return m.group(1)
+    # Fall back to the first year in the opening lines only.
+    head = "\n".join(text.strip().split("\n")[:25])
+    for m in re.finditer(r"\b(19[5-9]\d|20[0-4]\d)\b", head):
+        return m.group(1)
+    return ""
+
+
+def guess_keywords(text):
+    m = KEYWORDS.search(text[:8000])
+    if not m:
+        return []
+    raw = m.group(1).strip().rstrip(".")
+    return [k.strip() for k in re.split(r"[;,；、]", raw) if k.strip()][:8]
+
+
+def stats(body):
+    """Count what the fidelity checker counts, so the numbers mean the same
+    thing in both places."""
+    lines = body.split("\n")
+    blocks = len([b for b in re.split(r"\n\s*\n", body) if b.strip()])
+    paras = 0
+    buf = []
+    for line in lines:
+        if not line.strip():
+            if buf:
+                paras += 1
+                buf = []
+            continue
+        buf.append(line)
+    if buf:
+        paras += 1
+    display = len(re.findall(r"^\$\$", body, re.M)) // 2
+    inline = len(re.findall(r"(?<!\$)\$(?!\$)[^$\n]+\$(?!\$)", body))
+    citations = len(set(re.findall(r"\((?:[A-Z][A-Za-z\-']+(?: et al\.|,)?[^()]{0,40})(?:19|20)\d{2}[a-z]?(?:, p{1,2}\. ?\d+)?\)", body)))
+    images = len(re.findall(r"!\[[^\]]*\]\([^)]+\)", body))
+    return {
+        "blocks": blocks, "paragraphs": paras, "citations": citations,
+        "math_display": display, "math_inline": inline, "images": images,
+    }
+
+
+def yaml_scalar(v):
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        return str(v)
+    s = str(v)
+    if s == "":
+        return '""'
+    if re.search(r"[:#\[\]{}&*!|>'\"%@`]|^\s|\s$", s):
+        return '"' + s.replace('"', '\\"') + '"'
+    return s
+
+
+def render(meta, indent=0):
+    out = []
+    pad = "  " * indent
+    for k, v in meta.items():
+        if isinstance(v, dict):
+            out.append(f"{pad}{k}:")
+            out.extend(render(v, indent + 1))
+        elif isinstance(v, list):
+            if not v:
+                out.append(f"{pad}{k}: []")
+            else:
+                out.append(f"{pad}{k}:")
+                for item in v:
+                    out.append(f"{pad}  - {yaml_scalar(item)}")
+        else:
+            out.append(f"{pad}{k}: {yaml_scalar(v)}")
+    return out
+
+
+def build(source_path, target_path=None):
+    text = read(source_path)
+    body = strip_frontmatter(text)
+    # Fidelity numbers describe the translation, so take them from the target
+    # when there is one. Before translating, they describe the source.
+    st = stats(strip_frontmatter(read(target_path))) if target_path else stats(body)
+    m = DOI.search(body)
+    meta = {
+        "title": guess_title(body),
+        "title_zh": "",
+        "authors": [],
+        "year": guess_year(body, source_path),
+        "journal": "",
+        "volume": "", "issue": "", "pages": "",
+        "doi": m.group(0) if m else "",
+        "type": "article",
+        "field": "",
+        "venue_type": "",
+        "language": "en",
+        "keywords": guess_keywords(body),
+        "translated_at": datetime.date.today().isoformat(),
+        "translator": "",
+        "source_file": os.path.basename(source_path),
+        "source_sha256": "",
+        "extraction": "",
+        "glossary": "",
+        "terms_used": 0,
+        "notation_terms": 0,
+        "fidelity": {**st, "status": ""},
+        "review_open": 0,
+        "draft": True,
+    }
+    return meta
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description="生成或写入译文的 YAML front matter")
+    ap.add_argument("--init", metavar="原文路径", help="从原文生成一份元信息草稿")
+    ap.add_argument("--inject", metavar="译文路径", help="把元信息写入译文开头")
+    ap.add_argument("--meta", help="--inject 时读取的 YAML 文件")
+    ap.add_argument("--check", metavar="译文路径", help="检查 front matter 是否齐全")
+    ap.add_argument("-o", "--out", help="--init 的输出路径")
+    args = ap.parse_args(argv)
+
+    if args.init:
+        meta = build(args.init)
+        if args.out:
+            with open(args.out, "w", encoding="utf-8") as fh:
+                fh.write("---\n" + "\n".join(render(meta)) + "\n---\n")
+            print(f"已写出 {args.out}")
+            print("字段说明：")
+            for k, desc in FIELDS:
+                if desc:
+                    print(f"  {k:16} {desc}")
+            print("\ntitle 与 authors 常需要人工改：MinerU 的 H1 常是期刊名而不是论文标题。")
+        else:
+            print("---\n" + "\n".join(render(meta)) + "\n---")
+        return
+
+    if args.inject:
+        if not args.meta or not os.path.isfile(args.meta):
+            sys.exit("需要 --meta 指向一份 YAML。")
+        meta_text = read(args.meta)
+        m = FRONT.match(meta_text if meta_text.endswith("\n") else meta_text + "\n")
+        block = m.group(1) if m else meta_text.strip().strip("-").strip()
+        body = strip_frontmatter(read(args.inject))
+        with open(args.inject, "w", encoding="utf-8") as fh:
+            fh.write("---\n" + block.strip() + "\n---\n\n" + body.lstrip("\n"))
+        print(f"已写入 {args.inject} 的 front matter（{len(block.strip().splitlines())} 行）")
+        return
+
+    if args.check:
+        text = read(args.check)
+        m = FRONT.match(text)
+        if not m:
+            print("✗ 没有 front matter")
+            sys.exit(1)
+        block = m.group(1)
+        missing = [k for k, _ in FIELDS
+                   if k not in ("review_open",) and not re.search(rf"^{k}:", block, re.M)]
+        empty = []
+        for k in ("title", "title_zh", "year", "source_file"):
+            mm = re.search(rf"^{k}:\s*(.*)$", block, re.M)
+            if mm and mm.group(1).strip() in ("", '""'):
+                empty.append(k)
+        print(f"字段 {len(block.splitlines())} 行，缺失 {len(missing)}，空值 {len(empty)}")
+        if missing:
+            print("缺失：", "、".join(missing))
+        if empty:
+            print("空值：", "、".join(empty))
+        draft = re.search(r"^draft:\s*true", block, re.M)
+        if draft:
+            print("! draft 仍为 true：元信息还没人工核过")
+        sys.exit(0 if not missing and not empty else 1)
+
+    ap.error("需要 --init、--inject 或 --check 之一。")
+
+
+if __name__ == "__main__":
+    main()

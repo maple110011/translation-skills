@@ -1,0 +1,243 @@
+﻿src,dst,form,confidence,basis,alias
+marx k.,马克思,surname,high,经典译本·人民出版社《资本论》,"Marx, K.|K. Marx|marx"
+Karl Marx,卡尔·马克思,full,high,经典译本·人民出版社《资本论》,
+engels f.,恩格斯,surname,high,经典译本,"Engels, F.|F. Engels|engels"
+Friedrich Engels,弗里德里希·恩格斯,full,high,经典译本,
+lenin v. i.,列宁,surname,high,经典译本,"Lenin, V. I.|V. I. Lenin|lenin"
+Vladimir Lenin,弗拉基米尔·列宁,full,high,经典译本,
+luxemburg r.,卢森堡,surname,high,经典译本,"Luxemburg, R.|R. Luxemburg|luxemburg"
+Rosa Luxemburg,罗莎·卢森堡,full,high,经典译本,
+hilferding r.,希法亭,surname,high,《金融资本》商务印书馆译本,"Hilferding, R.|R. Hilferding|hilferding"
+Rudolf Hilferding,鲁道夫·希法亭,full,high,《金融资本》商务印书馆译本,
+bukharin n.,布哈林,surname,high,经典译本,"Bukharin, N.|N. Bukharin|bukharin"
+Nikolai Bukharin,尼古拉·布哈林,full,high,经典译本,
+kautsky k.,考茨基,surname,high,通行译名,"Kautsky, K.|K. Kautsky|kautsky"
+Karl Kautsky,卡尔·考茨基,full,high,通行译名,
+gramsci a.,葛兰西,surname,high,通行译名,"Gramsci, A.|A. Gramsci|gramsci"
+Antonio Gramsci,安东尼奥·葛兰西,full,high,通行译名,
+althusser l.,阿尔都塞,surname,high,通行译名,"Althusser, L.|L. Althusser|althusser"
+Louis Althusser,路易·阿尔都塞,full,high,通行译名,
+smith a.,斯密,surname,high,古典政治经济学通行译名,"Smith, A.|A. Smith"
+Adam Smith,亚当·斯密,full,high,古典政治经济学通行译名,
+ricardo d.,李嘉图,surname,high,古典政治经济学通行译名,"Ricardo, D.|D. Ricardo|ricardo"
+David Ricardo,大卫·李嘉图,full,high,古典政治经济学通行译名,
+malthus t. r.,马尔萨斯,surname,high,通行译名,"Malthus, T. R.|T. R. Malthus|malthus"
+Thomas Malthus,托马斯·马尔萨斯,full,high,通行译名,
+quesnay f.,魁奈,surname,high,重农学派通行译名,"Quesnay, F.|F. Quesnay|quesnay"
+François Quesnay,弗朗索瓦·魁奈,full,high,重农学派通行译名,
+say j. b.,萨伊,surname,high,通行译名,"Say, J. B.|J. B. Say"
+Jean-Baptiste Say,让-巴蒂斯特·萨伊,full,high,通行译名,
+mill j. s.,穆勒,surname,high,通行译名,"Mill, J. S.|J. S. Mill"
+John Stuart Mill,约翰·斯图亚特·穆勒,full,high,通行译名,
+sraffa p.,斯拉法,surname,high,《用商品生产商品》商务印书馆译本,"Sraffa, P.|P. Sraffa|sraffa"
+Piero Sraffa,皮耶罗·斯拉法,full,high,《用商品生产商品》商务印书馆译本,
+pasinetti l.,帕西内蒂,surname,high,通行译名,"Pasinetti, L.|L. Pasinetti|pasinetti"
+Luigi Pasinetti,路易吉·帕西内蒂,full,high,通行译名,
+garegnani p.,加雷尼亚尼,surname,high,通行译名,"Garegnani, P.|P. Garegnani|garegnani"
+Piero Garegnani,皮耶罗·加雷尼亚尼,full,high,通行译名,
+steedman i.,斯蒂德曼,surname,high,《马克思后的斯拉法》通行译名,"Steedman, I.|I. Steedman|steedman"
+Ian Steedman,伊恩·斯蒂德曼,full,high,《马克思后的斯拉法》通行译名,
+kurz h. d.,库尔茨,surname,high,通行译名,"Kurz, H. D.|H. D. Kurz|kurz"
+Heinz Kurz,海因茨·库尔茨,full,high,通行译名,
+salvadori n.,萨尔瓦多里,surname,high,通行译名,"Salvadori, N.|N. Salvadori|salvadori"
+Neri Salvadori,内里·萨尔瓦多里,full,high,通行译名,
+moseley f.,莫斯利,surname,high,通行译名,"Moseley, F.|F. Moseley|moseley"
+Fred Moseley,弗雷德·莫斯利,full,high,通行译名,
+leontief w.,列昂惕夫,surname,high,投入产出分析通行译名,"Leontief, W.|W. Leontief|leontief"
+Wassily Leontief,瓦西里·列昂惕夫,full,high,投入产出分析通行译名,
+harrod r. f.,哈罗德,surname,high,通行译名,"Harrod, R. F.|R. F. Harrod|harrod"
+Roy Harrod,罗伊·哈罗德,full,high,通行译名,
+domar e.,多马,surname,high,通行译名,"Domar, E.|E. Domar"
+Evsey Domar,埃弗塞·多马,full,high,通行译名,
+solow r.,索洛,surname,high,通行译名,"Solow, R.|R. Solow"
+Robert Solow,罗伯特·索洛,full,high,通行译名,
+samuelson p.,萨缪尔森,surname,high,《经济学》通行译名,"Samuelson, P.|P. Samuelson"
+Paul Samuelson,保罗·萨缪尔森,full,high,《经济学》通行译名,
+keynes j. m.,凯恩斯,surname,high,《就业、利息和货币通论》通行译名,"Keynes, J. M.|J. M. Keynes|keynes"
+John Maynard Keynes,约翰·梅纳德·凯恩斯,full,high,《就业、利息和货币通论》通行译名,
+kalecki m.,卡莱茨基,surname,high,通行译名,"Kalecki, M.|M. Kalecki|kalecki"
+Michal Kalecki,米哈尔·卡莱茨基,full,high,通行译名,
+schumpeter j.,熊彼特,surname,high,《资本主义、社会主义与民主》通行译名,"Schumpeter, J.|J. Schumpeter|schumpeter"
+Joseph Schumpeter,约瑟夫·熊彼特,full,high,《资本主义、社会主义与民主》通行译名,
+marshall a.,马歇尔,surname,high,通行译名,"Marshall, A.|A. Marshall"
+Alfred Marshall,阿尔弗雷德·马歇尔,full,high,通行译名,
+walras l.,瓦尔拉斯,surname,high,通行译名,"Walras, L.|L. Walras|walras"
+Léon Walras,莱昂·瓦尔拉斯,full,high,通行译名,
+pareto v.,帕累托,surname,high,通行译名,"Pareto, V.|V. Pareto|pareto"
+Vilfredo Pareto,维尔弗雷多·帕累托,full,high,通行译名,
+von neumann j.,冯·诺伊曼,surname,high,通行译名,"Von Neumann, J.|J. Von Neumann|von neumann"
+John von Neumann,约翰·冯·诺伊曼,full,high,通行译名,
+morishima m.,森岛通夫,surname,high,通行译名,"Morishima, M.|M. Morishima|morishima"
+okishio n.,置盐信雄,surname,high,置盐定理通行译名,"Okishio, N.|N. Okishio|okishio"
+robinson j.,罗宾逊,surname,high,通行译名,"Robinson, J.|J. Robinson"
+Joan Robinson,琼·罗宾逊,full,high,通行译名,
+braverman h.,布雷弗曼,surname,high,《劳动与垄断资本》商务印书馆译本,"Braverman, H.|H. Braverman|braverman"
+Harry Braverman,哈里·布雷弗曼,full,high,《劳动与垄断资本》商务印书馆译本,
+burawoy m.,布洛维,surname,high,《制造同意》通行译名,"Burawoy, M.|M. Burawoy|burawoy"
+Michael Burawoy,迈克尔·布洛维,full,high,《制造同意》通行译名,
+edwards r.,爱德华兹,surname,high,《竞争的领域》通行译名,"Edwards, R.|R. Edwards"
+Richard Edwards,理查德·爱德华兹,full,high,《竞争的领域》通行译名,
+thompson e. p.,汤普森,surname,high,英国马克思主义史学通行译名,"Thompson, E. P.|E. P. Thompson"
+E. P. Thompson,E. P. 汤普森,full,high,英国马克思主义史学通行译名,
+wallerstein i.,沃勒斯坦,surname,high,世界体系理论通行译名,"Wallerstein, I.|I. Wallerstein|wallerstein"
+Immanuel Wallerstein,伊曼纽尔·沃勒斯坦,full,high,世界体系理论通行译名,
+arrighi g.,阿瑞吉,surname,high,通行译名,"Arrighi, G.|G. Arrighi|arrighi"
+Giovanni Arrighi,乔万尼·阿瑞吉,full,high,通行译名,
+frank a. g.,弗兰克,surname,high,依附理论通行译名,"Frank, A. G.|A. G. Frank"
+Andre Gunder Frank,安德烈·冈德·弗兰克,full,high,依附理论通行译名,
+amin s.,阿明,surname,high,依附理论通行译名,"Amin, S.|S. Amin"
+Samir Amin,萨米尔·阿明,full,high,依附理论通行译名,
+prebisch r.,普雷维什,surname,high,通行译名,"Prebisch, R.|R. Prebisch|prebisch"
+Raúl Prebisch,劳尔·普雷维什,full,high,通行译名,
+emmanuel a.,伊曼纽尔,surname,high,《不平等交换》通行译名,"Emmanuel, A.|A. Emmanuel|emmanuel"
+Arghiri Emmanuel,阿吉里·伊曼纽尔,full,high,《不平等交换》通行译名,
+veblen t.,凡勃伦,surname,high,《有闲阶级论》商务印书馆译本,"Veblen, T.|T. Veblen|veblen"
+Thorstein Veblen,托尔斯坦·凡勃伦,full,high,《有闲阶级论》商务印书馆译本,
+commons j. r.,康芒斯,surname,high,《制度经济学》商务印书馆译本,"Commons, J. R.|J. R. Commons|commons"
+John R. Commons,约翰·R. 康芒斯,full,high,《制度经济学》商务印书馆译本,
+polanyi k.,波兰尼,surname,high,《大转型》通行译名,"Polanyi, K.|K. Polanyi"
+Karl Polanyi,卡尔·波兰尼,full,high,《大转型》通行译名,
+harvey d.,哈维,surname,high,《新自由主义简史》通行译名,"Harvey, D.|D. Harvey"
+David Harvey,大卫·哈维,full,high,《新自由主义简史》通行译名,
+feenberg a.,芬伯格,surname,high,《技术批判理论》通行译名,"Feenberg, A.|A. Feenberg|feenberg"
+Andrew Feenberg,安德鲁·芬伯格,full,high,《技术批判理论》通行译名,
+marcuse h.,马尔库塞,surname,high,法兰克福学派通行译名,"Marcuse, H.|H. Marcuse|marcuse"
+Herbert Marcuse,赫伯特·马尔库塞,full,high,法兰克福学派通行译名,
+habermas j.,哈贝马斯,surname,high,通行译名,"Habermas, J.|J. Habermas|habermas"
+Jürgen Habermas,尤尔根·哈贝马斯,full,high,通行译名,
+latour b.,拉图尔,surname,high,ANT 通行译名,"Latour, B.|B. Latour|latour"
+Bruno Latour,布鲁诺·拉图尔,full,high,ANT 通行译名,
+winner l.,温纳,surname,high,《人工物有政治吗》通行译名,"Winner, L.|L. Winner|winner"
+Langdon Winner,兰登·温纳,full,high,《人工物有政治吗》通行译名,
+bijker w. e.,比克,surname,high,SCOT 通行译名,"Bijker, W. E.|W. E. Bijker|bijker"
+Wiebe E. Bijker,维贝·E. 比克,full,high,SCOT 通行译名,
+pinch t.,平奇,surname,high,SCOT 通行译名,"Pinch, T.|T. Pinch|pinch"
+Trevor Pinch,特雷弗·平奇,full,high,SCOT 通行译名,
+hughes t. p.,休斯,surname,high,SCOT 通行译名,"Hughes, T. P.|T. P. Hughes"
+Thomas P. Hughes,托马斯·P. 休斯,full,high,SCOT 通行译名,
+castells m.,卡斯特尔,surname,high,《网络社会的崛起》通行译名,"Castells, M.|M. Castells|castells"
+Manuel Castells,曼纽尔·卡斯特尔,full,high,《网络社会的崛起》通行译名,
+shaikh a.,谢克,surname,high,用户译稿实证：16 篇中 51 次均作「谢克」,"Shaikh, A.|A. Shaikh|shaikh"
+Anwar Shaikh,安瓦尔·谢克,full,high,用户译稿实证：16 篇中 51 次均作「谢克」,
+foley d. k.,弗利,surname,medium,通行音译,"Foley, D. K.|D. K. Foley|foley"
+Duncan Foley,邓肯·弗利,full,medium,通行音译,Duncan K. Foley|duncan k. foley
+tsoulfidis l.,楚尔菲迪斯,surname,medium,通行音译·未见权威辞书,"Tsoulfidis, L.|L. Tsoulfidis|tsoulfidis"
+Lefteris Tsoulfidis,莱夫特里斯·楚尔菲迪斯,full,medium,通行音译·未见权威辞书,
+mariolis t.,马里奥利斯,surname,medium,通行音译·未见权威辞书,"Mariolis, T.|T. Mariolis|mariolis"
+Theodore Mariolis,西奥多·马里奥利斯,full,medium,通行音译·未见权威辞书,
+schefold b.,舍福尔德,surname,medium,通行音译·未见权威辞书,"Schefold, B.|B. Schefold|schefold"
+Bertram Schefold,伯特伦·舍福尔德,full,medium,通行音译·未见权威辞书,
+gehrke c.,格尔克,surname,medium,通行音译·未见权威辞书,"Gehrke, C.|C. Gehrke"
+Christian Gehrke,克里斯蒂安·格尔克,full,medium,通行音译·未见权威辞书,
+krippner g. r.,克里普纳,surname,medium,通行音译·未见权威辞书,"Krippner, G. R.|G. R. Krippner"
+Greta Krippner,格蕾塔·克里普纳,full,medium,通行音译·未见权威辞书,
+stockhammer e.,斯托克哈默,surname,medium,通行音译·未见权威辞书,"Stockhammer, E.|E. Stockhammer|stockhammer"
+Engelbert Stockhammer,恩格尔伯特·斯托克哈默,full,medium,通行音译·未见权威辞书,
+lazonick w.,拉佐尼克,surname,medium,通行音译·未见权威辞书,"Lazonick, W.|W. Lazonick|lazonick"
+William Lazonick,威廉·拉佐尼克,full,medium,通行音译·未见权威辞书,
+lapavitsas c.,拉帕维察斯,surname,medium,通行音译·未见权威辞书,"Lapavitsas, C.|C. Lapavitsas|lapavitsas"
+Costas Lapavitsas,科斯塔斯·拉帕维察斯,full,medium,通行音译·未见权威辞书,
+milkman r.,米尔克曼,surname,medium,通行音译·未见权威辞书,"Milkman, R.|R. Milkman|milkman"
+Ruth Milkman,露丝·米尔克曼,full,medium,通行音译·未见权威辞书,
+byres t. j.,拜尔斯,surname,medium,通行音译·未见权威辞书,"Byres, T. J.|T. J. Byres|byres"
+Terence Byres,特伦斯·拜尔斯,full,medium,通行音译·未见权威辞书,
+harriss-white b.,哈里斯-怀特,surname,medium,通行音译·未见权威辞书,"Harriss-white, B.|B. Harriss-white|harriss-white"
+Barbara Harriss-White,芭芭拉·哈里斯-怀特,full,medium,通行音译·未见权威辞书,
+orlikowski w.,奥利科夫斯基,surname,medium,通行音译·未见权威辞书,"Orlikowski, W.|W. Orlikowski|orlikowski"
+Wanda Orlikowski,万达·奥利科夫斯基,full,medium,通行音译·未见权威辞书,
+metcalfe j. s.,梅特卡夫,surname,medium,通行音译·未见权威辞书,"Metcalfe, J. S.|J. S. Metcalfe|metcalfe"
+J. Stan Metcalfe,J. 斯坦·梅特卡夫,full,medium,通行音译·未见权威辞书,
+dosi g.,多西,surname,medium,通行音译·未见权威辞书,"Dosi, G.|G. Dosi"
+Giovanni Dosi,乔万尼·多西,full,medium,通行音译·未见权威辞书,
+perez c.,佩雷斯,surname,medium,通行音译·未见权威辞书,"Perez, C.|C. Perez"
+Carlota Perez,卡洛塔·佩雷斯,full,medium,通行音译·未见权威辞书,
+hodgson g.,霍奇森,surname,medium,通行音译·未见权威辞书,"Hodgson, G.|G. Hodgson"
+Geoffrey Hodgson,杰弗里·霍奇森,full,medium,通行音译·未见权威辞书,
+lawson t.,劳森,surname,medium,通行译名,"Lawson, T.|T. Lawson"
+Tony Lawson,托尼·劳森,full,medium,通行译名,
+jessop b.,杰索普,surname,medium,通行音译·未见权威辞书,"Jessop, B.|B. Jessop|jessop"
+Bob Jessop,鲍勃·杰索普,full,medium,通行音译·未见权威辞书,
+silver b.,西尔弗,surname,medium,通行音译·未见权威辞书,"Silver, B.|B. Silver"
+Beverly Silver,贝弗利·西尔弗,full,medium,通行音译·未见权威辞书,
+cambridge ma,剑桥（马萨诸塞州）,place,high,美国地名,"Cambridge, MA|cambridge, ma|cambridge (ma)"
+cambridge uk,剑桥（英国）,place,high,英国地名,"Cambridge, UK"
+new york,纽约,place,high,通行地名,
+london,伦敦,place,high,通行地名,
+oxford,牛津,place,high,通行地名,
+chicago,芝加哥,place,high,通行地名,
+boston,波士顿,place,high,通行地名,
+massachusetts,马萨诸塞州,place,high,美国州名,
+princeton,普林斯顿,place,high,通行地名,
+harmondsworth,哈蒙兹沃思,place,medium,企鹅出版社所在地通行译名,
+brighton,布莱顿,place,high,英国地名,
+cheltenham,切尔滕纳姆,place,high,英国地名,
+northampton,北安普敦,place,high,英国地名,
+aldershot,奥尔德肖特,place,high,英国地名,
+basingstoke,贝辛斯托克,place,high,英国地名,
+britain,英国,place,high,新华社地名译名,
+america,美国,place,high,新华社地名译名,
+england,英格兰,place,high,新华社地名译名,
+scotland,苏格兰,place,high,新华社地名译名,
+wales,威尔士,place,high,新华社地名译名,
+ireland,爱尔兰,place,high,新华社地名译名,
+canada,加拿大,place,high,新华社地名译名,
+australia,澳大利亚,place,high,新华社地名译名,
+germany,德国,place,high,新华社地名译名,
+france,法国,place,high,新华社地名译名,
+italy,意大利,place,high,新华社地名译名,
+japan,日本,place,high,新华社地名译名,
+india,印度,place,high,新华社地名译名,
+brazil,巴西,place,high,新华社地名译名,
+mexico,墨西哥,place,high,新华社地名译名,
+poland,波兰,place,high,新华社地名译名,
+russia,俄罗斯,place,high,新华社地名译名,
+netherlands,荷兰,place,high,新华社地名译名,
+sweden,瑞典,place,high,新华社地名译名,
+norway,挪威,place,high,新华社地名译名,
+denmark,丹麦,place,high,新华社地名译名,
+switzerland,瑞士,place,high,新华社地名译名,
+austria,奥地利,place,high,新华社地名译名,
+belgium,比利时,place,high,新华社地名译名,
+spain,西班牙,place,high,新华社地名译名,
+portugal,葡萄牙,place,high,新华社地名译名,
+greece,希腊,place,high,新华社地名译名,
+turkey,土耳其,place,high,新华社地名译名,
+south korea,韩国,place,high,新华社地名译名,
+singapore,新加坡,place,high,新华社地名译名,
+south africa,南非,place,high,新华社地名译名,
+new zealand,新西兰,place,high,新华社地名译名,
+argentina,阿根廷,place,high,新华社地名译名,
+chile,智利,place,high,新华社地名译名,
+peru,秘鲁,place,high,新华社地名译名,
+colombia,哥伦比亚,place,high,新华社地名译名,
+venezuela,委内瑞拉,place,high,新华社地名译名,
+cuba,古巴,place,high,新华社地名译名,
+vietnam,越南,place,high,新华社地名译名,
+thailand,泰国,place,high,新华社地名译名,
+indonesia,印度尼西亚,place,high,新华社地名译名,
+malaysia,马来西亚,place,high,新华社地名译名,
+philippines,菲律宾,place,high,新华社地名译名,
+pakistan,巴基斯坦,place,high,新华社地名译名,
+bangladesh,孟加拉国,place,high,新华社地名译名,
+egypt,埃及,place,high,新华社地名译名,
+nigeria,尼日利亚,place,high,新华社地名译名,
+kenya,肯尼亚,place,high,新华社地名译名,
+ghana,加纳,place,high,新华社地名译名,
+ethiopia,埃塞俄比亚,place,high,新华社地名译名,
+california,加利福尼亚,place,high,新华社地名译名,
+texas,得克萨斯,place,high,新华社地名译名,
+florida,佛罗里达,place,high,新华社地名译名,
+washington,华盛顿,place,high,新华社地名译名,
+toronto,多伦多,place,high,新华社地名译名,
+amsterdam,阿姆斯特丹,place,high,新华社地名译名,
+berlin,柏林,place,high,新华社地名译名,
+paris,巴黎,place,high,新华社地名译名,
+rome,罗马,place,high,新华社地名译名,
+tokyo,东京,place,high,新华社地名译名,
+beijing,北京,place,high,新华社地名译名,
+shanghai,上海,place,high,新华社地名译名,
+sweezy pos.,斯威齐,surname,high,《垄断资本》通行译名,Paul Sweezy|paul sweezy
+boyer pos.,博耶,surname,medium,调节学派通行译名,Robert Boyer
+rosser jr. j.,巴克利·罗瑟,surname,medium,Jr. 后缀按中文惯例省略,"J. Barkley Rosser Jr.|j. barkley rosser jr|Rosser Jr., J. Barkley"
+zuboff s.,祖博夫,surname,high,《监视资本主义时代》中译本（肖莎娜·祖博夫）,Zuboff, S.|S. Zuboff|zuboff
+Shoshana Zuboff,肖莎娜·祖博夫,full,high,《监视资本主义时代》中译本,

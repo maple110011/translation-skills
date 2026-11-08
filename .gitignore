@@ -1,0 +1,19 @@
+# Python / editor / OS
+__pycache__/
+*.py[cod]
+*.pyo
+.DS_Store
+Thumbs.db
+*.swp
+
+# Large data and build artifacts: never tracked here (see README "外部数据")
+_marx_ref/
+MinerU输出/
+*.pdf
+*.zip
+*.7z
+*.log
+*.pid
+
+# WorkBuddy runtime leftovers
+*.pre-junction-backup/

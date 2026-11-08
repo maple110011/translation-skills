@@ -1,0 +1,1171 @@
+﻿src,dst,kind,tier,status,basis,n_files
+london,伦敦,place,core,已定,verified:high,56
+cambridge,剑桥,uncertain,core,一致,freq,55
+new york,纽约,place,core,已定,verified:high,53
+marx,马克思,name,core,已定,verified:high,46
+oxford,牛津,place,core,已定,verified:high,43
+uk,英国,place,core,一致,freq,30
+usa,美国,place,core,一致,freq,25
+chicago,芝加哥,place,core,已定,verified:high,20
+paris,巴黎,place,core,已定,verified:high,20
+united states,美国,place,core,一致,freq,19
+us,美国,place,core,一致,freq,19
+india,印度,place,core,已定,verified:high,18
+sraffa,斯拉法,name,core,已定,verified:high,18
+china,中国,place,core,一致,freq,17
+boston,波士顿,place,core,已定,verified:high,16
+europe,欧洲,uncertain,core,一致,freq,16
+japan,日本,place,core,已定,verified:high,16
+france,法国,place,core,已定,verified:high,15
+germany,德国,place,core,已定,verified:high,15
+kurz,库尔茨,name,core,已定,verified:high,15
+thompson,汤普森,uncertain,core,一致,freq,15
+"cambridge, ma",剑桥（马萨诸塞州）,place,core,已定,verified:high,14
+italy,意大利,place,core,已定,verified:high,14
+ricardo,李嘉图,name,core,已定,verified:high,14
+Taylor,泰勒,name,core,一致,freq,14
+amsterdam,阿姆斯特丹,place,core,已定,verified:high,13
+england,英格兰,place,core,已定,verified:high,13
+leontief,列昂惕夫,name,core,已定,verified:high,13
+salvadori,萨尔瓦多里,name,core,已定,verified:high,13
+smith,史密斯,uncertain,core,待裁决,freq,13
+u.s.,美国,place,core,一致,freq,13
+adam smith,亚当·斯密,name,core,已定,verified:high,12
+berlin,柏林,place,core,已定,verified:high,12
+cheltenham,切尔滕纳姆,place,core,已定,verified:high,12
+foley,弗利,name,core,已定,verified:medium,12
+keynes,凯恩斯,name,core,已定,verified:high,11
+"marx, k.",马克思,name,core,已定,verified:high,11
+massachusetts,马萨诸塞州,place,core,已定,verified:high,11
+davis,戴维斯,uncertain,core,一致,freq,10
+samuelson,萨缪尔森,uncertain,core,一致,freq,10
+von neumann,冯·诺伊曼,name,core,已定,verified:high,10
+williams,威廉姆斯,uncertain,core,待裁决,freq,10
+wright,赖特,uncertain,core,一致,freq,10
+braverman,布雷弗曼,name,core,已定,verified:high,9
+carter,卡特,uncertain,core,一致,freq,9
+karl marx,卡尔·马克思,name,core,已定,verified:high,9
+moscow,莫斯科,uncertain,core,一致,freq,9
+pasinetti,帕西内蒂,name,core,已定,verified:high,9
+princeton,普林斯顿,place,core,已定,verified:high,9
+switzerland,瑞士,place,core,已定,verified:high,9
+aldershot,奥尔德肖特,place,core,已定,verified:high,8
+austria,奥地利,place,core,已定,verified:high,8
+basingstoke,贝辛斯托克,place,core,已定,verified:high,8
+brazil,巴西,place,core,已定,verified:high,8
+britain,英国,place,core,已定,verified:high,8
+ithaca,伊萨卡,uncertain,core,一致,freq,8
+latin america,拉丁美洲,other,core,一致,freq,8
+philadelphia,费城,uncertain,core,一致,freq,8
+piero sraffa,皮耶罗·斯拉法,name,core,已定,verified:high,8
+"salvadori, n.",萨尔瓦多里,name,core,已定,verified:high,8
+schefold,舍福尔德,name,core,已定,verified:medium,8
+shaikh,谢克,name,core,已定,verified:medium,8
+united kingdom,英国,place,core,一致,freq,8
+africa,非洲,uncertain,core,一致,freq,7
+australia,澳大利亚,place,core,已定,verified:high,7
+bain,贝恩,uncertain,core,一致,freq,7
+basu,巴苏,uncertain,core,一致,freq,7
+bowles,鲍尔斯,uncertain,core,一致,freq,7
+clark,克拉克,uncertain,core,一致,freq,7
+dobb,多布,uncertain,core,一致,freq,7
+dos santos,多斯桑托斯,other,core,一致,freq,7
+edinburgh,爱丁堡,uncertain,core,一致,freq,7
+Edwards,爱德华兹,name,core,一致,freq,7
+engels,恩格斯,name,core,已定,verified:high,7
+geneva,日内瓦,uncertain,core,一致,freq,7
+greece,希腊,place,core,已定,verified:high,7
+hicks,希克斯,uncertain,core,一致,freq,7
+lawson,劳森,uncertain,core,一致,freq,7
+lee,李,uncertain,core,一致,freq,7
+mackenzie,麦肯齐,uncertain,core,一致,freq,7
+marshall,马歇尔,uncertain,core,一致,freq,7
+meyer,迈耶,uncertain,core,一致,freq,7
+new haven,纽黑文,other,core,一致,freq,7
+sen,森,uncertain,core,一致,freq,7
+wajcman,瓦杰曼,uncertain,core,待裁决,freq,7
+walras,瓦尔拉斯,name,core,已定,verified:high,7
+western europe,西欧,other,core,一致,freq,7
+wood,伍德,uncertain,core,一致,freq,7
+america,美国,place,core,已定,verified:high,6
+amherst,阿默斯特,uncertain,core,一致,freq,6
+argentina,阿根廷,place,core,已定,verified:high,6
+baltimore,巴尔的摩,uncertain,core,一致,freq,6
+california,加利福尼亚,place,core,已定,verified:high,6
+friedman,弗里德曼,uncertain,core,一致,freq,6
+graham,格雷厄姆,uncertain,core,一致,freq,6
+green,格林,uncertain,core,一致,freq,6
+harmondsworth,哈蒙兹沃思,place,core,已定,verified:medium,6
+harvey,哈维,uncertain,core,一致,freq,6
+lenin,列宁,name,core,已定,verified:high,6
+mexico,墨西哥,place,core,已定,verified:high,6
+Morgan,摩根,name,core,一致,freq,6
+netherlands,荷兰,place,core,已定,verified:high,6
+robinson,罗宾逊,uncertain,core,一致,freq,6
+rosenblat,罗森布拉特,uncertain,core,一致,freq,6
+russia,俄罗斯,place,core,已定,verified:high,6
+spain,西班牙,place,core,已定,verified:high,6
+"sraffa, p.",斯拉法,name,core,已定,verified:high,6
+stark,斯塔克,uncertain,core,一致,freq,6
+steedman,斯蒂德曼,name,core,已定,verified:high,6
+sweezy,斯威齐,uncertain,core,待裁决,freq,6
+thomas,托马斯,uncertain,core,一致,freq,6
+tokyo,东京,place,core,已定,verified:high,6
+tony lawson,托尼·劳森,name,core,已定,verified:medium,6
+veblen,凡勃伦,name,core,已定,verified:high,6
+abingdon,阿宾登,uncertain,core,一致,freq,5
+acemoglu,阿西莫格鲁,uncertain,core,一致,freq,5
+Ackroyd,阿克洛伊德,name,core,待裁决,freq,5
+anderson,安德森,uncertain,core,一致,freq,5
+asia,亚洲,uncertain,core,一致,freq,5
+Barley,巴利,name,core,一致,freq,5
+berkeley,伯克利,uncertain,core,一致,freq,5
+boulder,博尔德,uncertain,core,一致,freq,5
+boyer,博耶,uncertain,core,待裁决,freq,5
+brown,布朗,uncertain,core,一致,freq,5
+campbell,坎贝尔,uncertain,core,一致,freq,5
+david ricardo,大卫·李嘉图,name,core,已定,verified:high,5
+Delbridge,德尔布里奇,name,core,一致,freq,5
+fine,法因,uncertain,core,待裁决,freq,5
+"foley, d. k.",弗利,name,core,已定,verified:medium,5
+fred moseley,弗雷德·莫斯利,name,core,已定,verified:high,5
+georgescu-roegen,乔治斯库-罗根,other,core,一致,freq,5
+harcourt,哈考特,uncertain,core,一致,freq,5
+heinz d. kurz,海因茨·库尔茨,name,core,一致,normalize,5
+hodgson,霍奇森,uncertain,core,一致,freq,5
+Howcroft,豪克罗夫特,name,core,待裁决,freq,5
+joan robinson,琼·罗宾逊,name,core,已定,verified:high,5
+kotz,科茨,uncertain,core,一致,freq,5
+Lapavitsas,拉帕维察斯,name,core,已定,verified:medium,5
+lewis,刘易斯,uncertain,core,一致,freq,5
+loranger,洛朗热,uncertain,core,待裁决,freq,5
+milan,米兰,uncertain,core,一致,freq,5
+Milkman,米尔克曼,name,core,已定,verified:medium,5
+minneapolis,明尼阿波利斯,uncertain,core,一致,freq,5
+morishima,森岛通夫,name,core,已定,verified:high,5
+noble,诺布尔,uncertain,core,一致,freq,5
+O'Sullivan,奥沙利文,name,core,一致,freq,5
+poland,波兰,place,core,已定,verified:high,5
+Roberts,罗伯茨,name,core,一致,freq,5
+roemer,罗默,uncertain,core,一致,freq,5
+schaupp,肖普,uncertain,core,待裁决,freq,5
+scott,斯科特,uncertain,core,一致,freq,5
+shannon,香农,uncertain,core,一致,freq,5
+solow,索洛,uncertain,core,一致,freq,5
+srnicek,斯尔尼切克,uncertain,core,待裁决,freq,5
+sweden,瑞典,place,core,已定,verified:high,5
+tsoulfidis,楚尔菲迪斯,name,core,已定,verified:medium,5
+Vidal,维达尔,name,core,一致,freq,5
+weber,韦伯,uncertain,core,一致,freq,5
+woodcock,伍德科克,uncertain,core,一致,freq,5
+Alemi,阿勒米,name,core,待裁决,freq,4
+ann arbor,安娜堡,other,core,一致,freq,4
+arestis,阿雷斯蒂斯,uncertain,core,一致,freq,4
+baumol,鲍莫尔,uncertain,core,一致,freq,4
+belgium,比利时,place,core,已定,verified:high,4
+bhattacharya,巴塔查里亚,uncertain,core,一致,freq,4
+briken,布里肯,uncertain,core,一致,freq,4
+bristol,布里斯托尔,uncertain,core,待裁决,freq,4
+brussels,布鲁塞尔,uncertain,core,一致,freq,4
+bryan,布莱恩,uncertain,core,待裁决,freq,4
+bródy,布罗迪,uncertain,core,一致,freq,4
+burawoy,布洛维,name,core,已定,verified:high,4
+"Cambridge, UK",剑桥（英国）,place,core,已定,verified:high,4
+canada,加拿大,place,core,已定,verified:high,4
+castells,卡斯特尔,name,core,已定,verified:high,4
+chakrabarti,查克拉巴蒂,uncertain,core,一致,freq,4
+cham,卡姆,uncertain,core,待裁决,freq,4
+christian gehrke,克里斯蒂安·格尔克,name,core,已定,verified:medium,4
+christian lager,克里斯蒂安·拉格,name,core,一致,freq,4
+coase,科斯,uncertain,core,一致,freq,4
+colander,科兰德,uncertain,core,一致,freq,4
+deepankar basu,迪潘卡尔·巴苏,name,core,一致,freq,4
+denmark,丹麦,place,core,已定,verified:high,4
+detroit,底特律,uncertain,core,一致,freq,4
+dordrecht,多德雷赫特,uncertain,core,一致,freq,4
+dorfman,多尔夫曼,uncertain,core,待裁决,freq,4
+dow,道,uncertain,core,一致,freq,4
+duncan foley,邓肯·弗利,name,core,已定,verified:medium,4
+eatwell,伊特韦尔,uncertain,core,一致,freq,4
+foucault,福柯,uncertain,core,一致,freq,4
+fullbrook,富尔布鲁克,uncertain,core,一致,freq,4
+gallie,加利,uncertain,core,待裁决,freq,4
+garegnani,加雷尼亚尼,name,core,已定,verified:high,4
+german,德国,place,core,一致,freq,4
+gintis,金蒂斯,uncertain,core,一致,freq,4
+gramsci,葛兰西,name,core,已定,verified:high,4
+graz,格拉茨,uncertain,core,一致,freq,4
+guy standing,盖伊·斯坦丁,name,core,一致,freq,4
+hamburg,汉堡,uncertain,core,一致,freq,4
+harvard,哈佛,uncertain,core,一致,freq,4
+heinz kurz,海因茨·库尔茨,name,core,已定,verified:high,4
+henry bernstein,亨利·伯恩斯坦,name,core,一致,freq,4
+hughes,休斯,uncertain,core,一致,freq,4
+indiana,印第安纳,uncertain,core,待裁决,freq,4
+jensen,詹森,uncertain,core,待裁决,freq,4
+jevons,杰文斯,uncertain,core,一致,freq,4
+johansen,约翰森,uncertain,core,一致,freq,4
+Lazonick,拉佐尼克,name,core,已定,verified:medium,4
+lefteris tsoulfidis,莱夫特里斯·楚尔菲迪斯,name,core,已定,verified:medium,4
+leiden,莱顿,uncertain,core,一致,freq,4
+luxemburg,卢森堡,name,core,已定,verified:high,4
+maccarrone,马卡罗内,uncertain,core,一致,freq,4
+malthus,马尔萨斯,name,core,已定,verified:high,4
+manchester,曼彻斯特,uncertain,core,一致,freq,4
+mariolis,马里奥利斯,name,core,已定,verified:medium,4
+martins,马丁斯,uncertain,core,一致,freq,4
+marx k,马克思,name,core,已定,verified:high,4
+"marx, karl",卡尔·马克思,name,core,一致,freq,4
+maurice dobb,莫里斯·多布,name,core,一致,freq,4
+moore,摩尔,uncertain,core,一致,freq,4
+neri salvadori,内里·萨尔瓦多里,name,core,已定,verified:high,4
+ness,内斯,uncertain,core,一致,freq,4
+new delhi,新德里,other,core,一致,freq,4
+"New York, NY",纽约,name,core,一致,freq,4
+north america,北美,other,core,待裁决,freq,4
+norway,挪威,place,core,已定,verified:high,4
+orlikowski,奥利科夫斯基,name,core,已定,verified:medium,4
+paul thompson,保罗·汤普森,name,core,一致,freq,4
+peru,秘鲁,place,core,已定,verified:high,4
+pfeiffer,普法伊费尔,uncertain,core,待裁决,freq,4
+pierangelo garegnani,皮耶兰杰洛·加雷尼亚尼,name,core,一致,freq,4
+rafferty,拉弗蒂,uncertain,core,一致,freq,4
+"ricardo, d.",李嘉图,name,core,已定,verified:high,4
+roberto veneziani,罗伯托·韦内齐亚尼,name,core,待裁决,freq,4
+rome,罗马,place,core,已定,verified:high,4
+rosa luxemburg,罗莎·卢森堡,name,core,已定,verified:high,4
+rubery,鲁伯里,uncertain,core,一致,freq,4
+schneider,施奈德,uncertain,core,待裁决,freq,4
+schumpeter,熊彼特,name,core,已定,verified:high,4
+"shaikh, a.",谢克,name,core,已定,verified:medium,4
+silicon valley,硅谷,other,core,一致,freq,4
+singapore,新加坡,place,core,已定,verified:high,4
+"smith, a.",斯密,name,core,已定,verified:high,4
+standing,斯坦丁,uncertain,core,一致,freq,4
+stanford,斯坦福,uncertain,core,一致,freq,4
+Stockhammer,斯托克哈默,name,core,已定,verified:medium,4
+Stockhammer E,斯托克哈默,name,core,已定,verified:medium,4
+tassinari,塔西纳里,uncertain,core,一致,freq,4
+Thompson P,汤普森,name,core,一致,normalize,4
+"Thompson, P.",汤普森,name,core,一致,normalize,4
+torrens,托伦斯,uncertain,core,一致,freq,4
+varri,瓦里,uncertain,core,一致,freq,4
+"wajcman, j.",朱迪·瓦伊克曼,name,core,待裁决,freq,4
+washington,华盛顿,place,core,已定,verified:high,4
+wassily leontief,瓦西里·列昂惕夫,name,core,已定,verified:high,4
+webster,韦伯斯特,uncertain,core,一致,freq,4
+wilkinson,威尔金森,uncertain,core,一致,freq,4
+zuboff,祖博夫,uncertain,core,待裁决,freq,4
+Adler,阿德勒,name,core,一致,freq,3
+albany,奥尔巴尼,uncertain,core,一致,freq,3
+alfred marshall,阿尔弗雷德·马歇尔,name,core,已定,verified:high,3
+altenried,阿尔滕里德,uncertain,core,一致,freq,3
+althusser,阿尔都塞,name,core,已定,verified:high,3
+Altmann,阿尔特曼,name,core,一致,freq,3
+austin,奥斯汀,uncertain,core,一致,freq,3
+autor,奥特尔,uncertain,core,待裁决,freq,3
+azzellini,阿泽利尼,uncertain,core,一致,freq,3
+bacon,培根,uncertain,core,一致,freq,3
+balibar,巴里巴尔,uncertain,core,待裁决,freq,3
+banaji,巴纳吉,uncertain,core,一致,freq,3
+Baran,巴兰,name,core,一致,freq,3
+barcelona,巴塞罗那,uncertain,core,一致,freq,3
+basel,巴塞尔,uncertain,core,一致,freq,3
+bellofiore,贝洛菲奥雷,uncertain,core,一致,freq,3
+ben fine,本·法恩,name,core,待裁决,freq,3
+bernstein,伯恩斯坦,uncertain,core,一致,freq,3
+beverly hills,比弗利山庄,other,core,待裁决,freq,3
+bhaduri,巴杜里,uncertain,core,一致,freq,3
+bijker,比克,name,core,已定,verified:high,3
+breman,布雷曼,uncertain,core,一致,freq,3
+British,英国,place,core,一致,freq,3
+bronowicka,布罗诺维卡,uncertain,core,待裁决,freq,3
+brynjolfsson,布林约尔松,uncertain,core,一致,freq,3
+budapest,布达佩斯,uncertain,core,一致,freq,3
+burchell,伯切尔,uncertain,core,一致,freq,3
+burmeister,布尔迈斯特,uncertain,core,待裁决,freq,3
+Burnham,伯纳姆,name,core,一致,freq,3
+butollo,布托洛,uncertain,core,一致,freq,3
+ca,加利福尼亚州,place,core,一致,freq,3
+"cambridge, mass.",马萨诸塞州剑桥,place,core,待裁决,freq,3
+chen,陈,uncertain,core,一致,freq,3
+chile,智利,place,core,已定,verified:high,3
+cini,奇尼,uncertain,core,一致,freq,3
+cogliano,科利亚诺,uncertain,core,一致,freq,3
+cohen,科恩,uncertain,core,一致,freq,3
+colorado,科罗拉多州,place,core,待裁决,freq,3
+costa rica,哥斯达黎加,other,core,一致,freq,3
+Crotty,克罗蒂,name,core,一致,freq,3
+Cushen,卡申,name,core,待裁决,freq,3
+Danford,丹福德,name,core,一致,freq,3
+david colander,大卫·科兰德,name,core,待裁决,freq,3
+davidson,戴维森,uncertain,core,一致,freq,3
+dietzenbacher,迪岑巴赫尔,uncertain,core,待裁决,freq,3
+downward,唐沃德,uncertain,core,一致,freq,3
+duménil,杜梅尼尔,uncertain,core,待裁决,freq,3
+durham,达勒姆,uncertain,core,一致,freq,3
+eastern europe,东欧,other,core,一致,freq,3
+Elger,埃尔格,name,core,待裁决,freq,3
+fantasia,范塔西亚,uncertain,core,待裁决,freq,3
+farjoun,法尔容,uncertain,core,待裁决,freq,3
+ferrer-hernández,费雷尔-埃尔南德斯,other,core,一致,freq,3
+"fine, b.",法因,name,core,待裁决,freq,3
+finland,芬兰,uncertain,core,一致,freq,3
+fisher,费希尔,uncertain,core,待裁决,freq,3
+foster,福斯特,uncertain,core,一致,freq,3
+frank,弗兰克,uncertain,core,一致,freq,3
+franke,弗兰克,uncertain,core,一致,freq,3
+freeman,弗里曼,uncertain,core,一致,freq,3
+"freeman, a.",弗里曼,name,core,一致,normalize,3
+frey,弗雷,uncertain,core,一致,freq,3
+"friedman, m.",弗里德曼,name,core,待裁决,freq,3
+Froud,弗劳德,name,core,一致,freq,3
+galière,加利埃雷,uncertain,core,待裁决,freq,3
+Glasgow,格拉斯哥,name,core,一致,freq,3
+global north,全球北方,other,core,一致,freq,3
+global south,全球南方,other,core,一致,freq,3
+Goodwin,古德温,name,core,一致,freq,3
+gray,格雷,uncertain,core,一致,freq,3
+Great Britain,英国,place,core,待裁决,freq,3
+greer,格里尔,uncertain,core,一致,freq,3
+griesbach,格里斯巴赫,uncertain,core,待裁决,freq,3
+hahn,哈恩,uncertain,core,一致,freq,3
+hall,霍尔,uncertain,core,一致,freq,3
+harman,哈曼,uncertain,core,一致,freq,3
+harris,哈里斯,uncertain,core,一致,freq,3
+harriss-white,哈里斯-怀特,name,core,已定,verified:medium,3
+harry braverman,哈里·布雷弗曼,name,core,已定,verified:high,3
+heidelberg,海德堡,uncertain,core,一致,freq,3
+heiland,海兰德,uncertain,core,一致,freq,3
+hirst,赫斯特,uncertain,core,一致,freq,3
+holt,霍尔特,uncertain,core,一致,freq,3
+hong kong,香港,place,core,一致,freq,3
+hungary,匈牙利,uncertain,core,一致,freq,3
+Ian Clark,伊恩·克拉克,name,core,一致,freq,3
+ian steedman,伊恩·斯蒂德曼,name,core,已定,verified:high,3
+illinois,伊利诺伊州,place,core,待裁决,freq,3
+isaac,艾萨克,uncertain,core,一致,freq,3
+ivanova,伊万诺娃,uncertain,core,一致,freq,3
+jaynes,杰恩斯,uncertain,core,一致,freq,3
+Jena,耶拿,name,core,一致,freq,3
+Jessop,杰索普,name,core,已定,verified:medium,3
+john maynard keynes,约翰·梅纳德·凯恩斯,name,core,已定,verified:high,3
+john stuart mill,约翰·斯图亚特·穆勒,name,core,已定,verified:high,3
+jones,琼斯,uncertain,core,一致,freq,3
+kalleberg,卡勒伯格,uncertain,core,一致,freq,3
+kapur,卡普尔,uncertain,core,一致,freq,3
+karl polanyi,卡尔·波兰尼,name,core,已定,verified:high,3
+kaufmann,考夫曼,uncertain,core,一致,freq,3
+keen,基恩,uncertain,core,一致,freq,3
+kellogg,凯洛格,uncertain,core,一致,freq,3
+kennedy,肯尼迪,uncertain,core,一致,freq,3
+"keynes, j. m.",凯恩斯,name,core,已定,verified:high,3
+korea,韩国,place,core,一致,freq,3
+Krippner,克里普纳,name,core,一致,freq,3
+"kurz, h.d.",库尔茨,name,core,已定,verified:high,3
+laaser,拉瑟,uncertain,core,一致,freq,3
+Lapavitsas C,拉帕维察斯,name,core,已定,verified:medium,3
+latour,拉图尔,name,core,已定,verified:high,3
+Lawrence,劳伦斯,name,core,一致,freq,3
+Lazonick W,拉佐尼克,name,core,已定,verified:medium,3
+leonardi,莱昂纳迪,uncertain,core,待裁决,freq,3
+Levy,利维,name,core,待裁决,freq,3
+los angeles,洛杉矶,other,core,一致,freq,3
+lukács,卢卡奇,uncertain,core,一致,freq,3
+luxembourg,卢森堡,uncertain,core,一致,freq,3
+MA,马萨诸塞州,place,core,一致,freq,3
+machover,马乔弗,uncertain,core,待裁决,freq,3
+"mackenzie, d.",麦肯齐,name,core,待裁决,freq,3
+Magdoff,马格多夫,name,core,一致,freq,3
+malden,莫尔登,uncertain,core,一致,freq,3
+mandel,曼德尔,uncertain,core,一致,freq,3
+maxwell,麦克斯韦,uncertain,core,一致,freq,3
+mazzucato,马祖卡托,uncertain,core,一致,freq,3
+meek,米克,uncertain,core,一致,freq,3
+michl,米奇尔,uncertain,core,待裁决,freq,3
+milano,米兰,uncertain,core,一致,freq,3
+milgate,米尔盖特,uncertain,core,一致,freq,3
+"Milkman, R.",米尔克曼,name,core,已定,verified:medium,3
+mohun,莫亨,uncertain,core,待裁决,freq,3
+"mohun, s.",西蒙·莫恩,name,core,待裁决,freq,3
+mokyr,莫基尔,uncertain,core,待裁决,freq,3
+mondragon,蒙德拉贡,uncertain,core,一致,freq,3
+"morishima, m.",森岛通夫,name,core,已定,verified:high,3
+moseley,莫斯利,name,core,已定,verified:high,3
+munck,芒克,uncertain,core,待裁决,freq,3
+neilson,尼尔森,uncertain,core,一致,freq,3
+new south wales,新南威尔士州,place,core,待裁决,freq,3
+new york city,纽约市,place,core,一致,freq,3
+newman,纽曼,uncertain,core,一致,freq,3
+NJ,新泽西州,place,core,一致,freq,3
+O'Sullivan M,奥沙利文,name,core,一致,normalize,3
+oakland,奥克兰,uncertain,core,一致,freq,3
+ochoa,奥乔亚,uncertain,core,一致,freq,3
+ohio,俄亥俄,uncertain,core,待裁决,freq,3
+okishio,置盐信雄,name,core,已定,verified:high,3
+osborne,奥斯本,uncertain,core,一致,freq,3
+oslo,奥斯陆,uncertain,core,一致,freq,3
+paul sweezy,斯威齐,name,core,已定,verified:high,3
+pierre bourdieu,皮埃尔·布迪厄,name,core,待裁决,freq,3
+pigou,庇古,uncertain,core,待裁决,freq,3
+pinch,平奇,name,core,已定,verified:high,3
+pratten,普拉滕,uncertain,core,一致,freq,3
+proudhon,蒲鲁东,uncertain,core,待裁决,freq,3
+reich,赖希,uncertain,core,待裁决,freq,3
+restrepo,雷斯特雷波,uncertain,core,一致,freq,3
+Richardson,理查森,name,core,一致,freq,3
+robbins,罗宾斯,uncertain,core,一致,freq,3
+"robbins, l.",罗宾斯,name,core,一致,normalize,3
+"robinson, j.",罗宾逊,name,core,已定,verified:high,3
+ronaldo munck,罗纳尔多·蒙克,name,core,一致,freq,3
+roncaglia,龙卡利亚,uncertain,core,一致,freq,3
+rosenberg,罗森伯格,uncertain,core,一致,freq,3
+rosser,罗瑟,uncertain,core,一致,freq,3
+roy,罗伊,uncertain,core,一致,freq,3
+Russell,拉塞尔,name,core,待裁决,freq,3
+"samuelson, p. a.",萨缪尔森,name,core,一致,normalize,3
+san diego,圣地亚哥,other,core,待裁决,freq,3
+San Francisco,旧金山,name,core,一致,freq,3
+sayer,塞耶,uncertain,core,一致,freq,3
+scharfenaker,沙尔费纳克,uncertain,core,待裁决,freq,3
+"schefold, b.",舍福尔德,name,core,已定,verified:medium,3
+schmalz,施马尔茨,uncertain,core,一致,freq,3
+scholz,肖尔茨,uncertain,core,待裁决,freq,3
+schor,肖尔,uncertain,core,一致,freq,3
+Schumann,舒曼,name,core,一致,freq,3
+Scotland,苏格兰,place,core,已定,verified:high,3
+seattle,西雅图,uncertain,core,一致,freq,3
+sherman,舍曼,uncertain,core,待裁决,freq,3
+Simon,西蒙,name,core,一致,freq,3
+"solow, r.",索洛,name,core,已定,verified:high,3
+south africa,南非,place,core,已定,verified:high,3
+south asia,南亚,other,core,一致,freq,3
+soviet union,苏联,other,core,一致,freq,3
+stein,斯坦,uncertain,core,一致,freq,3
+stuart,斯图尔特,uncertain,core,待裁决,freq,3
+sub-saharan africa,撒哈拉以南非洲,other,core,一致,freq,3
+sutherland,萨瑟兰,uncertain,core,一致,freq,3
+tamar diana wilson,塔玛·戴安娜·威尔逊,name,core,待裁决,freq,3
+Taylor P,泰勒,name,core,一致,normalize,3
+texas,得克萨斯,place,core,已定,verified:high,3
+thorstein veblen,托尔斯坦·凡勃伦,name,core,已定,verified:high,3
+thousand oaks,千橡市,place,core,待裁决,freq,3
+timmer,蒂默,uncertain,core,一致,freq,3
+tobin,托宾,uncertain,core,一致,freq,3
+torres-gonzález,托雷斯-冈萨雷斯,other,core,一致,freq,3
+trotsky,托洛茨基,uncertain,core,一致,freq,3
+"tsoulfidis, l.",楚尔菲迪斯,name,core,已定,verified:medium,3
+vallas,瓦拉斯,uncertain,core,一致,freq,3
+van doorn,范·多尔恩,name,core,待裁决,freq,3
+veneziani,韦内齐亚尼,uncertain,core,一致,freq,3
+"von Neumann, J.",冯·诺伊曼,name,core,已定,verified:high,3
+wagner,瓦格纳,uncertain,core,一致,freq,3
+wales,威尔士,place,core,已定,verified:high,3
+"washington, dc",华盛顿特区,place,core,待裁决,freq,3
+"Williamson, O.",威廉姆森,name,core,待裁决,freq,3
+winner,温纳,name,core,已定,verified:high,3
+wittgenstein,维特根斯坦,uncertain,core,一致,freq,3
+wolff,沃尔夫,uncertain,core,一致,freq,3
+yoshihara,吉原,uncertain,core,一致,freq,3
+a. smith,斯密,name,core,已定,verified:high,2
+andrew feenberg,安德鲁·芬伯格,name,core,已定,verified:high,2
+Arrighi,阿瑞吉,name,core,已定,verified:high,2
+bangladesh,孟加拉国,place,core,已定,verified:high,2
+Beijing,北京,place,core,已定,verified:high,2
+"bijker, w. e.",比克,name,core,已定,verified:high,2
+bruno latour,布鲁诺·拉图尔,name,core,已定,verified:high,2
+castells m,卡斯特尔,name,core,已定,verified:high,2
+colombia,哥伦比亚,place,core,已定,verified:high,2
+david harvey,大卫·哈维,name,core,已定,verified:high,2
+"engels, f.",恩格斯,name,core,已定,verified:high,2
+"garegnani, p.",加雷尼亚尼,name,core,已定,verified:high,2
+ghana,加纳,place,core,已定,verified:high,2
+Harrod,哈罗德,name,core,已定,verified:high,2
+"harvey, d.",哈维,name,core,已定,verified:high,2
+Hilferding,希法亭,name,core,已定,verified:high,2
+Hilferding R,希法亭,name,core,已定,verified:high,2
+"hughes, t. p.",休斯,name,core,已定,verified:high,2
+ireland,爱尔兰,place,core,已定,verified:high,2
+john von neumann,约翰·冯·诺伊曼,name,core,已定,verified:high,2
+k. marx,马克思,name,core,已定,verified:high,2
+kalecki,卡莱茨基,name,core,已定,verified:high,2
+"kalecki, m.",卡莱茨基,name,core,已定,verified:high,2
+karl kautsky,卡尔·考茨基,name,core,已定,verified:high,2
+"latour, b.",拉图尔,name,core,已定,verified:high,2
+"lenin, v. i.",列宁,name,core,已定,verified:high,2
+louis althusser,路易·阿尔都塞,name,core,已定,verified:high,2
+"Luxemburg, R.",卢森堡,name,core,已定,verified:high,2
+malaysia,马来西亚,place,core,已定,verified:high,2
+manuel castells,曼纽尔·卡斯特尔,name,core,已定,verified:high,2
+new zealand,新西兰,place,core,已定,verified:high,2
+nigeria,尼日利亚,place,core,已定,verified:high,2
+Northampton,北安普敦,place,core,已定,verified:high,2
+"okishio, n.",置盐信雄,name,core,已定,verified:high,2
+p. sraffa,斯拉法,name,core,已定,verified:high,2
+pakistan,巴基斯坦,place,core,已定,verified:high,2
+pareto,帕累托,name,core,已定,verified:high,2
+"pasinetti, l.",帕西内蒂,name,core,已定,verified:high,2
+paul samuelson,保罗·萨缪尔森,name,core,已定,verified:high,2
+philippines,菲律宾,place,core,已定,verified:high,2
+portugal,葡萄牙,place,core,已定,verified:high,2
+quesnay,魁奈,name,core,已定,verified:high,2
+"Samuelson, P.",萨缪尔森,name,core,已定,verified:high,2
+south korea,韩国,place,core,已定,verified:high,2
+"steedman, i.",斯蒂德曼,name,core,已定,verified:high,2
+thailand,泰国,place,core,已定,verified:high,2
+toronto,多伦多,place,core,已定,verified:high,2
+vietnam,越南,place,core,已定,verified:high,2
+wallerstein,沃勒斯坦,name,core,已定,verified:high,2
+antonio gramsci,安东尼奥·葛兰西,name,core,已定,verified:high,1
+arghiri emmanuel,阿吉里·伊曼纽尔,name,core,已定,verified:high,1
+"bijker, w.e.",比克,name,core,已定,verified:high,1
+"Braverman, H.",布雷弗曼,name,core,已定,verified:high,1
+Bukharin,布哈林,name,core,已定,verified:high,1
+"Bukharin, N.",布哈林,name,core,已定,verified:high,1
+cambridge (ma),剑桥（马萨诸塞州）,place,core,已定,verified:high,1
+Cuba,古巴,place,core,已定,verified:high,1
+D. Harvey,哈维,name,core,已定,verified:high,1
+"Domar, E.",多马,name,core,已定,verified:high,1
+e. p. thompson,E. P. 汤普森,name,core,已定,verified:high,1
+edwards r,爱德华兹,name,core,已定,verified:high,1
+egypt,埃及,place,core,已定,verified:high,1
+ethiopia,埃塞俄比亚,place,core,已定,verified:high,1
+feenberg,芬伯格,name,core,已定,verified:high,1
+friedrich engels,弗里德里希·恩格斯,name,core,已定,verified:high,1
+giovanni arrighi,乔万尼·阿瑞吉,name,core,已定,verified:high,1
+herbert marcuse,赫伯特·马尔库塞,name,core,已定,verified:high,1
+"hilferding, r.",希法亭,name,core,已定,verified:high,1
+"hughes, t.p.",休斯,name,core,已定,verified:high,1
+i. steedman,斯蒂德曼,name,core,已定,verified:high,1
+immanuel wallerstein,伊曼纽尔·沃勒斯坦,name,core,已定,verified:high,1
+indonesia,印度尼西亚,place,core,已定,verified:high,1
+j s mill,穆勒,name,core,已定,verified:high,1
+J. M. Keynes,凯恩斯,name,core,已定,verified:high,1
+j. robinson,罗宾逊,name,core,已定,verified:high,1
+J. von Neumann,冯·诺伊曼,name,core,已定,verified:high,1
+kautsky,考茨基,name,core,已定,verified:high,1
+kenya,肯尼亚,place,core,已定,verified:high,1
+"keynes, j.m.",凯恩斯,name,core,已定,verified:high,1
+"kurz, h. d.",库尔茨,name,core,已定,verified:high,1
+langdon winner,兰登·温纳,name,core,已定,verified:high,1
+"leontief, w.",列昂惕夫,name,core,已定,verified:high,1
+luigi pasinetti,路易吉·帕西内蒂,name,core,已定,verified:high,1
+luxemburg r,卢森堡,name,core,已定,verified:high,1
+léon walras,莱昂·瓦尔拉斯,name,core,已定,verified:high,1
+"malthus, t.r.",马尔萨斯,name,core,已定,verified:high,1
+"marshall, a.",马歇尔,name,core,已定,verified:high,1
+michal kalecki,米哈尔·卡莱茨基,name,core,已定,verified:high,1
+"mill, j.s.",穆勒,name,core,已定,verified:high,1
+"moseley, f.",莫斯利,name,core,已定,verified:high,1
+"pareto, v.",帕累托,name,core,已定,verified:high,1
+"pinch, t.",平奇,name,core,已定,verified:high,1
+samir amin,萨米尔·阿明,name,core,已定,verified:high,1
+Smith A,斯密,name,core,已定,verified:high,1
+"thompson, e. p.",E. P. 汤普森,name,core,已定,verified:high,1
+trevor pinch,特雷弗·平奇,name,core,已定,verified:high,1
+turkey,土耳其,place,core,已定,verified:high,1
+Veblen T,凡勃伦,name,core,已定,verified:high,1
+"veblen, t.",凡勃伦,name,core,已定,verified:high,1
+venezuela,委内瑞拉,place,core,已定,verified:high,1
+vilfredo pareto,维尔弗雷多·帕累托,name,core,已定,verified:high,1
+"Walras, L.",瓦尔拉斯,name,core,已定,verified:high,1
+wiebe e. bijker,维贝·E. 比克,name,core,已定,verified:high,1
+"winner, l.",温纳,name,core,已定,verified:high,1
+abramovitz,阿布拉莫维茨,uncertain,common,一致,freq,2
+aglietta,阿格列塔,uncertain,common,待裁决,freq,2
+aidan foster-carter,艾丹·福斯特-卡特,name,common,一致,freq,2
+alejandro portes,亚历杭德罗·波特斯,name,common,一致,freq,2
+"Alemi, P.",阿莱米,name,common,一致,normalize,2
+alfarano,阿尔法拉诺,uncertain,common,一致,freq,2
+aloisi,阿洛伊西,uncertain,common,一致,freq,2
+Alvesson,阿尔维森,name,common,一致,freq,2
+"amaral, l.",阿马拉尔,name,common,一致,normalize,2
+amartya sen,阿马蒂亚·森,name,common,一致,freq,2
+American,美国,place,common,一致,freq,2
+amit basole,阿米特·巴索尔,name,common,待裁决,freq,2
+Andersson,安德森,name,common,一致,freq,2
+andré gunder frank,安德烈·冈德·弗兰克,name,common,待裁决,freq,2
+anwar shaikh,安瓦尔·谢克,name,common,已定,verified:medium,2
+Appay,阿佩,name,common,一致,freq,2
+Appelbaum,阿佩尔鲍姆,name,common,待裁决,freq,2
+aristotle,亚里士多德,uncertain,common,一致,freq,2
+armonk,阿蒙克,uncertain,common,一致,freq,2
+arnsperger,阿恩斯佩格,uncertain,common,一致,freq,2
+arrow,阿罗,uncertain,common,一致,freq,2
+arthur,亚瑟,uncertain,common,待裁决,freq,2
+aspromourgos,阿斯普罗穆尔戈斯,uncertain,common,待裁决,freq,2
+athanasiadis,阿塔纳西亚迪斯,uncertain,common,待裁决,freq,2
+atzeni,阿特泽尼,uncertain,common,待裁决,freq,2
+ayn rand,安·兰德,name,common,一致,freq,2
+bailey,贝利,uncertain,common,一致,freq,2
+Bain P,贝恩,name,common,一致,normalize,2
+"Bain, P.",贝恩,name,common,一致,freq,2
+baldone,巴尔多内,uncertain,common,一致,freq,2
+barad,巴拉德,uncertain,common,一致,freq,2
+barbados,巴巴多斯,uncertain,common,一致,freq,2
+barbara harriss-white,芭芭拉·哈里斯-怀特,name,common,已定,verified:medium,2
+"Barbosa-Filho, N. H.",巴尔博萨-菲略,name,common,一致,normalize,2
+bari,巴里,uncertain,common,一致,freq,2
+barro,巴罗,uncertain,common,一致,freq,2
+barry hindess,巴里·欣德斯,name,common,一致,freq,2
+basle,巴塞尔,uncertain,common,一致,freq,2
+basole,巴索尔,uncertain,common,待裁决,freq,2
+basque,巴斯克,uncertain,common,一致,freq,2
+bastani,巴斯塔尼,uncertain,common,一致,freq,2
+"basu, d.",巴苏,name,common,一致,normalize,2
+beck,贝克,uncertain,common,一致,freq,2
+Bellamy Foster,贝拉米·福斯特,name,common,一致,freq,2
+"bellofiore, r.",贝洛菲奥雷,name,common,一致,freq,2
+benton,本顿,uncertain,common,一致,freq,2
+berg,伯格,uncertain,common,一致,freq,2
+berger,伯杰,uncertain,common,一致,freq,2
+"berkeley, ca",伯克利，加利福尼亚,other,common,待裁决,freq,2
+bertram schefold,伯特伦·舍福尔德,name,common,已定,verified:medium,2
+Beynon,贝农,name,common,一致,freq,2
+bidard,比达尔,uncertain,common,一致,freq,2
+bienenfeld,比嫩菲尔德,uncertain,common,一致,freq,2
+birt,伯特,uncertain,common,一致,freq,2
+Blackburn,布莱克本,name,common,一致,freq,2
+blair,布莱尔,uncertain,common,一致,freq,2
+blaug,布劳格,uncertain,common,一致,freq,2
+bologna,博洛尼亚,uncertain,common,一致,freq,2
+Boltanski,博尔坦斯基,name,common,一致,freq,2
+bolte,博尔特,uncertain,common,一致,freq,2
+boltzmann,玻尔兹曼,uncertain,common,一致,freq,2
+bonefeld,博内菲尔德,uncertain,common,待裁决,freq,2
+"Boston, MA",波士顿，马萨诸塞,name,common,待裁决,freq,2
+bottazzi,博塔齐,uncertain,common,一致,freq,2
+bourdieu,布尔迪厄,uncertain,common,一致,freq,2
+bowling green,博林格林,other,common,待裁决,freq,2
+"Boyer, R.",布瓦耶,name,common,待裁决,freq,2
+brass,布拉斯,uncertain,common,一致,freq,2
+Brenner,布伦纳,name,common,一致,freq,2
+bretos,布雷托斯,uncertain,common,一致,freq,2
+Brody,布罗迪,name,common,一致,freq,2
+bronfenbrenner,布朗芬布伦纳,uncertain,common,一致,freq,2
+brooks,布鲁克斯,uncertain,common,一致,freq,2
+"bródy, a.",布罗迪,name,common,一致,freq,2
+buchanan,布坎南,uncertain,common,一致,freq,2
+"buldyrev, s.",布尔迪列夫,name,common,一致,normalize,2
+"Burchell, B.",伯切尔,name,common,一致,freq,2
+"butollo, f.",布托洛,name,common,一致,normalize,2
+callinicos,卡利尼科斯,uncertain,common,一致,freq,2
+callon,卡隆,uncertain,common,一致,freq,2
+cambodia,柬埔寨,uncertain,common,一致,freq,2
+"cambridge, massachusetts",马萨诸塞州剑桥,place,common,待裁决,freq,2
+cant,坎特,uncertain,common,一致,freq,2
+Cappelli,卡佩利,name,common,一致,freq,2
+cardoso,卡多佐,uncertain,common,一致,freq,2
+carl menger,卡尔·门格尔,name,common,一致,freq,2
+carver,卡弗,uncertain,common,一致,freq,2
+central asia,中亚,other,common,一致,freq,2
+chan,陈,uncertain,common,一致,freq,2
+chandrasekhar,钱德拉塞卡,uncertain,common,一致,freq,2
+charles umney,查尔斯·乌姆尼,name,common,一致,freq,2
+"cheltenham, uk",切尔滕纳姆（英国）,place,common,待裁决,freq,2
+chichester,奇切斯特,uncertain,common,一致,freq,2
+child,蔡尔德,uncertain,common,一致,freq,2
+choonara,乔纳拉,uncertain,common,待裁决,freq,2
+christin,克里斯汀,uncertain,common,一致,freq,2
+claude shannon,克劳德·香农,name,common,一致,freq,2
+Coates,科茨,name,common,一致,freq,2
+cockburn,科克伯恩,uncertain,common,待裁决,freq,2
+cockshott,科克肖特,uncertain,common,一致,freq,2
+cole,科尔,uncertain,common,一致,freq,2
+Cornelius,科尼利厄斯,name,common,一致,freq,2
+cornforth,康福思,uncertain,common,一致,freq,2
+coronado,科罗纳多,uncertain,common,一致,freq,2
+cottrell,科特雷尔,uncertain,common,一致,freq,2
+cressey,克雷西,uncertain,common,一致,freq,2
+crompton,克朗普顿,uncertain,common,一致,freq,2
+Cullinane,卡利南,name,common,待裁决,freq,2
+dabbish,达比什,uncertain,common,一致,freq,2
+daniel e. saros,丹尼尔·萨罗斯,name,common,一致,normalize,2
+das,达斯,uncertain,common,一致,freq,2
+david noble,大卫·诺布尔,name,common,待裁决,freq,2
+de soto,德·索托,name,common,待裁决,freq,2
+de vries,德弗里斯,other,common,一致,freq,2
+debarshi das,德巴希·达斯,name,common,一致,freq,2
+deccan,德干,uncertain,common,一致,freq,2
+degner,德格纳,uncertain,common,一致,freq,2
+Deiβ,戴斯,name,common,一致,freq,2
+delfanti,德尔凡蒂,uncertain,common,一致,freq,2
+della porta,德拉·波塔,name,common,待裁决,freq,2
+"desai, p.",德赛,name,common,一致,normalize,2
+desanctis,德桑克蒂斯,uncertain,common,一致,freq,2
+dickinson,迪金森,uncertain,common,一致,freq,2
+"dobb, m. h.",多布,name,common,一致,freq,2
+Dore,多尔,name,common,一致,freq,2
+Dore R,多尔,name,common,一致,normalize,2
+"dos santos, p. l.",多斯·桑托斯,name,common,待裁决,freq,2
+dosi,多西,uncertain,common,一致,freq,2
+"dosi, g.",多西,name,common,已定,verified:medium,2
+dragulescu,德拉古列斯库,uncertain,common,一致,freq,2
+Du Gay P,杜盖,name,common,一致,normalize,2
+dubal,杜巴尔,uncertain,common,一致,freq,2
+dublin,都柏林,uncertain,common,一致,freq,2
+duchin,杜辛,uncertain,common,待裁决,freq,2
+Dumenil,杜梅尼尔,name,common,一致,freq,2
+"Dumenil, G.",热拉尔·迪梅尼尔,name,common,待裁决,freq,2
+"duménil, g.",迪梅尼,name,common,一致,normalize,2
+duncan gallie,邓肯·加列,name,common,待裁决,freq,2
+duncan k. foley,邓肯·弗利,name,common,已定,verified:medium,2
+Dundon,邓登,name,common,一致,freq,2
+Durand,杜兰德,name,common,一致,freq,2
+dymski,迪姆斯基,uncertain,common,一致,freq,2
+düsseldorf,杜塞尔多夫,uncertain,common,一致,freq,2
+edge,埃奇,uncertain,common,一致,freq,2
+edwin t. jaynes,埃德温·杰恩斯,name,common,一致,normalize,2
+ellen meiksins wood,埃伦·米克辛斯·伍德,name,common,待裁决,freq,2
+elliott-negri,埃利奥特-内格里,other,common,一致,freq,2
+"elliott-negri, l.",埃利奥特-内格里,name,common,一致,normalize,2
+Ellis,埃利斯,name,common,一致,freq,2
+ellis scharfenaker,埃利斯·沙尔芬纳克,name,common,待裁决,freq,2
+Engelen,恩格伦,name,common,一致,freq,2
+Epstein,爱泼斯坦,name,common,一致,freq,2
+ernest mandel,厄内斯特·曼德尔,name,common,待裁决,freq,2
+ernesto laclau,埃内斯托·拉克劳,name,common,一致,freq,2
+errasti,埃拉斯蒂,uncertain,common,一致,freq,2
+esping-andersen,埃斯平-安德森,other,common,一致,freq,2
+estonia,爱沙尼亚,uncertain,common,一致,freq,2
+etienne balibar,艾蒂安·巴利巴尔,name,common,待裁决,freq,2
+eugen von böhm-bawerk,欧根·冯·伯姆-巴维克,name,common,待裁决,freq,2
+european union,欧盟,other,common,一致,freq,2
+evans,埃文斯,uncertain,common,一致,freq,2
+fama,法玛,uncertain,common,待裁决,freq,2
+fan,范,uncertain,common,一致,freq,2
+faulkner,福克纳,uncertain,common,一致,freq,2
+felipe,费利佩,uncertain,common,一致,freq,2
+Felstead,费尔斯泰德,name,common,待裁决,freq,2
+flaschel,弗拉舍尔,uncertain,common,一致,freq,2
+"flick, u.",弗利克,name,common,一致,normalize,2
+"foley, d.",福利,name,common,一致,freq,2
+ford,福特,uncertain,common,一致,freq,2
+foss,福斯,uncertain,common,一致,freq,2
+foster-carter,福斯特-卡特,other,common,一致,freq,2
+frank hahn,弗兰克·哈恩,name,common,一致,freq,2
+frankfurt a.m.,法兰克福（美因河畔）,other,common,待裁决,freq,2
+françoise carré,弗朗索瓦丝·卡雷,name,common,一致,freq,2
+fratini,弗拉蒂尼,uncertain,common,一致,freq,2
+frederick engels,弗里德里希·恩格斯,name,common,一致,freq,2
+fry,弗赖伊,uncertain,common,待裁决,freq,2
+"fullbrook, e.",富尔布鲁克,name,common,一致,normalize,2
+galbraith,加尔布雷思,uncertain,common,一致,freq,2
+gandini,甘迪尼,uncertain,common,一致,freq,2
+gary mongiovi,加里·蒙吉奥维,name,common,待裁决,freq,2
+gehrke,格尔克,uncertain,common,一致,freq,2
+"georgescu-roegen, n.",乔治斯库-罗根,name,common,一致,normalize,2
+ger,德国,place,common,一致,freq,2
+gerry,格里,uncertain,common,一致,freq,2
+"gerstein, i.",艾拉·格斯坦,name,common,待裁决,freq,2
+ghigliani,吉格利亚尼,uncertain,common,待裁决,freq,2
+ghosh,戈什,uncertain,common,待裁决,freq,2
+gibbon,吉本,uncertain,common,一致,freq,2
+gibbs,吉布斯,uncertain,common,一致,freq,2
+giddens,吉登斯,uncertain,common,一致,freq,2
+Gleadle,格利德尔,name,common,一致,freq,2
+goethe,歌德,uncertain,common,一致,freq,2
+goodrich,古德里奇,uncertain,common,一致,freq,2
+gorban,戈尔班,uncertain,common,一致,freq,2
+gordon,戈登,uncertain,common,一致,freq,2
+Gorz,高兹,name,common,一致,freq,2
+gotha,哥达,uncertain,common,一致,freq,2
+graetz,格雷茨,uncertain,common,一致,freq,2
+"graham, m.",格雷厄姆,name,common,一致,normalize,2
+Grahl,格拉尔,name,common,一致,freq,2
+"Green, F.",格林,name,common,一致,normalize,2
+greenspan,格林斯潘,uncertain,common,一致,freq,2
+gregory,格雷戈里,uncertain,common,一致,freq,2
+"griesbach, k.",格里尔斯巴赫,name,common,待裁决,freq,2
+grohmann,格罗曼,uncertain,common,一致,freq,2
+guerrien,盖里安,uncertain,common,待裁决,freq,2
+gunder frank,冈德·弗兰克,name,common,待裁决,freq,2
+hagemann,哈格曼,uncertain,common,一致,freq,2
+Hamel,哈梅尔,name,common,一致,freq,2
+Hansmann,汉斯曼,name,common,一致,freq,2
+"harcourt, g. c.",哈考特,name,common,一致,normalize,2
+Harley,哈利,name,common,一致,freq,2
+harold wolpe,哈罗德·沃尔普,name,common,一致,freq,2
+"harris, l.",劳伦斯·哈里斯,name,common,待裁决,freq,2
+Harrison,哈里森,name,common,一致,freq,2
+"harvey, david",大卫·哈维,name,common,待裁决,freq,2
+"havlin, s.",哈夫林,name,common,一致,normalize,2
+hawaii,夏威夷,uncertain,common,一致,freq,2
+heath,希思,uncertain,common,一致,freq,2
+heery,希里,uncertain,common,一致,freq,2
+hegel,黑格尔,uncertain,common,一致,freq,2
+Hein,海因,name,common,一致,freq,2
+Hein E,海因,name,common,一致,normalize,2
+herod,赫罗德,uncertain,common,待裁决,freq,2
+hickson,希克森,uncertain,common,一致,freq,2
+hindess,希德斯,uncertain,common,待裁决,freq,2
+hirsch-kreinsen,希尔施-克赖因森,other,common,待裁决,freq,2
+hjorth,约尔特,uncertain,common,一致,freq,2
+holloway,霍洛威,uncertain,common,一致,freq,2
+holtgrewe,霍尔特格雷韦,uncertain,common,一致,freq,2
+hunt,亨特,uncertain,common,一致,freq,2
+Hyman,海曼,name,common,一致,freq,2
+ijiri,伊吉里,uncertain,common,待裁决,freq,2
+"ijiri, y.",伊次里,name,common,待裁决,freq,2
+iliadi,伊利亚迪,uncertain,common,一致,freq,2
+irle,伊尔勒,uncertain,common,待裁决,freq,2
+israel,以色列,uncertain,common,一致,freq,2
+Italian,意大利,name,common,一致,freq,2
+"Ithaca, NY",伊萨卡（纽约州）,place,common,待裁决,freq,2
+Jacobs,雅各布斯,name,common,一致,freq,2
+jairus banaji,贾伊鲁斯·巴纳吉,name,common,一致,freq,2
+jamie morgan,杰米·摩根,name,common,一致,freq,2
+jan,扬,uncertain,common,待裁决,freq,2
+jarrahi,贾拉希,uncertain,common,一致,freq,2
+Jenkins,詹金斯,name,common,一致,freq,2
+"johansen, l.",约翰森,name,common,一致,normalize,2
+john bates clark,约翰·贝茨·克拉克,name,common,一致,freq,2
+john bellamy foster,约翰·贝拉米·福斯特,name,common,一致,freq,2
+john hicks,约翰·希克斯,name,common,一致,freq,2
+john murray,约翰·默里,name,common,一致,freq,2
+john neville keynes,约翰·内维尔·凯恩斯,name,common,一致,freq,2
+jonna,乔纳,uncertain,common,待裁决,freq,2
+joyce,乔伊斯,uncertain,common,一致,freq,2
+Jurgens,于尔根斯,name,common,一致,freq,2
+jürgens,于尔根斯,uncertain,common,一致,freq,2
+"kaldor, n.",卡尔多,name,common,一致,normalize,2
+kalyan sanyal,卡利安·桑亚尔,name,common,待裁决,freq,2
+kansas city,堪萨斯城,other,common,一致,freq,2
+kasmir,卡兹米尔,uncertain,common,待裁决,freq,2
+Katz,卡茨,name,common,一致,freq,2
+kauschke,考施克,uncertain,common,一致,freq,2
+Keller,凯勒,name,common,一致,freq,2
+Kelly,凯利,name,common,一致,freq,2
+kersting,克尔斯廷,uncertain,common,待裁决,freq,2
+kesar,凯萨尔,uncertain,common,一致,freq,2
+kesavan,凯萨万,uncertain,common,一致,freq,2
+"kliman, a.",安德鲁·克利曼,name,common,待裁决,freq,2
+knut wicksell,克努特·维克塞尔,name,common,一致,freq,2
+kocher,科赫尔,uncertain,common,一致,freq,2
+kochi,高知,uncertain,common,一致,freq,2
+kolmogorov,柯尔莫哥洛夫,uncertain,common,待裁决,freq,2
+Konings,科宁斯,name,common,一致,freq,2
+Konzelmann,孔泽尔曼,name,common,待裁决,freq,2
+"kotz, d. m.",科茨,name,common,一致,normalize,2
+krause,克劳斯,uncertain,common,一致,freq,2
+Krippner GR,克里普纳,name,common,一致,normalize,2
+krzywdzinski,克希夫津斯基,uncertain,common,待裁决,freq,2
+kuhn,库恩,uncertain,common,一致,freq,2
+kusbit,库斯比特,uncertain,common,一致,freq,2
+"laaser, k.",拉瑟,name,common,一致,normalize,2
+lager,拉格,uncertain,common,一致,freq,2
+lambert,兰伯特,uncertain,common,一致,freq,2
+"lambert, rob",罗布·兰伯特,name,common,一致,freq,2
+Langley,兰利,name,common,一致,freq,2
+langlois,兰格卢瓦,uncertain,common,待裁决,freq,2
+laplace,拉普拉斯,uncertain,common,一致,freq,2
+lausanne,洛桑,uncertain,common,一致,freq,2
+lavoie,拉瓦,uncertain,common,一致,freq,2
+law,劳,uncertain,common,一致,freq,2
+"law, j.",约翰·劳,name,common,待裁决,freq,2
+"lawson, t.",劳森,name,common,已定,verified:medium,2
+"Lazonick, W.",拉佐尼克,name,common,已定,verified:medium,2
+Leeds,利兹,name,common,一致,freq,2
+lehdonvirta,莱赫登维尔塔,uncertain,common,待裁决,freq,2
+leicester,莱斯特,uncertain,common,一致,freq,2
+"leschhorn, h.",莱施霍恩,name,common,一致,normalize,2
+levrero,莱弗雷罗,uncertain,common,一致,freq,2
+levrini,莱弗里尼,uncertain,common,一致,freq,2
+"Lewis, P.",刘易斯,name,common,一致,freq,2
+Leyshon,莱森,name,common,待裁决,freq,2
+littler,利特勒,uncertain,common,待裁决,freq,2
+lloyd,劳埃德,uncertain,common,一致,freq,2
+los,洛斯,uncertain,common,一致,freq,2
+lucia pradella,卢西亚·普拉德拉,name,common,待裁决,freq,2
+"ludwig, c.",路德维希,name,common,一致,normalize,2
+luff,拉夫,uncertain,common,一致,freq,2
+lévy,列维,uncertain,common,待裁决,freq,2
+m.h. dobb,多布,other,common,一致,normalize,2
+"maass, p.",马斯,name,common,一致,normalize,2
+macedonia,马其顿,uncertain,common,一致,freq,2
+Macey,梅西,name,common,一致,freq,2
+"machover, m.",马乔弗,name,common,一致,normalize,2
+macinnes,麦金尼斯,uncertain,common,一致,freq,2
+mahalanobis,马哈拉诺比斯,uncertain,common,一致,freq,2
+"mandel, e.",曼德尔,name,common,一致,normalize,2
+"maniatis, t.",马尼亚蒂斯,name,common,一致,normalize,2
+mannan,曼南,uncertain,common,一致,freq,2
+mantegna,曼泰尼亚,uncertain,common,待裁决,freq,2
+marcel van der linden,马塞尔·范德林登,name,common,一致,freq,2
+"marengo, l.",马伦戈,name,common,一致,normalize,2
+Marglin,马格林,name,common,一致,freq,2
+"mariolis, t.",马里奥利斯,name,common,已定,verified:medium,2
+Martin,马丁,name,common,一致,freq,2
+Matthews,马修斯,name,common,一致,freq,2
+mazzucato m,马祖卡托,other,common,一致,normalize,2
+mcafee,麦卡菲,uncertain,common,一致,freq,2
+McCann,麦卡恩,name,common,待裁决,freq,2
+McCann L,麦卡恩,name,common,一致,normalize,2
+McChesney,麦克切斯尼,name,common,待裁决,freq,2
+mcculloch,麦卡洛克,uncertain,common,一致,freq,2
+McGovern,麦戈文,name,common,一致,freq,2
+mcnally,麦克纳利,uncertain,common,一致,freq,2
+meagher,米格,uncertain,common,一致,freq,2
+mearman,米尔曼,uncertain,common,一致,freq,2
+"mearman, a.",米尔曼,name,common,一致,normalize,2
+Meckling,梅克林,name,common,一致,freq,2
+medford,梅德福,uncertain,common,一致,freq,2
+meijerink,迈耶林克,uncertain,common,一致,freq,2
+menz,门茨,uncertain,common,一致,freq,2
+metcalfe,梅特卡夫,name,common,已定,verified:medium,2
+metsky,梅茨基,uncertain,common,一致,freq,2
+mexico city,墨西哥城,other,common,一致,freq,2
+michael j. piore,迈克尔·皮奥里,name,common,待裁决,freq,2
+michaels,迈克尔斯,uncertain,common,一致,freq,2
+michaelson,迈克尔森,uncertain,common,一致,freq,2
+michels,米歇尔斯,uncertain,common,一致,freq,2
+mill,密尔,uncertain,common,待裁决,freq,2
+miller,米勒,uncertain,common,一致,freq,2
+milton friedman,米尔顿·弗里德曼,name,common,一致,freq,2
+milton keynes,米尔顿凯恩斯,other,common,一致,freq,2
+mirowski,米罗夫斯基,uncertain,common,待裁决,freq,2
+missouri,密苏里,uncertain,common,一致,freq,2
+mitchell,米切尔,uncertain,common,一致,freq,2
+"mokyr, j.",莫基尔,name,common,一致,normalize,2
+"mongiovi, g.",蒙焦维,name,common,一致,normalize,2
+Montgomerie,蒙哥马利,name,common,一致,freq,2
+moody,穆迪,uncertain,common,一致,freq,2
+"Morgan, G.",摩根,name,common,一致,freq,2
+"morgan, j.",摩根,name,common,一致,normalize,2
+morocco,摩洛哥,uncertain,common,一致,freq,2
+moser,莫泽,uncertain,common,一致,freq,2
+muldoon,马尔登,uncertain,common,一致,freq,2
+mumford,芒福德,uncertain,common,一致,freq,2
+"munck, ronaldo",罗纳尔多·芒克,name,common,一致,freq,2
+murakami,村上,uncertain,common,一致,freq,2
+murphy,墨菲,uncertain,common,一致,freq,2
+murray,默里,uncertain,common,一致,freq,2
+nairobi,内罗毕,uncertain,common,一致,freq,2
+naoki yoshihara,吉原直树,other,common,一致,freq,2
+nardi,纳迪,uncertain,common,一致,freq,2
+nash,纳什,uncertain,common,一致,freq,2
+nassif-pires,纳西夫-皮雷斯,other,common,一致,freq,2
+nathan rosenberg,内森·罗森伯格,name,common,一致,freq,2
+nelson,纳尔逊,uncertain,common,一致,freq,2
+neocosmos,内奥科斯莫斯,uncertain,common,待裁决,freq,2
+neumann,诺伊曼,uncertain,common,一致,freq,2
+"neumann, j. von",冯·诺伊曼,name,common,待裁决,freq,2
+new brunswick,新不伦瑞克,other,common,一致,freq,2
+newton,牛顿,uncertain,common,一致,freq,2
+nicholas kaldor,尼古拉斯·卡尔多,name,common,一致,freq,2
+nikaidó,二阶堂,uncertain,common,待裁决,freq,2
+north,诺思,uncertain,common,待裁决,freq,2
+north american,北美,other,common,一致,freq,2
+"Northampton, MA",北安普敦（马萨诸塞州）,place,common,待裁决,freq,2
+notre dame,诺特丹,other,common,待裁决,freq,2
+nun,努恩,uncertain,common,待裁决,freq,2
+NY,纽约,name,common,一致,freq,2
+O'Neill,奥尼尔,name,common,一致,freq,2
+o'shea,奥谢,uncertain,common,一致,freq,2
+Onaran,奥纳兰,name,common,一致,freq,2
+Orhangazi,奥尔汉加齐,name,common,一致,freq,2
+ostrom,奥斯特罗姆,uncertain,common,一致,freq,2
+"ostrom, e.",奥斯特罗姆,name,common,一致,freq,2
+"oxford, uk",英国牛津,place,common,待裁决,freq,2
+"paitaridis, d.",佩塔里迪斯,name,common,待裁决,freq,2
+palma,帕尔马,uncertain,common,一致,freq,2
+palumbo,帕伦博,uncertain,common,一致,freq,2
+panitch,帕尼奇,uncertain,common,一致,freq,2
+"papanikolaou, n.",帕帕尼古拉乌,name,common,一致,normalize,2
+"pasinetti, l. l.",帕西内蒂,name,common,一致,normalize,2
+paul hirst,保罗·赫斯特,name,common,一致,freq,2
+payne,佩恩,uncertain,common,一致,freq,2
+peck,佩克,uncertain,common,一致,freq,2
+pek,佩克,uncertain,common,一致,freq,2
+pennsylvania,宾夕法尼亚,uncertain,common,一致,freq,2
+persson,佩尔松,uncertain,common,一致,freq,2
+peter flaschel,彼得·弗拉舍尔,name,common,一致,freq,2
+peter skott,彼得·斯科特,name,common,一致,freq,2
+petri,佩特里,uncertain,common,待裁决,freq,2
+"petri, f.",佩特里,name,common,一致,normalize,2
+petrović,彼得罗维奇,uncertain,common,一致,freq,2
+Phil Taylor,菲尔·泰勒,name,common,一致,freq,2
+piketty,皮凯蒂,uncertain,common,一致,freq,2
+piore,皮奥里,uncertain,common,一致,freq,2
+pisa,比萨,uncertain,common,一致,freq,2
+polanyi,波兰尼,uncertain,common,待裁决,freq,2
+poole,普尔,uncertain,common,一致,freq,2
+porschen,波尔申,uncertain,common,待裁决,freq,2
+portes,波特斯,uncertain,common,一致,freq,2
+poznan,波兹南,uncertain,common,一致,freq,2
+pradella,普拉德利亚,uncertain,common,待裁决,freq,2
+Prahalad,普拉哈拉德,name,common,一致,freq,2
+prasad,普拉萨德,uncertain,common,一致,freq,2
+price,普莱斯,uncertain,common,待裁决,freq,2
+"princeton, nj",普林斯顿（新泽西州）,place,common,待裁决,freq,2
+Pulignano,普利尼亚诺,name,common,一致,freq,2
+purcell,珀塞尔,uncertain,common,一致,freq,2
+raekstad,拉克斯特德,uncertain,common,待裁决,freq,2
+rahman,拉赫曼,uncertain,common,一致,freq,2
+ramsay,拉姆齐,uncertain,common,一致,freq,2
+ranis,拉尼斯,uncertain,common,一致,freq,2
+ravenelle,拉文内尔,uncertain,common,待裁决,freq,2
+"reich, a.",赖希,name,common,一致,normalize,2
+resnick,雷斯尼克,uncertain,common,一致,freq,2
+retzer,雷策尔,uncertain,common,待裁决,freq,2
+richard wolff,理查德·沃尔夫,name,common,一致,freq,2
+rieu,里乌,uncertain,common,待裁决,freq,2
+robert torrens,罗伯特·托伦斯,name,common,一致,freq,2
+robertson,罗伯逊,uncertain,common,一致,freq,2
+robey,罗比,uncertain,common,一致,freq,2
+"robey, d.",丹尼尔·罗比,name,common,待裁决,freq,2
+rogers,罗杰斯,uncertain,common,一致,freq,2
+rojas,罗哈斯,uncertain,common,一致,freq,2
+"roncaglia, a.",龙卡利亚,name,common,一致,freq,2
+"rosenberg, n.",罗森伯格,name,common,一致,normalize,2
+"rosenblat, a.",罗森布拉特,name,common,一致,normalize,2
+ross,罗斯,uncertain,common,一致,freq,2
+rossiter,罗西特,uncertain,common,一致,freq,2
+rousseau,卢梭,uncertain,common,一致,freq,2
+"Rubery, J.",鲁伯里,name,common,一致,freq,2
+ruccio,鲁乔,uncertain,common,一致,freq,2
+runde,朗德,uncertain,common,一致,freq,2
+"russell, s.",拉塞尔,name,common,一致,freq,2
+rutherford,卢瑟福,uncertain,common,一致,freq,2
+"rutherford, m.",拉瑟福德,name,common,待裁决,freq,2
+s. gupta,古普塔,name,common,一致,normalize,2
+saad-filho,萨德-费尔霍,other,common,待裁决,freq,2
+sachs,萨克斯,uncertain,common,一致,freq,2
+"salinger, m.",塞林格,name,common,待裁决,freq,2
+salmon,萨尔蒙,uncertain,common,待裁决,freq,2
+samuel,塞缪尔,uncertain,common,一致,freq,2
+"samuelson, p.a.",萨缪尔森,other,common,一致,normalize,2
+sanyal,桑亚尔,uncertain,common,一致,freq,2
+saudi arabia,沙特阿拉伯,other,common,一致,freq,2
+savage,萨维奇,uncertain,common,一致,freq,2
+sawyer,索耶,uncertain,common,一致,freq,2
+say,萨伊,uncertain,common,一致,freq,2
+scandinavia,斯堪的纳维亚,uncertain,common,一致,freq,2
+"scharfenaker, e.",沙尔芬纳克,name,common,待裁决,freq,2
+"schaupp, s.",绍普,name,common,一致,normalize,2
+"schmalz, s.",施马尔茨,name,common,一致,normalize,2
+secchi,塞基,uncertain,common,一致,freq,2
+semieniuk,塞米纽克,uncertain,common,待裁决,freq,2
+"semieniuk, g.",塞米纽克,name,common,待裁决,freq,2
+"sen, a.",森,name,common,一致,freq,2
+serrano,塞拉诺,uncertain,common,一致,freq,2
+"setterfield, m.",塞特菲尔德,name,common,一致,freq,2
+sharp,夏普,uncertain,common,一致,freq,2
+silver,西尔弗,uncertain,common,一致,freq,2
+simon schaupp,西蒙·绍普,name,common,待裁决,freq,2
+"simon, h.",西蒙,name,common,一致,normalize,2
+slocum,斯洛克姆,uncertain,common,待裁决,freq,2
+slovakia,斯洛伐克,uncertain,common,一致,freq,2
+slovenia,斯洛文尼亚,uncertain,common,一致,freq,2
+smart delivery,智能配送,other,common,一致,freq,2
+smart electrics,智能电气,other,common,一致,freq,2
+smart shopping,智能购物,other,common,一致,freq,2
+smart solutions,智能解决方案,other,common,一致,freq,2
+smirnov,斯米尔诺夫,uncertain,common,一致,freq,2
+snehashish bhattacharya,斯内哈希什·巴塔查里亚,name,common,待裁决,freq,2
+soklis,索克利斯,uncertain,common,一致,freq,2
+soofi,索菲,uncertain,common,待裁决,freq,2
+sorensen,索伦森,uncertain,common,一致,freq,2
+south hadley,南哈德利,other,common,一致,freq,2
+southern africa,南部非洲,other,common,一致,freq,2
+sowell,索维尔,uncertain,common,一致,freq,2
+spencer,斯宾塞,uncertain,common,一致,freq,2
+"srnicek, n.",斯尔尼切克,name,common,待裁决,freq,2
+staab,斯塔布,uncertain,common,待裁决,freq,2
+stacy,史黛西,uncertain,common,待裁决,freq,2
+"standing, guy",盖伊·斯坦丁,name,common,一致,freq,2
+stanley,斯坦利,uncertain,common,一致,freq,2
+"stanley, h.",斯坦利,name,common,一致,normalize,2
+"stanley, m.",斯坦利,name,common,一致,normalize,2
+"stark, l.",斯塔克,name,common,一致,normalize,2
+stehrer,斯特雷尔,uncertain,common,一致,freq,2
+"steinke, i.",施泰因克,name,common,一致,normalize,2
+stephen resnick,斯蒂芬·雷斯尼克,name,common,一致,freq,2
+stewart,斯图尔特,uncertain,common,一致,freq,2
+Stiglitz,斯蒂格利茨,name,common,一致,freq,2
+stirati,斯蒂拉蒂,uncertain,common,一致,freq,2
+Stockholm,斯德哥尔摩,name,common,一致,freq,2
+stone,斯通,uncertain,common,一致,freq,2
+storey,斯托里,uncertain,common,一致,freq,2
+streeck,斯特雷克,uncertain,common,一致,freq,2
+"Sturdy, A.",斯特迪,name,common,一致,freq,2
+surbhi kesar,苏尔比·凯萨尔,name,common,一致,freq,2
+suri,苏里,uncertain,common,一致,freq,2
+Sydney,悉尼,name,common,一致,freq,2
+szyld,斯齐尔德,uncertain,common,待裁决,freq,2
+são paulo,圣保罗,other,common,一致,freq,2
+taiwan,台湾,place,common,一致,freq,2
+tani,塔尼,uncertain,common,一致,freq,2
+"tani, p.",塔尼,name,common,一致,normalize,2
+tanzania,坦桑尼亚,uncertain,common,一致,freq,2
+"Taylor, L.",泰勒,name,common,一致,freq,2
+"Taylor, P.",泰勒,name,common,一致,freq,2
+Teague,蒂格,name,common,一致,freq,2
+ten raa,滕·拉,name,common,待裁决,freq,2
+teodor shanin,泰奥多尔·沙宁,name,common,待裁决,freq,2
+thessaloniki,塞萨洛尼基,uncertain,common,一致,freq,2
+tilly,蒂利,uncertain,common,一致,freq,2
+tokoyama,常山,uncertain,common,待裁决,freq,2
+tom brass,汤姆·布拉斯,name,common,一致,freq,2
+"torrens, r.",托伦斯,name,common,一致,freq,2
+Truger A,特鲁格,name,common,一致,normalize,2
+tsaliki,萨利基,uncertain,common,一致,freq,2
+"tsaliki, p.",察利基,name,common,一致,normalize,2
+tunisia,突尼斯,uncertain,common,一致,freq,2
+turnbull,特恩布尔,uncertain,common,一致,freq,2
+umney,乌姆尼,uncertain,common,待裁决,freq,2
+upchurch,厄普丘奇,uncertain,common,一致,freq,2
+utah,犹他州,place,common,待裁决,freq,2
+uzawa,宇泽弘文,uncertain,common,待裁决,freq,2
+valentine,瓦伦丁,uncertain,common,一致,freq,2
+valenzuela,巴伦苏埃拉,uncertain,common,待裁决,freq,2
+valparaiso,瓦尔帕莱索,uncertain,common,一致,freq,2
+van der linden,范德林登,other,common,一致,freq,2
+vandaele,范德勒,uncertain,common,待裁决,freq,2
+vanek,瓦内克,uncertain,common,一致,freq,2
+varoufakis,瓦鲁法基斯,uncertain,common,一致,freq,2
+vetterli,维特利,uncertain,common,一致,freq,2
+Vidal M,维达尔,name,common,一致,normalize,2
+Vitols,维托尔斯,name,common,一致,freq,2
+"webster, e.",韦伯斯特,name,common,一致,normalize,2
+White,怀特,name,common,一致,freq,2
+wicksell,维克塞尔,uncertain,common,一致,freq,2
+"wicksell, k.",维克塞尔,name,common,一致,normalize,2
+wiener,维纳,uncertain,common,一致,freq,2
+"wiener, n.",维纳,name,common,一致,normalize,2
+Williams K,威廉姆斯,name,common,一致,normalize,2
+Williamson,威廉姆森,name,common,待裁决,freq,2
+wilson,威尔逊,uncertain,common,一致,freq,2
+wolf,沃尔夫,uncertain,common,一致,freq,2
+wong,黄,uncertain,common,一致,freq,2
+"wood, a.j.",伍德,other,common,一致,normalize,2
+xanthe whittaker,桑西·惠特克,name,common,待裁决,freq,2
+yakovenko,雅科文科,uncertain,common,一致,freq,2
+yang,杨,uncertain,common,一致,freq,2
+"yang, j.",杨,name,common,一致,normalize,2
+yin,尹,uncertain,common,一致,freq,2
+yugoslavia,南斯拉夫,uncertain,common,一致,freq,2
+Zeitlin,蔡特林,name,common,一致,freq,2
+zimbabwe,津巴布韦,uncertain,common,一致,freq,2
+zimmermann,齐默尔曼,uncertain,common,一致,freq,2
+zygmunt bauman,齐格蒙特·鲍曼,name,common,一致,freq,2
+åberg,奥伯格,uncertain,common,待裁决,freq,2
+b. harriss-white,哈里斯-怀特,name,common,已定,verified:medium,1
+byres,拜尔斯,name,common,已定,verified:medium,1
+Costas Lapavitsas,科斯塔斯·拉帕维察斯,name,common,已定,verified:medium,1
+D. K. Foley,弗利,name,common,已定,verified:medium,1
+Duncan K Foley,邓肯·弗利,name,common,已定,verified:medium,1
+E. Stockhammer,斯托克哈默,name,common,已定,verified:medium,1
+"foley, d.k.",弗利,name,common,已定,verified:medium,1
+"gehrke, c.",格尔克,name,common,已定,verified:medium,1
+j. barkley rosser jr,巴克利·罗瑟,name,common,已定,verified:medium,1
+j. stan metcalfe,J. 斯坦·梅特卡夫,name,common,已定,verified:medium,1
+Jessop B,杰索普,name,common,已定,verified:medium,1
+"Jessop, B.",杰索普,name,common,已定,verified:medium,1
+"metcalfe, j. s.",梅特卡夫,name,common,已定,verified:medium,1
+"metcalfe, j.s.",梅特卡夫,name,common,已定,verified:medium,1
+robert boyer,博耶,name,common,已定,verified:medium,1
+ruth milkman,露丝·米尔克曼,name,common,已定,verified:medium,1
+Shaikh A,谢克,name,common,已定,verified:medium,1
+"Stockhammer, E.",斯托克哈默,name,common,已定,verified:medium,1
+theodore mariolis,西奥多·马里奥利斯,name,common,已定,verified:medium,1
