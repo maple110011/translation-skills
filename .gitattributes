@@ -1,0 +1,11 @@
+# Official skill packages ship with LF. Force LF on checkout everywhere,
+# so a Windows clone does not silently rewrite SKILL.md and scripts to CRLF.
+* text=auto eol=lf
+
+# Binary assets must never be normalized.
+*.gz binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.zip binary
