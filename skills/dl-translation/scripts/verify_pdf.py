@@ -81,8 +81,9 @@ def main(argv=None):
         n_add = tex_text.count(r"\addcontentsline")
         n_img = tex_text.count(r"\includegraphics")
         n_fn = len(re.findall(r"\\footnote\{", tex_text))
-        info.append("\\pdfbookmark %d / \\addcontentsline %d / \\includegraphics %d / \\footnote %d"
-                    % (n_bookmark, n_add, n_img, n_fn))
+        n_end = len(re.findall(r"\\noindent\\textsuperscript\{", tex_text))
+        info.append("\\pdfbookmark %d / \\addcontentsline %d / \\includegraphics %d / 页底脚注 %d + 文末编号段落 %d"
+                    % (n_bookmark, n_add, n_img, n_fn, n_end))
         if n_add:
             problems.append("\\addcontentsline %d 处，会让每个标题出现两条书签" % n_add)
         if args.md and pathlib.Path(args.md).is_file():
@@ -130,9 +131,11 @@ def main(argv=None):
                 if miss:
                     problems.append("PDF 文本层缺 %d 条脚注内容：%s"
                                     % (len(miss), "；".join(miss[:5])))
-                if tex_text and re.search(r"\\footnote\{", tex_text):
-                    if len(re.findall(r"\\footnote\{", tex_text)) < len(needed):
-                        problems.append("TeX 里 \\footnote{} 少于清单内容脚注数，正文标记可能丢了")
+                n_placed = (len(re.findall(r"\\footnote\{", tex_text))
+                            + len(re.findall(r"\\noindent\\textsuperscript\{", tex_text)))
+                if tex_text and n_placed and n_placed < len(needed):
+                    problems.append("TeX 里页底脚注与文末编号段落合计 %d 条，少于清单 %d 条内容脚注"
+                                    % (n_placed, len(needed)))
 
     for line in info:
         print("  " + line)

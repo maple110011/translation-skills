@@ -69,6 +69,9 @@ if m:
 # 剥离之后，避免把 YAML 里的字段误当成脚注。
 FN_DEFS = {m.group(1): m.group(2).strip()
            for m in re.finditer(r'(?m)^\[\^(\w+)\]:\s*(.*)$', text)}
+# 正文里真正出现的引用标记。历史稿常常只在文末补了 ## 脚注 节、没有硬猜正文
+# 引用位置；这些定义在页底模式下无处安放，必须降级成文末编号段落，不能静默丢掉。
+FN_USED = {m.group(1) for m in re.finditer(r'\[\^(\w+)\](?!:)', text)}
 
 
 def pick(cli, *keys, default=''):
@@ -757,12 +760,13 @@ while i < len(body_lines):
         i += 1
         continue
 
-    # 文末脚注定义：页底脚注模式下内容已经进了正文 \footnote{}，这里跳过；
-    # 尾注模式才排成编号段落（见 references/pdf-latex.md）。
+    # 文末脚注定义：页底脚注模式下，正文里真的有 [^n] 引用的，内容已经进了
+    # \footnote{}，这里跳过；没有引用的（以及 endnote 模式）一律排成文末编号段落，
+    # 保证脚注文字不会因为「正文标记缺失」而在 PDF 里整个消失。
     m_fn = re.match(r'^\[\^(\w+)\]:\s*(.*)$', s)
     if m_fn:
         flush()
-        if args.footnotes == 'endnote':
+        if args.footnotes == 'endnote' or m_fn.group(1) not in FN_USED:
             out.append(r'\noindent\textsuperscript{%s}\, %s\par' %
                        (esc(m_fn.group(1)), inline(m_fn.group(2))))
         i += 1
