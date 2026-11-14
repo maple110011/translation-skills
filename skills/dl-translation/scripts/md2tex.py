@@ -56,12 +56,46 @@ SRCPDF = pathlib.Path(args.source_pdf) if args.source_pdf else None
 text = MD.read_text(encoding='utf-8')
 
 fm = {}
-m = re.match(r'---\n(.*?)\n---\n', text, re.S)
+m = re.match(r'---\s*\n(.*?)\n---\s*\n', text, re.S)
 if m:
-    for line in m.group(1).split('\n'):
-        k, _, v = line.partition(':')
-        fm[k.strip()] = v.strip().strip('"')
+    cur = None
+    for line in m.group(1).splitlines():
+        item = re.match(r'^\s*-\s+(.*)$', line)
+        if item and cur:
+            # YAML 列表（authors: 下面一列 «- 名字»）。旧版按行切 «:» 只拿到空值，
+            # 结果 PDF 首页的「原文作者」永远是空白。
+            more = item.group(1).strip().strip('"\'')
+            fm[cur] = (fm[cur] + '; ' + more) if fm.get(cur) else more
+            continue
+        k, sep, v = line.partition(':')
+        if not sep:
+            continue
+        cur = k.strip()
+        fm[cur] = v.strip().strip('"\'')
     text = text[m.end():]
+
+
+def demote_front_tables(src):
+    """把正文开头那两节「符号一览」「保留英文术语一览」挪到文末。
+
+    译稿按 skill 规范把它们放在最前，但 PDF 是给读者看的：首页应当是标题、
+    作者、单位、摘要，翻两页符号表才看见作者是本末倒置。这两节是译本附表，
+    PDF 里统一挪到文末（附录之后），Markdown 原文件不动。
+    """
+    mh = re.search(r'(?m)^#\s+\S', src)
+    if not mh:
+        return src
+    head, rest = src[:mh.start()], src[mh.start():]
+    sec = re.compile(r'(?ms)^##[ \t]*(?:符号一览|保留英文术语一览)[ \t]*\n.*?'
+                     r'(?=^##[ \t]|^#[ \t]|\Z)')
+    moved = [mm.group(0).rstrip() for mm in sec.finditer(head)]
+    if not moved:
+        return src
+    head = re.sub(r'\n{3,}', '\n\n', sec.sub('', head)).rstrip() + '\n\n'
+    return head + rest.rstrip() + '\n\n' + '\n\n'.join(moved) + '\n'
+
+
+text = demote_front_tables(text)
 
 
 # 预扫脚注定义：正文里的 [^n] 要变成 \footnote{…}，而定义行在文末，
@@ -86,30 +120,45 @@ def pick(cli, *keys, default=''):
 TITLE_ZH = pick(None, 'title_zh', 'title_zh_cn') or (fm.get('title', '') and '')
 TITLE_EN = pick(args.title_en, 'title', 'title_en')
 def parse_authors(v):
-    """把 '["Akyürek, Ekin", ...]' 或 'A, B' 统一成 'Ekin Akyürek, Dale Schuurmans'。"""
+    """把 '["Akyürek, Ekin", ...]'、'A; B'、'Last, First' 统一成 'Ekin Akyürek, Dale Schuurmans'。
+
+    列表项之间用 «;» 分隔（front matter 的 YAML 列表拼出来就是这个形态），
+    单项内部若只有一个逗号，按 «姓, 名» 换序。
+    """
     v = (v or '').strip()
+    if not v:
+        return ''
     if v.startswith('['):
         try:
-            items = json.loads(v)
+            items = [str(x) for x in json.loads(v)]
         except Exception:
-            items = [x.strip().strip('"\'') for x in v.strip('[]').split(',')]
+            items = [x.strip().strip('"\'') for x in v.strip('[]').split(';')]
     else:
-        return v
+        items = [x.strip() for x in v.split(';') if x.strip()]
     out = []
     for it in items:
-        it = str(it).strip()
-        if ',' in it:
+        if len(items) == 1 and it.count(',') == 1:
             last, first = it.split(',', 1)
             out.append(first.strip() + ' ' + last.strip())
-        elif it:
+        else:
             out.append(it)
-    return ', '.join(out)
+    return ', '.join(x for x in out if x)
 
 
 AUTHORS = parse_authors(pick(args.authors, 'authors', 'author'))
 VENUE = pick(args.venue, 'journal', 'venue', 'booktitle', default='')
 ARXIV = pick(args.arxiv, 'arxiv', default='')
 DOI = pick(args.doi, 'doi', default='')
+if not DOI:
+    # arXiv 预印本的规范 DOI 就是 10.48550/arXiv.<id>；首页空着一栏不如填上。
+    ax = ARXIV.replace('arXiv:', '').strip()
+    if re.match(r'^\d{4}\.\d{4,5}', ax):
+        DOI = '10.48550/arXiv.' + ax
+DOCTYPE_MAP = {'conference': '会议论文', 'conferencepaper': '会议论文', 'journal': '期刊论文',
+               'journalarticle': '期刊论文', 'preprint': '预印本', 'book': '专著',
+               'chapter': '书章', 'thesis': '学位论文', 'report': '报告'}
+DOCTYPE = pick(None, 'type', 'doctype', default='')
+DOCTYPE = DOCTYPE_MAP.get(DOCTYPE.lower(), DOCTYPE) or ('会议论文' if VENUE else '文稿')
 CITEKEY = pick(args.citekey, 'citekey', default=(pathlib.Path(args.tex).stem + '-zh'))
 if not TITLE_ZH:
     mh = re.search(r'(?m)^#\s+(.+)$', text)
@@ -853,11 +902,16 @@ if anchor_from < 0:
     anchor_from = body.find('\\section*{Abstract}')
 if anchor_from < 0:
     anchor_from = body.find('\\section*{')
+# 符号表与保留术语表在文末，它们自身也含 $…$。不截上限的话，first_pos 会把
+# 「符号出现在符号表里」当成首次出现，第三列全退化成「符号一览」。
+_lim = [p for p in (body.find(r'\section*{符号一览}'),
+                    body.find(r'\section*{保留英文术语一览}')) if p >= 0]
+anchor_to = min(_lim) if _lim else len(body)
 
 # 正文里所有 $...$ 数学片段（跳跃目标落在片段起点，避免在数学模式里插 \hypertarget）
 mathspans = []
 _i = anchor_from
-while _i < len(body):
+while _i < anchor_to:
     if body[_i] == '\\\\':
         _i += 2
         continue
@@ -1003,38 +1057,17 @@ preamble = r'''\documentclass[UTF8,11pt,a4paper,fontset=%(fontset)s]{ctexart}
 {\large %(te)s\par}
 \vspace{8pt}
 {\normalsize %(au)s\par}
-\vspace{2pt}
-{\small $^{1}$ Google Research\quad $^{2}$ MIT CSAIL\quad $^{3}$ Stanford University\quad $^{*}$ collaborative advising\par}
 \end{center}
-\vspace{2pt}
+\vspace{4pt}
 {\small
 \noindent\begin{tabular}{@{}p{0.13\linewidth}p{0.8\linewidth}@{}}
-文献类型 & 会议论文（%(venue)s）\\
+文献类型 & %(doctype)s（%(venue)s）\\
 原文题目 & %(te)s\\
 原文作者 & %(au)s\\
-出处 & %(venue)s；%(arxiv)s\\
-DOI & %(doi)s\\
-原文文件 & %(srcfile)s\\
-译本 & 中文全译（含附录 A--H）；术语见文首符号一览\\
+DOI & %(doiline)s\\
 \end{tabular}}\par
 \vspace{2pt}
 \noindent\rule{\linewidth}{0.6pt}
-
-{\footnotesize\ttfamily
-\noindent\begin{tabular}{@{}l@{}}
-record = translation\\
-citekey = %(key)s\\
-doi = %(doi)s\\
-arxiv = %(arxivid)s\\
-title\_en = %(te)s\\
-
-year = 2023\\
-venue = %(venue)s\\
-language = zh-CN\\
-source\_sha256 = %(sha)s\\
-\end{tabular}}\par
-\vspace{2pt}
-\noindent\rule{\linewidth}{0.4pt}
 
 \vspace{8pt}
 ''' % dict(fontset='windows' if sys.platform == 'win32' else 'fandol',
@@ -1045,6 +1078,7 @@ source\_sha256 = %(sha)s\\
            subj=(TITLE_EN + ' 中文译本') if TITLE_EN else (TITLE_ZH + ' 中译本'),
            kw='%s, 中文译本, translation' % esc(CITEKEY),
            venue=esc(VENUE), arxiv=ARXIV, arxivid=esc(ARXIV.replace('arXiv:', '').strip()),
+           doctype=esc(DOCTYPE), doiline=esc(DOI) or '—',
            doi=esc(DOI), key=esc(CITEKEY), sha=SHA[:32],
            srcfile=esc(SRC_NAME))
 

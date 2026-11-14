@@ -594,6 +594,8 @@ python scripts/zotero_attach.py --batch . --strict                # 一次交付
 
 判重用 **filename + md5**：同名同 md5 跳过，同名不同 md5 原地覆盖那个附件（附件数不变，不会多出第二个"中译"）。改稿重出 PDF 直接重跑，不要手工去 Zotero 里删。
 
+附件按 `zh - <原文附件名>.pdf` 命名，**标题与文件名一致**——title 留空的话 Zotero 里那片就是空白，不会自动回退显示文件名。旧命名 `<stem>_zh.pdf` 的附件会在下次运行时自动清掉。
+
 详见 [references/zotero.md](references/zotero.md)。
 
 </workflow>

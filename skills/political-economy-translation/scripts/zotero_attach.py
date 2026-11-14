@@ -148,6 +148,43 @@ def stem_of(pdf):
     return s[:-3] if s.endswith("_zh") else s
 
 
+NAME_PREFIX = "zh - "
+
+
+def attach_name(pdf, fm, prefix=NAME_PREFIX, kids=None):
+    """Zotero 里那个附件的文件名：沿用原文附件那套命名，最前面标 zh。
+
+    原文附件多半是 Zotero 自己按「作者 et al. - 年 - 题名」命名的，直接拿它的
+    文件名加前缀，附件列表里原文和译文就挨着排、一眼对得上。没有 ``source_pdf``
+    时退回 ``<stem>_zh.pdf`` 的 stem。
+    """
+    base = ""
+    pfx_low = (prefix or "").strip().lower()
+    # 自己挂过的中译要排除：新命名以 zh 开头，旧命名是 <stem>_zh.pdf。
+    self_names = {pathlib.Path(pdf).name.lower(), (stem_of(pdf) + "_zh.pdf").lower()}
+    for c in (kids or []):
+        d = c.get("data", {})
+        fn = d.get("filename") or ""
+        low = fn.lower()
+        if not low.endswith(".pdf") or d.get("contentType") != "application/pdf":
+            continue
+        if (pfx_low and low.startswith(pfx_low)) or low in self_names:
+            continue
+        base = pathlib.Path(fn).stem
+        break
+    src = (fm or {}).get("source_pdf") or ""
+    if not base:
+        base = pathlib.Path(src).stem if src else stem_of(pdf)
+    pfx = prefix or ""
+    if pfx and base.lower().startswith(pfx.strip().lower()):
+        base = base[len(pfx.strip()):].lstrip(" -")
+    name = "%s%s.pdf" % (pfx, base)
+    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", name)
+    if len(name) > 180:                       # Zotero storage 路径 + Windows 260 字符上限
+        name = name[:176].rstrip(" .") + ".pdf"
+    return name
+
+
 def guess_md(pdf):
     p = pathlib.Path(pdf)
     for name in (stem_of(p) + "_zh.md", stem_of(p) + ".md"):
@@ -390,33 +427,36 @@ def resolve(api, args, fm, pdf):
 
 # ---------------------------------------------------------------- 判重 / 上传
 
-def plan(api, anchor, pdf):
-    """返回 (mode, existing_attachment, md5)。mode ∈ new / unchanged / update。"""
-    name = pathlib.Path(pdf).name
+def attachment_children(api, parent_key):
+    return [c for c in api.children(parent_key)
+            if c.get("data", {}).get("itemType") == "attachment"]
+
+
+def plan(kids, pdf, want_name):
+    """返回 (mode, existing_attachment, md5, legacy)。mode ∈ new / unchanged / update。"""
     md5 = md5_of(pdf)
-    same = []
-    for c in api.children(anchor.key):
-        d = c.get("data", {})
-        if d.get("itemType") != "attachment":
-            continue
-        if (d.get("filename") or "") == name:
-            same.append(c)
+    same = [c for c in kids if (c["data"].get("filename") or "") == want_name]
+    # 旧版把附件存成「<stem>_zh.pdf」。库里出现这种名字就说明是本脚本以前挂的，
+    # 换成新命名时要一并清掉，否则同一个条目下会挂着两份中译。
+    legacy = [c for c in kids
+              if (c["data"].get("filename") or "") == pathlib.Path(pdf).name
+              and (c["data"].get("filename") or "") != want_name]
     if not same:
-        return "new", None, md5
+        return "new", None, md5, legacy
     old = same[0]
     if (old["data"].get("md5") or "").lower() == md5:
-        return "unchanged", old, md5
-    return "update", old, md5
+        return "unchanged", old, md5, legacy
+    return "update", old, md5, legacy
 
 
-def create_attachment(api, parent_key, pdf, title=""):
+def create_attachment(api, parent_key, filename, title=""):
     payload = [{
         "itemType": "attachment",
         "linkMode": "imported_file",
         "parentItem": parent_key,
-        "title": title or "",
+        "title": title or pathlib.Path(filename).stem,
         "contentType": "application/pdf",
-        "filename": pathlib.Path(pdf).name,
+        "filename": filename,
     }]
     st, _, raw = api.call("POST", api._u("/items"), payload,
                           headers={"Zotero-Write-Token": os.urandom(16).hex()}, auth=True)
@@ -434,7 +474,7 @@ def create_attachment(api, parent_key, pdf, title=""):
     raise RuntimeError("建附件条目被拒：%s" % (data.get("failed") or data.get("failure"),))
 
 
-def upload_file(api, att_key, pdf, md5, old_md5=None):
+def upload_file(api, att_key, pdf, md5, old_md5=None, fname=None):
     """三步上传。old_md5 有值时覆盖（If-Match），否则新建（If-None-Match: *）。
 
     三个坑都在这一步，全是实测踩出来的：
@@ -445,10 +485,11 @@ def upload_file(api, att_key, pdf, md5, old_md5=None):
       400 ``Invalid If-Match header``。
     """
     p = pathlib.Path(pdf)
+    fname = fname or p.name
     stat = p.stat()
     fields = urllib.parse.urlencode({
         "md5": md5,
-        "filename": p.name,
+        "filename": fname,
         "filesize": stat.st_size,
         "mtime": int(stat.st_mtime * 1000),
     }).encode("utf-8")
@@ -496,10 +537,10 @@ def delete_item(api, key):
     return st in (200, 204)
 
 
-def verify(api, parent_key, pdf, md5):
+def verify(api, parent_key, fname, md5):
     for c in api.children(parent_key):
         d = c.get("data", {})
-        if d.get("itemType") == "attachment" and (d.get("filename") or "") == pathlib.Path(pdf).name:
+        if d.get("itemType") == "attachment" and (d.get("filename") or "") == fname:
             return d.get("key", ""), (d.get("md5") or "").lower() == md5
     return "", False
 
@@ -514,6 +555,7 @@ def write_manifest(pdf, r):
         "mode": r.get("mode", ""), "via": r.get("via", ""), "score": r.get("score", 0),
         "parent_key": r.get("parent_key", ""), "parent_title": r.get("parent_title", ""),
         "attachment_key": r.get("attachment_key", ""),
+        "zotero_filename": r.get("zotero_filename", ""),
         "zotero_uri": ("zotero://select/library/items/" + r["parent_key"]) if r.get("parent_key") else "",
         "note": r.get("note", ""),
         "created": datetime.datetime.now().isoformat(timespec="seconds"),
@@ -523,7 +565,7 @@ def write_manifest(pdf, r):
 
 
 LEDGER_HEAD = ["time", "stem", "pdf", "md5", "parent_key", "parent_title",
-               "attachment_key", "status", "skill"]
+               "attachment_key", "zotero_filename", "status", "skill"]
 
 
 def ledger_upsert(path, row):
@@ -626,12 +668,16 @@ def run_one(pdf, args, api, cfg):
         return {**base, "status": "pending", "rc": EXIT_PENDING}
 
     print("  锚定 → %s  %s  （%s，%.2f）" % (anchor.key, anchor.title[:64], anchor.via, anchor.score))
-    mode, existing, md5 = plan(api, anchor, pdf)
+    kids = attachment_children(api, anchor.key)
+    want_name = attach_name(pdf, fm, args.name_prefix, kids)
+    mode, existing, md5, legacy = plan(kids, pdf, want_name)
+    print("  附件名 → %s" % want_name)
     print("  判重 → %s（%s）" % (mode, {"new": "新建", "unchanged": "已是最新", "update": "覆盖旧版"}[mode]))
     got = {**base, "md5": md5, "parent_key": anchor.key, "parent_title": anchor.title,
-           "via": anchor.via, "score": round(anchor.score, 3), "mode": mode}
+           "via": anchor.via, "score": round(anchor.score, 3), "mode": mode,
+           "zotero_filename": want_name}
 
-    if mode == "unchanged":
+    if mode == "unchanged" and not legacy:
         print("  跳过上传：库里这份就是当前版本。")
         return {**got, "status": "unchanged", "rc": EXIT_OK,
                 "attachment_key": existing["data"]["key"]}
@@ -651,6 +697,19 @@ def run_one(pdf, args, api, cfg):
         print("  授权 → 失败：%s" % why)
         return {**got, "status": "error", "rc": EXIT_ERR, "note": why}
 
+    for c in legacy:
+        old = c["data"]
+        if delete_item(api, old["key"]):
+            print("  清理旧命名附件 %s（%s）" % (old.get("filename"), old["key"]))
+        else:
+            print("  [!] 旧命名附件 %s 删不掉，库里会同时留两份" % old.get("filename"))
+
+    if mode == "unchanged":
+        print("  跳过上传：库里这份就是当前版本。")
+        return {**got, "status": "unchanged", "rc": EXIT_OK,
+                "attachment_key": existing["data"]["key"]}
+
+    title = args.attach_title or pathlib.Path(want_name).stem
     created = False
     old_md5 = ""
     if mode == "update":
@@ -660,21 +719,21 @@ def run_one(pdf, args, api, cfg):
             # 旧附件没记 md5（早期版本挂的），拿不到 ETag 就无法覆盖，删掉重建。
             print("  上传 → 旧附件无 md5，删除后重建 %s" % att_key)
             if delete_item(api, att_key):
-                att_key = create_attachment(api, anchor.key, pdf, args.attach_title or "")
+                att_key = create_attachment(api, anchor.key, want_name, title)
                 created, mode = True, "new"
             else:
                 raise SystemExit("旧附件 %s 删不掉，也无法覆盖；请手工处理后重跑" % att_key)
         else:
             print("  上传 → 覆盖 %s" % att_key)
     else:
-        att_key = create_attachment(api, anchor.key, pdf, args.attach_title or "")
+        att_key = create_attachment(api, anchor.key, want_name, title)
         created = True
         print("  上传 → 新建 %s" % att_key)
 
     try:
-        how = upload_file(api, att_key, pdf, md5, old_md5)
+        how = upload_file(api, att_key, pdf, md5, old_md5, fname=want_name)
         print("  上传 → %s" % how)
-        got_key, match = verify(api, anchor.key, pdf, md5)
+        got_key, match = verify(api, anchor.key, want_name, md5)
         if not match:
             raise RuntimeError("上传返回成功，但复验对不上（附件 %s），检查 Zotero 同步状态" % (got_key or "缺失"))
         status = "attached" if mode == "new" else "updated"
@@ -749,7 +808,8 @@ def main(argv=None):
     ap.add_argument("--prepare-only", action="store_true", help="只锚定，不写库")
     ap.add_argument("--dry-run", action="store_true", help="只读：查条目，不写库、不产文件")
     ap.add_argument("--stage", action="store_true", help="把待挂 PDF 复制到 _zotero/inbox/ 一处")
-    ap.add_argument("--attach-title", default=None, help="附件标题，默认留空显示文件名")
+    ap.add_argument("--attach-title", default=None, help="附件标题，默认与附件文件名一致")
+    ap.add_argument("--name-prefix", default=NAME_PREFIX, help='附件名前缀，默认 "zh - "')
     ap.add_argument("--config", default=None, help="配置文件，默认 ~/.workbuddy/zotero.json")
     ap.add_argument("--zotero-dir", default=None, help="总账与降级产物目录，默认 ./_zotero")
     args = ap.parse_args(argv)
@@ -787,7 +847,8 @@ def main(argv=None):
                     "time": datetime.datetime.now().isoformat(timespec="seconds"),
                     "stem": r["stem"], "pdf": r["pdf"], "md5": r.get("md5", ""),
                     "parent_key": r.get("parent_key", ""), "parent_title": r.get("parent_title", ""),
-                    "attachment_key": r.get("attachment_key", ""), "status": r["status"],
+                    "attachment_key": r.get("attachment_key", ""),
+                    "zotero_filename": r.get("zotero_filename", ""), "status": r["status"],
                     "skill": pathlib.Path(__file__).resolve().parent.parent.name,
                 })
             write_manifest(r["pdf"], r)

@@ -9,9 +9,17 @@ python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex \
 ```
 
 前置：TeX Live（`xelatex` + ctex + `\usepackage{ctex}` 所需的字体）。Windows 用 `fontset=windows`，其他平台脚本会自动切 `fandol`。
-元信息优先取译文 front matter（`title_zh` / `title` / `authors` / `journal` / `source_sha256` / `source_file`），缺的用命令行补：`--title-en --authors --venue --doi --arxiv --citekey`。
+元信息优先取译文 front matter（`title_zh` / `title` / `authors` / `journal` / `arxiv` / `doi` / `type`），缺的用命令行补：`--title-en --authors --venue --doi --arxiv --citekey`。YAML 列表也认（`authors:` 下面那列 `- 名字`）；arXiv 号会自动补成 `10.48550/arXiv.<id>` 的 DOI。
 
 ---
+
+## 首页版式
+
+首页只有四块，从上到下：中文标题 → 英文原题 → 作者 → 一张四行元信息表（文献类型 / 原文题目 / 原文作者 / DOI），之后直接接正文自己的标题、作者单位与摘要。
+
+- **不放**出处、原文文件、译本说明。文献类型那行已经带了会议/期刊名，其余是给维护者看的，不是给读者看的。
+- **符号一览与保留英文术语一览挪到文末**（附录之后）。译稿按 skill 规范放在最前，但 PDF 里那样会把论文自己的标题、作者、摘要压到一两页符号表后面。Markdown 原文件不动，只有排版这样处理。
+- DOI 为空显示 `—`；arXiv 预印本自动补 `10.48550/arXiv.<id>`。
 
 ## 一、六条硬约定（每条都是踩坑踩出来的）
 
