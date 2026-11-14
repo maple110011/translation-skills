@@ -164,7 +164,8 @@ def main(argv=None):
                                capture_output=True, text=True, encoding="utf-8")
             checks.append(("公式归一", r.returncode == 0, (r.stdout or "").strip().splitlines()[-1:]))
         r = subprocess.run([sys.executable, os.path.join(HERE, "fidelity_check.py"),
-                            args.source, args.target, "--glossary", args.glossary],
+                            args.source, args.target, "--glossary", args.glossary,
+                            "--strict"],
                            capture_output=True, text=True, encoding="utf-8")
         tail = [l for l in (r.stdout or "").splitlines() if l.startswith(("✓", "✗", "结论"))]
         checks.append(("结构对账", r.returncode == 0, tail))
@@ -201,7 +202,10 @@ def main(argv=None):
         if r.returncode:
             print(r.stderr)
 
-    return 1 if problems else 0
+    failed = [name for name, ok, _ in checks if not ok]
+    if failed:
+        print("\n[!] 回填后重跑校验未通过：" + "、".join(failed) + "；修好再交付，别当展示信息看。")
+    return 1 if problems or failed else 0
 
 
 if __name__ == "__main__":

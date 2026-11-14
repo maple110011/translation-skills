@@ -666,6 +666,9 @@ def main(argv=None):
     ap.add_argument("target")
     ap.add_argument("--glossary", help="术语表 CSV（src,dst[,alt]），可选")
     ap.add_argument("--strict", action="store_true", help="有硬性失败时返回码 1")
+    ap.add_argument("--strict-soft", action="store_true",
+                    help="把建议性发现（术语一致、段长、疑似未译、符号/图审计）也升级为硬性失败；"
+                         "误报较多，仅在需要零容忍时使用")
     ap.add_argument("--allow-block-drift", action="store_true",
                     help="允许段落块数不同（不推荐，等于放弃规则 1 的机械校验）")
     ap.add_argument("--float-reflow", action="store_true",
@@ -918,7 +921,9 @@ def main(argv=None):
         print(f"结论：机械校验通过，{len(soft)} 项需人工判断。")
     else:
         print("结论：机械校验全部通过。仍需人工通读一遍。")
-    if args.strict and hard_fail:
+    if args.strict_soft and soft:
+        print("（--strict-soft：%d 项建议性发现已升级为硬性失败）" % len(soft))
+    if args.strict and (hard_fail or (args.strict_soft and soft)):
         return 1
     return 0
 

@@ -166,7 +166,7 @@ def main(argv=None):
                                capture_output=True, text=True, encoding="utf-8")
             checks.append(("公式归一", r.returncode == 0, (r.stdout or "").strip().splitlines()[-1:]))
         fc = [sys.executable, os.path.join(HERE, "fidelity_check.py"),
-              args.source, args.target, "--glossary", args.glossary]
+              args.source, args.target, "--glossary", args.glossary, "--strict"]
         # 图表已按首次引用重定位时，结构对账要按「位置无关」核对浮动对象；
         # 否则搬动过的表行会被误报成块级结构不一致。
         try:
@@ -220,7 +220,10 @@ def main(argv=None):
         if r.returncode:
             print(r.stderr)
 
-    return 1 if problems else 0
+    failed = [name for name, ok, _ in checks if not ok]
+    if failed:
+        print("\n[!] 回填后重跑校验未通过：" + "、".join(failed) + "；修好再交付，别当展示信息看。")
+    return 1 if problems or failed else 0
 
 
 if __name__ == "__main__":
