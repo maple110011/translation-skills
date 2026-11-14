@@ -422,6 +422,78 @@ def latin_ratio(text):
 KEEP_VALUES = ("@keep", "keep", "保留英文", "保留原文")
 
 
+def check_body_hygiene(full_text):
+    """两条硬校验：正文不得有 `<sup>` 字面；术语一览的简述不得回填进正文。
+
+    这两处都不改变块数、公式数、引用数，旧校验一律抓不到，但读者一眼就看见：
+    PDF 里排着字面的 `<sup>1</sup>`，或正文首次出现 keep 术语时多一个中文括注。
+    """
+    body = re.sub(r"\A---\n.*?\n---\n", "", full_text, flags=re.S)
+    for marker in ("notation", "kept-terms"):
+        body = re.sub(r"<!-- %s:start -->.*?<!-- %s:end -->" % (marker, marker),
+                      "", body, flags=re.S)
+    hard = []
+    sups = re.findall(r"<sup[^>]*>.*?</sup>|<sup[^>]*/>", body)
+    if sups:
+        hard.append("正文里有 %d 处 `<sup>` 字面标记（MinerU 提取产物，"
+                    "XeLaTeX 只会原样排出来）：例 %r" % (len(sups), sups[0][:40]))
+    m = re.search(r"<!-- kept-terms:start -->(.*?)<!-- kept-terms:end -->",
+                  full_text, re.S)
+    n_desc = 0
+    if m:
+        descs = []
+        for line in m.group(1).splitlines():
+            if not line.lstrip().startswith("|"):
+                continue
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) >= 2 and cells[1] and cells[1] not in ("中文简述", "---"):
+                descs.append(cells[1])
+        n_desc = len(descs)
+        for d in descs:
+            if len(d) < 6:
+                continue
+            for pat in ("（%s）" % d, "（一种%s）" % d, "（即%s）" % d):
+                if pat in body:
+                    hard.append("术语一览的中文简述被回填进正文：「%s」——"
+                                "简述只能留在表里" % pat[:46])
+                    break
+    return hard, len(sups), n_desc
+
+
+def check_footnotes(tgt_full, work_dir, skip=False):
+    """脚注核对是硬约束：MinerU 的 full.md 整类丢 page_footnote，不能靠人记得补。
+
+    有 _work/脚注.csv 就必须有 `## 脚注` 节，且 [^n]: 定义数不少于内容脚注条数。
+    没有 CSV 说明第 1 步根本没跑 footnote_recover.py，同样拦下。
+    """
+    if skip:
+        print("  （已显式跳过脚注核对）")
+        return []
+    csv_path = os.path.join(work_dir, "脚注.csv")
+    if not os.path.isfile(csv_path):
+        return ["第 1 步未做脚注核对：找不到 _work/脚注.csv。"
+                "先跑 `python scripts/footnote_recover.py <提取目录> -o _work "
+                "--md 原文.md --check`；确无 MinerU 结果包时显式加 --skip-footnote-check"]
+    with open(csv_path, "r", encoding="utf-8-sig", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    need_f = sum(1 for r in rows if r.get("category") == "footnote")
+    need_all = sum(1 for r in rows if r.get("category") in ("footnote", "affiliation"))
+    if need_all == 0:
+        print("✓ 脚注核对：清单 0 条需补")
+        return []
+    m = re.search(r"(?m)^##\s*脚注\s*$(.*?)(?=^##\s|\Z)", tgt_full, re.S)
+    if not m:
+        return ["译文缺 `## 脚注` 节：_work/脚注.csv 有 %d 条需补的页底脚注"
+                "（内容脚注 %d 条），原文与译文必须同步补回" % (need_all, need_f)]
+    defs = len(re.findall(r"(?m)^\[\^\w+\]:", m.group(1)))
+    if defs < need_f:
+        return ["`## 脚注` 节只有 %d 条 `[^n]:` 定义，清单要求至少 %d 条内容脚注"
+                % (defs, need_f)]
+    print(f"✓ 脚注核对：清单 {need_all} 条需补（内容脚注 {need_f} 条）；"
+          f"译脚注节有 {defs} 条编号定义")
+    return []
+
+
 def check_glossary(target, path):
     warnings = []
     rows, keeps = [], []
@@ -580,6 +652,9 @@ def main(argv=None):
     ap.add_argument("--float-reflow", action="store_true",
                     help="浮动对象（图/表/图注/表注）已按正文首次引用重定位："
                          "正文块仍逐块比对，浮动对象改为按多重集合核对")
+    ap.add_argument("--skip-footnote-check", action="store_true",
+                    help="仅在没有 MinerU 结果包（纯 Markdown 输入）时使用："
+                         "跳过「必须先跑 footnote_recover.py」的硬校验")
     args = ap.parse_args(argv)
 
     with open(args.source, "r", encoding="utf-8") as fh:
@@ -594,11 +669,28 @@ def main(argv=None):
         # in the source; leaving it in would look like an invented heading plus
         # N invented table rows. A 并排图块 is collapsed to one line so that it
         # counts as one figure, not as an HTML table plus two comments.
-        raw_tgt = strip_notation(strip_frontmatter(fh.read()))
+        tgt_full = fh.read()
+        raw_tgt = strip_notation(strip_frontmatter(tgt_full))
         n_fig_blocks = count_figure_blocks(raw_tgt)
         tgt = collapse_figures(raw_tgt)
 
     hard_fail, soft = [], []
+
+    hygiene, n_sup, n_desc = check_body_hygiene(tgt_full)
+    if hygiene:
+        for m in hygiene:
+            print("✗ " + m)
+        hard_fail.extend(hygiene)
+    else:
+        print(f"✓ 正文卫生：`<sup>` 残留 0；术语简述回填 0"
+              f"（保留英文术语一览内 {n_desc} 条简述）")
+
+    work_dir = (os.path.dirname(args.glossary) if args.glossary
+                else os.path.join(os.path.dirname(args.target), "_work"))
+    fn_fail = check_footnotes(tgt_full, work_dir, args.skip_footnote_check)
+    for m in fn_fail:
+        print("✗ " + m)
+    hard_fail.extend(fn_fail)
 
     src_struct = strip_float_lines(src) if args.float_reflow else src
     tgt_struct = strip_float_lines(tgt) if args.float_reflow else tgt

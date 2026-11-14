@@ -6,7 +6,7 @@
 translation-skills/
 ├── skills/
 │   ├── political-economy-translation/   政经文献英译中（40 个文件）
-│   └── ml-math-stats-translation/       ML / 数学 / 统计论文英译中（23 个文件）
+│   └── dl-translation/                  ML / 数学 / 统计论文英译中（23 个文件）
 ├── tools/
 │   ├── link.ps1        把本地 skill 目录切换为指向本仓库的 junction（可逆）
 │   ├── unlink.ps1      撤销 junction，恢复切换前的本地目录

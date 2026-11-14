@@ -4,7 +4,7 @@
 $ErrorActionPreference = 'Stop'
 $skillsRoot = Join-Path $env:USERPROFILE '.workbuddy\skills'
 $parentOfSkills = Split-Path -Parent $skillsRoot
-$names = @('political-economy-translation', 'ml-math-stats-translation')
+$names = @('political-economy-translation', 'dl-translation')
 
 foreach ($n in $names) {
     $link = Join-Path $skillsRoot $n

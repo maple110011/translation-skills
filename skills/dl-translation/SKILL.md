@@ -1,5 +1,5 @@
 ---
-name: ml-math-stats-translation
+name: dl-translation
 description: 把英文的深度学习、机器学习、数学、统计学论文译成中文 Markdown，以准确为第一目标。公式与符号逐字符保真、定理/引理的条件与结论强度不走样、术语全文一致；没有通行中文译名的关键术语与概念保留英文原文、不造词，并在译文开头列「保留英文术语一览」；图、表按正文首次引用就近重定位，不再沿用 PDF 的浮动排版位置。译文开头另附「符号一览」。不做润色、不做本土化，允许翻译腔。输入可为 PDF、已提取的 Markdown、docx；输出正文段落与源文一一对应、引用原样，并对公式做逐条机械比对。Use when translating papers with formulas, theorem-proof structures, algorithm pseudocode and experiment tables (deep learning, machine learning, probability, statistics, optimization, mathematics) into Chinese under strict accuracy constraints, when untranslated key terms must be kept in English, when figures/tables must be moved next to their first citation, when a notation table has to be produced alongside the translation, and when a MinerU extraction step is needed first.
 agent_created: true
 ---
@@ -25,7 +25,7 @@ agent_created: true
 - 中译英——本 skill 的对账逻辑假定"源为英文、目标为中文"。
 - 人文社科、政治经济学、文学文本——那类文本的重点是语气与概念史，与这里"公式优先"的取舍相反。
 - 只要摘要或要点、不要全文——直接摘要，不要走这套流程。
-- 纯 LaTeX 源码级的重建与编译校验——那是排版工程，不是翻译。
+- 纯 LaTeX 源码级的重建与编译校验（把作者原始 `.tex` 工程复刻出来、修编译错误）——那是排版工程，不是翻译。本 skill 只做一件事：把**已经定稿的中文 Markdown** 编成一份版式贴近原文的 PDF（`scripts/md2tex.py`，见 [references/pdf-latex.md](references/pdf-latex.md)）。
 - 扫描件且无可提取文字层——先 OCR；提取质量不过关时，逐条对账毫无意义。
 </what_this_skill_is_for>
 
@@ -39,7 +39,7 @@ agent_created: true
 Theorem／Proposition／Lemma／Corollary／Claim／Definition／Assumption／Remark／Conjecture／Proof 各译其名，不得互换（`Proposition` 译成"定理"就是抬高结论等级）。量词、范围、正则性条件、概率模式（a.s.／依概率／依分布／以至少 $1-\delta$ 的概率）、常数依赖关系（"只依赖于 $d$"）、一致性/均匀性，一样不能少、不能弱化。`if` / `only if` / `iff` 三档不得合并。见 [references/accuracy-rules.md](references/accuracy-rules.md) 第 2 节。
 
 **3. 正文结构保真；浮动对象只许搬位置、不许改内容。**
-**正文段落**与源文严格一一对应：不合并两段、不拆一段、不省略"重复"的过渡句。`#` 层数与顺序、列表与层级、`>` 引用深度、脚注标记、代码块、粗斜体，全部原样。括号引用 `(Smith et al., 2020)`、`[12]`、`\cite{}`、参考文献条目整条，逐字符保留、不译。图表章节引用跟着译文编号走（`Figure 3`→图 3，`Section 4.2`→第 4.2 节）。
+**正文段落**与源文严格一一对应：不合并两段、不拆一段、不省略"重复"的过渡句。`#` 层数与顺序、列表与层级、`>` 引用深度、脚注标记（MinerU 抽出的 `<sup>` 不算内容，见下面脚注条）、代码块、粗斜体，全部原样。括号引用 `(Smith et al., 2020)`、`[12]`、`\cite{}`、参考文献条目整条，逐字符保留、不译。图表章节引用跟着译文编号走（`Figure 3`→图 3，`Section 4.2`→第 4.2 节）。
 
 **浮动对象**（图片、并排图块、图注、子图说明、表格、表注）是唯一允许改变位置的成分：PDF 为分页与双栏把它们挪到离引用段落很远的地方，Markdown 是线性文档，**应当把它们移到正文首次引用它们的段落之后**（见 `<floats_reflow>`）。移动的只有位置，下面这些一个都不许变：**图片路径、`alt`、面板并排关系、图注文字与编号、表格行列与数值、表注、正文段落的内容与顺序**。**图的内部版式只许恢复、不许重排**：原文并排的面板要并排，原文分开的两张图不许合成一张，也不许裁掉半边。位置重定位与内部重排是两件事，别混为一谈。
 
@@ -49,7 +49,9 @@ Theorem／Proposition／Lemma／Corollary／Claim／Definition／Assumption／Re
 不合并句子、不调换从句顺序（若改变条件辖域）、不把被动改主动（若施事是有意模糊的）、不删重复、不改逻辑连接词（thus/hence/therefore 各自对应）。允许翻译腔，允许长句不拆。唯一底线：句子要能读通，不能是病句。
 
 **6. 不增不删，不替作者补步骤，不静默修正原文。**
-不添加原文没有的解释、背景、过渡句、译者按语。原文的符号前后不一致、假设与证明对不上、编号跳号——照原样译，写进交付报告的"原文疑点"。三个例外：① **提取错误**（上下标压平、`O(n)` 误识为 `0(n)`）：以 PDF 为准改正，并记下改了几处；② 保留英文术语首次出现时的一句中文简述（属于术语标注，不是译者按语，且不能带进原文没有的信息）；③ 译文开头的 YAML 元信息、符号一览、保留英文术语一览——它们都用 HTML 注释包住，标准渲染不显示，对账脚本会先剥掉，不算正文增写。
+不添加原文没有的解释、背景、过渡句、译者按语。原文的符号前后不一致、假设与证明对不上、编号跳号——照原样译，写进交付报告的"原文疑点"。两个例外：① **提取错误**（上下标压平、`O(n)` 误识为 `0(n)`、MinerU 把上标抽成 `<sup>n</sup>`）：以 PDF 为准改正，并记下改了几处；② 译文开头的 YAML 元信息、符号一览、保留英文术语一览——它们都用 HTML 注释包住，标准渲染不显示，对账脚本会先剥掉，不算正文增写。
+
+**`keep` 术语的中文简述只能写进「保留英文术语一览」的简述列，不得在正文首次出现处补括注或同位语**。哪怕只有一句、哪怕不带原文没有的信息，那也是正文增写。旧版「首次出现可加一句中文简述」的许可已废止：`fidelity_check.py` 会拿简述列去正文反查，`（简述）` 形态一出现就是硬性失败。
 </non_negotiable_rules>
 
 <accuracy_first>
@@ -78,7 +80,9 @@ Theorem／Proposition／Lemma／Corollary／Claim／Definition／Assumption／Re
 <english_terms>
 ## 关键术语保留英文原文
 
-**默认动作是"不译"。** 前沿论文里大量概念没有通行中文译名：作者自造的方法名、近两年新出的架构与指标、跨领域借来后含义变了的词。硬造一个中文名，等于替读者做了一次不可逆的术语裁定——他既查不到原词，也没法与英文文献、代码、检索结果对上。**拿不准就保留英文，这比"译得漂亮"重要。**
+**默认动作是"不译"，而且这个默认要走得比过去更远。** 前沿论文里大量概念没有通行中文译名：作者自造的方法名、近两年新出的架构与指标、跨领域借来后含义变了的词。硬造一个中文名，等于替读者做了一次不可逆的术语裁定——他既查不到原词，也没法与英文文献、代码、检索结果对上。**拿不准就保留英文，这比"译得漂亮"重要。**
+
+读者的处境决定取舍：他要拿这份译文去读代码、查文献、跟作者对线，不是只读一遍中文。**凡是他在原文、文档、issue 里只会以英文遇到的词，保留英文都比译成中文有用。** 一篇论文保留 10–30 个英文术语是正常密度；只有两三个反倒说明该保留的也被译掉了。
 
 ### 判据：哪些保留，哪些照译
 
@@ -86,15 +90,18 @@ Theorem／Proposition／Lemma／Corollary／Claim／Definition／Assumption／Re
 |---|---|
 | 论文自造／首次提出的概念、方法、机制、架构名：`prior-data fitted networks`、`in-context learning`、`amortized inference`、`tabular foundation model`、`post-hoc localization` | 种子表里 `status=已定` 的通用术语：`posterior predictive distribution` → 后验预测分布、`prior` → 先验、`KL divergence` → KL 散度 |
 | 缩写与专名：`PFN`、`PFNs`、`PPD`、`ICL`、`TabPFN`、`Transformer`、`Adam`（大小写、单复数照原文） | 有权威依据的定名：《数学名词》、全国科学技术名词审定委员会、中文教材里稳定使用的译法 |
-| 中文有两种以上并行译法、且选任一种都会误导的词（如 `consistency` 在特定语境、`localization` 在本文指的具体机制） | 普通叙述词、语法功能词、句子里的动词与形容词 |
-| 种子表标 `待裁决`、本篇又找不到权威依据的 | 参考文献条目、引用标记（本来就逐字保留） |
+| **技术名词但中文译名在领域内不稳、或与英文代码/文档脱节**：`hidden size`、`layer norm`、`prompt`、`fine-tuning`、`attention head`、`probing`、`moment matrix`——读者查代码时只会看到英文 | 普通叙述词、语法功能词、句子里的动词与形容词 |
+| 中文有两种以上并行译法、且选任一种都会误导的词（如 `consistency` 在特定语境、`localization` 在本文指的具体机制） | 参考文献条目、引用标记（本来就逐字保留） |
+| 种子表标 `待裁决`、本篇又找不到权威依据的；以及"译成中文虽然说得通、但中文文献里几乎没人这么用"的 | 已在中文里稳定落地、且不会与英文原词脱节的基础词（`gradient descent`、`regression`、`probability`） |
 
-**一句话判据**：查项目表与种子表 → 有 `已定` 译法就译；**没有，就默认 `keep`**。原文已有的中文说明、作者自己给的英文全称，都不改。
+**一句话判据**：查项目表与种子表 → 有 `已定` 译法 **且该译名在中文文献里确实通行** 就译；**其余一律默认 `keep`**。判断"通行"时问自己一句：这个中文词丢进知网/谷歌学术，能不能检索到同一批论文？检索不到就是自造，改回 `keep`。
+
+两种情形仍要译：**术语表已定**，以及**中文读者不看英文也能懂、且译名唯一的基础词**。除此之外不要为了行文顺口而临时意译——那是本规则最常见的失守方式。
 
 ### 怎么写
 
 1. **逐字符照抄**：大小写、连字符、单复数、缩写、斜体标记，与原文该处完全一致。原文写 `PFNs` 就写 `PFNs`，写 `prior-data fitted networks (PFNs)` 就整串照写，不要替作者统一。
-2. **首次出现**可写 `prior-data fitted networks (PFNs)（一种在模拟数据上预训练、推断时不再更新参数的网络）`——中文简述只是术语标注，一句话、不带原文没有的信息；**之后一律只用英文**。
+2. **首次出现照抄，不补中文简述。** 原文写 `prior-data fitted networks (PFNs)` 就写 `prior-data fitted networks (PFNs)`，不要接 `（一种在模拟数据上预训练…）`。中文简述**只**属于开头「保留英文术语一览」的简述列，正文一处都不许出现；全文（含首次出现）一律只用英文。句末若中英相接，补一个半角空格即可，不要借机加解释。
 3. **不中英混跳**：同一个术语定了 `keep`，全文就都保留英文；不许第 2 页英文、第 12 页冒出一个自造中文名。`alt` 列记下那些"不许出现"的中文写法，脚本会查。
 4. **标题与图注里的保留术语同样照抄**：标题其余部分照译，术语不译；不要为了"看起来像中文标题"把 `Prior-Data Fitted Networks` 改成"先验数据拟合网络"。
 5. **术语里带公式或代码的**（`$\Pi$-prior` 之类）公式部分按规则 1 不动，英文部分不动。
@@ -116,7 +123,7 @@ Theorem／Proposition／Lemma／Corollary／Claim／Definition／Assumption／Re
 <!-- kept-terms:end -->
 ```
 
-「中文简述」列可以留空（更严格的不增模式），但**英文列必须与正文逐字符一致**。表只收 `kind=keep` 的条目，通常 5–20 行；超过 25 行先怀疑把通行术语也收进来了。
+「中文简述」列可以留空，但**英文列必须与正文逐字符一致**；简述列只供读者查词，**不得回填进正文**（包括首次出现处的括注与同位语）——`fidelity_check.py` 会拿它去正文反查 `（简述）` 形态。表只收 `kind=keep` 的条目，通常 10–30 行；超过 35 行再回头看是不是把基础词也收进来了（`gradient descent`、`regression` 这类不该收）。
 
 ### 项目术语表怎么登记
 
@@ -292,6 +299,7 @@ python scripts/figures.py audit <stem>_原文.md <stem>_zh.md --csv _work/图目
 
 - 源优先级：**出版版 PDF > 作者提供的 tex/docx > MinerU 提取的 Markdown**。三者冲突以 PDF 为准，提取结果只是工作草稿。
 - 交付默认是 Markdown（含开头的符号一览与 YAML front matter）。要 Word 再走 `workbuddy-docx`，本流程先出 Markdown。
+- **PDF 是可选交付，不是自动步骤**：用户没说格式时只出 Markdown。第 0 步顺口问一句「要不要 PDF」比事后补做省事；要 PDF 走第 6 步的「可选：编译 PDF 版」。
 - 输出放源文件同目录，命名 `<stem>_zh.md`；中间产物放 `_work/`。
 
 用户没说清就只问一次，不要为格式细节来回确认。
@@ -307,6 +315,17 @@ python scripts/mineru_extract.py paper.pdf -o ./_work/extract --model vlm
 ```
 
 首次运行会引导录入 token 并保存；`--token-status` 可查 token 来源。参数与排障见 [references/mineru.md](references/mineru.md)。
+
+**提取完立刻核对脚注（硬性，动笔之前）**：
+
+```bash
+python scripts/footnote_recover.py ./_work/extract -o ./_work \
+    --md <stem>_原文.md --check --scaffold ./_work/待补脚注.md
+```
+
+MinerU 的版面识别**认得出**页底脚注（`content_list.json` 里 `type=page_footnote`，与 `content_list_v2.json`、`layout.json` 条数一致），但服务端生成 `full.md` 时按类型白名单输出，**`page_footnote` 被整类过滤**：正文常常只剩一个 `<sup>n</sup>` 引用标记，脚注正文 100% 丢失。脚注里常有条件、假设、复现链接，漏掉等于改条件。`--check` 有缺失就返回 1，此时**先补再译**，不要等译完再回头找。分类、补写与对账规范见 [references/mineru.md](references/mineru.md)「页底脚注」一节。
+
+**这一步不可少、不可跳过**：`fidelity_check.py --strict` 会同时检查 ① `_work/脚注.csv` 是否存在（没跑恢复工具就是硬性失败）② 译文是否有 `## 脚注` 节 ③ 节里 `[^n]:` 定义数是否不少于清单里的内容脚注条数。三项缺一都返回 1。唯一豁免是**纯 Markdown 输入、没有 MinerU 结果包**时显式加 `--skip-footnote-check`，并在交付报告里写明理由。补脚注必须原文与译文**同步**增节，否则块级对账会多一段。
 
 **有 docx** —— 用 `workbuddy-docx` 或 pandoc 转 Markdown，转换后同样检查公式与表格。
 
@@ -382,7 +401,12 @@ python scripts/notation.py extract 原文.md -o _work/符号候选.csv   # 通�
 - **代码块整块不动**，包括注释。
 - **表格：表头译，数据不动。** 数字、单位、`±`、星号显著性、括号里的标准误原样；表注照译。
 - **图片：`alt` 译（写成「图 N + 一句描述」），路径一字不改。** 多面板图被抽散时按 `<figures>` 节的并排图块处理，图注紧跟图块、留在块外。
-- **脚注：标记保留，内容照译。** 脚注里常有条件（"此处假设 $X$ 与 $Y$ 独立"），漏译等于改条件。
+- **脚注：内容照译，引用标记用 `[^n]`；`<sup>` 是提取产物，不是内容。** 脚注里常有条件（"此处假设 $X$ 与 $Y$ 独立"）与复现链接，漏译等于改条件。第 1 步已用 `footnote_recover.py` 从 `content_list.json` 恢复脚注文字，这里按下面的规范补：
+  ① **两侧同步补**：原文提取稿与译文各加一个 `## 脚注` 节（放在 REFERENCES 之前），条目形如 `[^n]: 第 N 页脚注 n：…`，原文侧填英文、译文侧照译；两侧块数同步增加，`fidelity_check.py` 才不会报结构不一致。
+  ② 正文里的引用标记统一写 `[^n]`（Markdown 脚注语法），**不要写 `<sup>n</sup>`**；`md2tex.py` 会把它渲染成 `\textsuperscript{n}`，并把 `[^n]:` 定义行排成脚注节的编号段落。任何情况下都不允许 `<sup>` 字面出现在交付译文与 PDF 里（`fidelity_check.py` 硬校验）。
+  ③ 作者/机构角标、版权与会议声明不是内容脚注：作者机构在 YAML 与 PDF 标题页已有，版权声明按 `affiliation` 类决定是否保留（一般放在 `## 脚注` 节末尾，注明「原书版权信息」）；版面误标（如标题里的 `40<sup>th</sup>`）直接忽略。
+  ④ `footnote_recover.py` 标为 `noise` 的不补；断词（如 `classifica tion`）、URL 被插入的空格，按第 1 步「以 PDF 为准修正提取缺陷」处理并记账，不要静默改。
+  ⑤ **交付门禁**：`fidelity_check.py --strict` 会硬查 `_work/脚注.csv` 是否存在、译文 `## 脚注` 节是否有足够 `[^n]:` 定义；漏做就 rc=1。补完还要重出 PDF，确认脚注文字进了 PDF 文本层。
 - **引用块 `>`：层级保留，内容译。**
 - **术语照表，符号照抽；`keep` 条目照抄英文。** 译到某个符号时不确定它指什么，回 `_work/符号候选.csv` 与正文第一次定义它的句子核对，不要凭印象；译到 `kind=keep` 的术语时，大小写、单复数、连字符与原文该处完全一致，不要"顺手"译成中文。
 - **图片与表格先按原位译完，位置最后统一搬。** 逐块翻译时不要边译边搬图——那会让段落编号与进度记录对不上；第 3.4 步用脚本一次性重定位。
@@ -512,7 +536,7 @@ python scripts/review_apply.py --target <stem>_zh.md --glossary _work/<stem>_术
 
 | 文件 | 内容 |
 |---|---|
-| `<stem>_zh.md` | 译文，开头带 YAML front matter、符号一览、保留英文术语一览；浮动对象已就近重定位；`normalize_math.py`、`math_fidelity.py`、`fidelity_check.py --float-reflow` 全通过 |
+| `<stem>_zh.md` | 译文，开头带 YAML front matter、符号一览、保留英文术语一览；**含 `## 脚注` 节**（在 REFERENCES 之前，与原文侧同步）；浮动对象已就近重定位；`normalize_math.py`、`math_fidelity.py`、`fidelity_check.py --float-reflow --strict` 全通过 |
 | `_work/<stem>_术语.csv` | 本项目定下的术语、专名与 `kind=keep` 的保留英文条目 |
 | `_work/图表重定位.csv` | 每个浮动对象的原行号、锚段落、动作与说明 |
 | `_work/符号候选.csv` | 符号抽取结果（含含义列） |
@@ -521,6 +545,8 @@ python scripts/review_apply.py --target <stem>_zh.md --glossary _work/<stem>_术
 | `_work/图目录.csv` | 图的审计结果（图注、图号、引用） |
 | `_work/<stem>_待校对.md` | 审校清单 |
 | `<stem>_校对报告.txt` | 三个校验脚本的原始输出 |
+| `_work/脚注.csv`、`_work/脚注_原文.md` | 第 1 步 `footnote_recover.py` 的恢复清单，**交付证据**；缺失即被 `fidelity_check.py --strict` 判为硬性失败 |
+| `<stem>.pdf`（可选） | 由译文 Markdown 编译的中文排版 PDF；只在用户要 PDF 时产出，做法见下节 |
 
 ### 译文的元信息
 
@@ -537,6 +563,34 @@ python scripts/paper_meta.py --check <stem>_zh.md                # 查漏字段
 
 **交付时对话里只回复**：译文绝对路径；校验结论（公式多少处逐字一致、正文结构是否通过、定理环境几条一致、符号表缺几条、`keep` 术语几条且是否全部保住、浮动对象重定位几处／几处无引用）；原文中有无疑点或提取缺陷；没做的部分（没有附录、公式是图片无法提取）。**不复述译文内容。**
 
+### 可选：编译 PDF 版（版式贴着原文）
+
+用户要 PDF 时走这一条，不要临时手搓模板——所有坑都已经写进脚本和 [references/pdf-latex.md](references/pdf-latex.md)。
+
+```bash
+python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex --source-pdf 原文.pdf --pdf
+# 元信息缺的用 --title-en --authors --venue --doi --arxiv --citekey 补
+```
+
+**脚本已内置以下适配（2026-11-14 起），不要再手搓排版副本**：
+
+- 图片：`<img>` 属性顺序任意（MinerU 常写 `src="…" width="32%" alt="…"`），也认裸 Markdown 图 `![alt](path)` 与块内的 `![](path)`；图注两种写法都认（`**图 N**　…` 与 `图 N. …`）。解析不到图片时不排「只有 caption、没有图」的空 `figure`。
+- 表格：Markdown 表格按 `|` 切列时保护 `$…$` 内的 `\|` / `\vert` / `\Vert`；HTML `<table>` 转出的 `tabular` 超页宽时自动缩放；`&#x27;` 这类数字实体自动解码。
+- 公式：`\tag` 留在 `\resizebox` 外；`\tag{□}` 这类非数字编号的组整组降一号字，免得末行撑出页宽；`\text{}` 里被抽取器放大的词间空格自动压回一个。
+- 编译：`--pdf` 用跨进程锁串行化 xelatex。**两个 xelatex 并行会让其中一个在第 2 页附近静默中断，留下 0 字节 PDF 而日志里一个 `!` 错误都没有**；批量出多篇直接各自调用即可，锁会排队。
+
+七条不能违反的约定（摘要，细则见 reference）：
+
+1. 编号用 `\tag{n}` 右对齐，md 里为兼容预览器退化的 `\qquad (n)` 在出 PDF 时换回来；
+2. 同组多行公式合并成 `align*`（能等号对齐）或 `gather*`（含矩阵/超宽行），**不要每行一个 `equation*`**；
+3. 公式不另起段落（段首公式会多垫一个 `\baselineskip`，段前空白立刻偏大）；
+4. 数学里不写裸 `|`，一律 `\vert` / `\Vert`；
+5. 书签只用 `\pdfbookmark`，配 `\addcontentsline` 会让每个标题出现两条；
+6. 引文/符号表的锚点不能落进 `\caption`；
+7. **不开 `\XeTeXgenerateactualtext`**（每个词一个 `/ActualText`，阅读器按它的宽度算高亮框，结果是"能复制、框选只亮几个字母"），改用 `Ligatures={TeX,NoCommon}` 保证 `ffi` 不被压成一个连字符。
+
+验收：0 错误、无 1pt 以上 overfull、`pdftotext` 抽页检查（中文连续、无 `ﬀﬁﬂ`、每页 `BT` 只有二十来个）、`PyPDF2` 打印书签确认不重复、`/Link` 解析能落到参考文献页、剥离链接后正文无漏链引文。
+
 **不要**在正文末尾追加"译者说明""术语对照表""译后记"——除非用户明确要求。
 </workflow>
 
@@ -544,15 +598,17 @@ python scripts/paper_meta.py --check <stem>_zh.md                # 查漏字段
 | 脚本 | 用途 | 关键参数 |
 |---|---|---|
 | `scripts/mineru_extract.py` | PDF/图片/Office → Markdown，token 只需设置一次 | `--set-token`、`--token-status`、`--pages`、`--ocr`、`--model` |
+| `scripts/footnote_recover.py` | 从 `content_list.json` 恢复 `full.md` 丢掉的 `page_footnote`：分类（footnote / affiliation / noise）、写清单与待补骨架、核对原文/译文是否含脚注 | `-o`、`--md`、`--check`、`--scaffold` |
 | `scripts/mathscan.py` | 内部模块：定位全部公式片段（行间/行内），供其余脚本共用 | 不作为命令调用 |
 | `scripts/normalize_math.py` | 统一 `\[…\]`→`$$…$$`、`\(…\)`→`$…$`，跳过代码块与 `\\[2pt]` | `--inplace`、`-o`、`--check` |
 | `scripts/math_fidelity.py` | 公式逐条比对：数量、逐字一致、`\tag`、`\label`、`$` 成对 | `--csv`、`--max`、`--near`、`--allow-text-only`、`--strict` |
 | `scripts/notation.py` | `extract` 抽符号生成骨架（默认略去通用记号）；`check` 核对符号表与正文；`prune` 删掉只含通用记号的行 | `extract -o --keep-common`｜`check --csv --strict`｜`prune --apply` |
-| `scripts/fidelity_check.py` | 结构对账：正文块、标题、列表、引用块、浮动对象集合、图片路径、引用原样、定理环境、未译段、术语一致性（含 `keep` 术语反向检查） | `--glossary`、`--strict`、`--float-reflow`、`--allow-block-drift` |
+| `scripts/fidelity_check.py` | 结构对账：正文块、标题、列表、引用块、浮动对象集合、图片路径、引用原样、定理环境、未译段、术语一致性（含 `keep` 术语反向检查）；**硬校验**：正文卫生（`<sup>` 残留、术语简述回填）、**脚注核对**（`_work/脚注.csv` 存在、`## 脚注` 节、定义条数匹配） | `--glossary`、`--strict`、`--float-reflow`、`--allow-block-drift`、`--skip-footnote-check` |
 | `scripts/figures.py` | `audit` 核对图注数/图号/图注位置/就近性/正文引用/文件/alt；`group` 合成并排图块；`relocate` 把浮动对象移到首次引用段落之后 | `audit --csv --strict --tol`｜`group --apply`｜`relocate --apply --csv --tol` |
 | `scripts/extract_terms.py` | 从原文挖候选术语，标注已收录/新增，并用 `keep_default` 标出默认保留英文的候选 | `--glossary`、`--min-count`、`--top`、`--write-project` |
 | `scripts/lookup_term.py` | 按词查项目术语表与种子表；`dst=@keep` 显示「保留英文原文（不译）」 | `--glossary`、`--exact`、`--max` |
 | `scripts/review_queue.py` | 生成审校清单：要你定的、公式差异、符号表、术语不一致、候选术语 | `--manual`、`--init-manual`、`--math`、`--notation`、`--resolved` |
+| `scripts/md2tex.py` | 译文 Markdown → XeLaTeX（`--pdf` 顺带编译两遍出 PDF）：公式分组对齐、编号右对齐、引文跳转、符号表锚点、书签与元信息；内置图片属性/裸图适配、数学竖线保护、超宽表格自适应、跨进程编译锁 | `--source-pdf`、`--pdf`、`--title-en`、`--authors`、`--venue`、`--doi`、`--arxiv`、`--citekey` |
 | `scripts/review_apply.py` | 执行人的意见：改术语表与译文、重跑四步校验、登记已决、重生成清单 | `--decisions`、`--resolved`、`--manifest`、`--math`、`--notation` |
 | `scripts/paper_meta.py` | 生成、写入、检查译文顶部的 YAML 元信息 | `--init`、`--inject`、`--check` |
 

@@ -22,7 +22,7 @@
 ### 1.1 保留英文的写法
 
 - **逐字符照抄**：大小写、连字符、单复数、缩写、斜体标记，与原文该处完全一致。原文写 `PFNs` 就写 `PFNs`，写 `prior-data fitted networks (PFNs)` 就整串照写。
-- **首次出现**可加一句中文简述：`prior-data fitted networks (PFNs)（在模拟数据上预训练、推断时不再更新参数的网络）`。简述属于术语标注，不带原文没有的信息；之后一律只用英文。
+- **首次出现照抄，不补中文简述**：`prior-data fitted networks (PFNs)` 就写这一串，后面不要接 `（在模拟数据上预训练…）`。中文简述只属于开头「保留英文术语一览」的简述列；正文里出现就是「增」，与规则 6 冲突，脚本会硬失败。旧版「首现可加一句简述」的许可已废止。
 - **不中英混跳**：定了 `keep` 就全文保留英文，不许第 2 页英文、第 12 页冒出一个自造中文名。
 - **标题、图注、表注、符号一览"含义"列**里的 `keep` 术语同样照抄；不要为了"看起来像中文标题"把专名改掉。
 - **写进译文开头的「保留英文术语一览」**（`<!-- kept-terms:start -->` … `<!-- kept-terms:end -->`），列「英文原文｜中文简述（可空）｜出现范围」。它是新增元信息，对账脚本会先剥掉。
@@ -72,7 +72,7 @@ posterior predictive distribution,后验预测分布,,term,已定,种子表已�
 
 ## 3 缩写与专名
 
-- **两种首现格式，别混**：有通行译名的写成「中文（English, ABBR）」，例："随机梯度下降（stochastic gradient descent, SGD）"；`keep` 术语写成「English（中文简述）」，例："in-context learning (ICL)（不更新参数、由上下文提供训练信号）"。之后按各自那一种统一，不要三种混用。
+- **两种首现格式，别混**：有通行译名的写成「中文（English, ABBR）」，例："随机梯度下降（stochastic gradient descent, SGD）"；`keep` 术语**只写英文原串**，例："in-context learning (ICL)"，不加中文简述括注。之后按各自那一种统一，不要三种混用。
 - **不译的**：模型名（Transformer、ResNet、BERT、GPT）、数据集名（ImageNet、CIFAR-10）、软件（PyTorch、JAX）、算法名（Adam、AdamW）、评价指标（BLEU、FID），以及 §1 判为 `keep` 的全部关键术语。
 - **半译的**：`large language model (LLM)` → 大语言模型（LLM）；`reinforcement learning from human feedback (RLHF)` → 基于人类反馈的强化学习（RLHF）。
 - **缩写本身有歧义时保留英文**：`EM`（expectation-maximization 还是 embedding？）、`MLE`（极大似然还是最大似然估计量），看上下文，必要时在表里注明。

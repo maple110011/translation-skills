@@ -83,6 +83,7 @@ python scripts/mineru_extract.py paper.pdf --force
 | `--lang` | 英文文献建议显式 `--lang en`，默认是 `ch`，会影响断行与标点判断 |
 | `--pages` | 超过 200 页必须分段。也可以用它在动笔前先提两页看质量 |
 | `--no-formula` | **绝不要用**。数学/统计论文里公式就是内容本身，去掉公式等于去掉论证 |
+| `--extra-formats` | 默认只出 md+json。要额外格式时传 `latex`/`docx`/`html`，逗号分隔。**翻译流程不要用 latex**，理由见下节 |
 
 ### 输出结构
 
@@ -95,6 +96,18 @@ _work/extract/<文件名>/
 ```
 
 `full.md` 里的图片路径是相对路径。如果要把 Markdown 移出这个目录，必须连 `images/` 一起移，否则图全断。
+
+### 要不要让 MinerU 直接导出 LaTeX？
+
+**能导，但不解决问题。** 精准解析 API 支持 `extra_formats: ["docx","html","latex"]`（本仓库脚本对应 `--extra-formats latex`），返回包里会多一个 `full.tex`。实测（29 页 ICLR 论文，`--pages 3-4`）：
+
+- `full.tex` 的公式**仍然是一行一个** `\[ … \]`，多行推导照样被拆开——和 `full.md` 一模一样；
+- 更糟的是它把 `\tag{4}` 写在 `\[ … \]` 里，这在 amsmath 下是**不合法的**（`\tag not allowed here`），导出件不能直接编译；
+- 模板是 `article + ctex` 的通用重建件，正文还是英文，排版参数（字号、行距、页边）与原文无关。
+
+所以：**仍以 `full.md` 为工作稿**，多行公式的分组在 `scripts/md2tex.py` 里按行处理（见 [pdf-latex.md](pdf-latex.md) 第二节）。LaTeX 导出只在"想要一份能编译的骨架"时有点用，不要指望它替你做对齐。
+
+如果确实想从提取件里保留更多结构，比 LaTeX 更有用的是 `*_content_list.json` / `layout.json`：里面是逐块（`type` + 文本 + 页号 + bbox）的原始结构，可以据此判断"相邻两行公式是不是同一组"，比从 Markdown 反推可靠。当前脚本仍是按 Markdown 的连续 `$$` 块分组，够用但会误判跨页的情况。
 
 ---
 
@@ -117,11 +130,29 @@ _work/extract/<文件名>/
 复杂表格（多级表头、合并单元格）常被拍平成纯文本或错位。
 **处理**：译之前先把表格重建成 Markdown 表格，对照 PDF 核对每个数字。表格错一位，整段论证的实证基础就错了。
 
-### 4. 脚注丢失或错位
+### 4. 脚注整类丢失（最容易被忽略的静默坑）
 
-脚注可能被丢进正文末尾、或被当成正文段落。
-**特征**：正文里出现一个孤立的年份、"ibid."、或一句与上下文无关的完整句子。
-**处理**：对照 PDF 的脚注区补回，并恢复 `[^n]` 标记。
+`full.md` **不含**页底脚注：MinerU 服务端按类型白名单输出，`type=page_footnote` 被整类过滤。正文里往往只剩一个 `<sup>n</sup>` 引用标记，脚注文字一条都没有；编译 PDF 也不报错，所以肉眼看 `full.md` 很难发现。实测三篇 ICLR/ICML/NeurIPS 论文共 13 条 `page_footnote`，`full.md` 收录 **0 条**，其中 10 条是带条件、假设、复现链接的内容脚注。
+
+**但数据没丢**：`*_content_list.json` 的 `page_footnote` 块带 `page_idx`、`bbox` 与完整文字，`content_list_v2.json`、`layout.json` 条数一致。所以**不需要重新 OCR、不需要装 PDF 库、不需要换 `--model`**。
+
+```bash
+python scripts/footnote_recover.py ./_work/extract -o ./_work \
+    --md <stem>_原文.md --check --scaffold ./_work/待补脚注.md
+```
+
+脚本产出 `脚注.csv`、`脚注_原文.md`、`待补脚注.md`，并分类：
+
+| 类别 | 判据 | 要不要补 |
+|---|---|---|
+| `footnote` | 带 `<sup>数字</sup>`、正文 ≥ 30 字 | **必须补并照译** |
+| `affiliation` | 机构 / 通讯 / 版权 / 会议注 | 可选；版权声明建议保留 |
+| `noise` | 版面误标，如标题里的 `40<sup>th</sup>` | 忽略 |
+| `other` | 其余无编号长文本 | 人工判 |
+
+`--check` 有缺失返回 1。**先补再译**，且原文与译文**同步补同一个 `## 脚注` 节**（否则 `fidelity_check.py` 会报块数不一致）；正文引用标记统一写 `[^n]`，不要写 `<sup>n</sup>`。细节见 SKILL.md 翻译规则「脚注」条。
+
+两条不推荐的替代路径：`pdftotext -layout` 按页底抓——双栏论文的脚注在**栏底**而不是页底（Nagler 2023 就是），长脚注与 URL 还常被断行，召回不全；装 PyMuPDF/pdfplumber 按字号 + 坐标聚类——本机均未安装，引入外部依赖也违背本 skill「只用 Python 标准库」的约定。
 
 ### 5. 公式编号被吞
 
@@ -136,7 +167,7 @@ _work/extract/<文件名>/
 
 1. **数段落。** 取 PDF 的某一页，数它有几个自然段，再到 `full.md` 里数对应位置。差一个就说明合并或漏掉了。
 2. **比公式。** 随机挑三个含公式的段落，把 PDF 上的式子和 Markdown 里的 LaTeX 并排看。重点看上下标和撇号。
-3. **查脚注。** 挑一页有脚注的，确认脚注数量一致、内容对得上。
+3. **查脚注。** 跑 `python scripts/footnote_recover.py ./_work/extract -o ./_work --md <stem>_原文.md --check`；返回 1 就先按上节补，再动笔。不要只挑一页肉眼比对——`full.md` 是整类丢脚注，抽查一页看不出系统性缺失。
 
 发现系统性缺陷（比如整篇双栏串行），不要硬译——换 `--model` 重提，或用 `--pages` 分段重提，或改用别的工具。**在错误的底稿上翻译，后面所有校验都失去意义。**
 

@@ -223,7 +223,7 @@ def _check(resp, token):
 # --------------------------------------------------------------------------
 # Extraction
 # --------------------------------------------------------------------------
-def submit_batch(token, files, model, ocr, formula, table, lang, pages):
+def submit_batch(token, files, model, ocr, formula, table, lang, pages, extra=None):
     payload_files = []
     for f in files:
         item = {"name": os.path.basename(f), "is_ocr": bool(ocr)}
@@ -234,6 +234,9 @@ def submit_batch(token, files, model, ocr, formula, table, lang, pages):
                "enable_formula": bool(formula), "enable_table": bool(table)}
     if lang:
         payload["language"] = lang
+    if extra:
+        # markdown/json 是默认输出；这里只放 docx / html / latex
+        payload["extra_formats"] = list(extra)
     resp = _request("POST", f"{API_BASE}/file-urls/batch", token, payload)
     data = _check(resp, token)
     urls = data.get("file_urls") or []
@@ -392,7 +395,7 @@ def cmd_extract(args):
           f"{'，OCR' if args.ocr else ''}{'，页码范围 ' + args.pages if args.pages else ''}）…")
     batch_id, urls = submit_batch(token, todo, args.model, args.ocr,
                                   not args.no_formula, not args.no_table,
-                                  args.lang, args.pages)
+                                  args.lang, args.pages, args.extra_formats)
     print(f"batch_id = {batch_id}")
     for url, path in zip(urls, todo):
         upload(url, path)
@@ -440,6 +443,8 @@ def main(argv=None):
     ap.add_argument("--token-status", action="store_true", help="只看 token 来源与指纹")
     ap.add_argument("--force", action="store_true", help="已有结果也重跑")
     ap.add_argument("--timeout", type=int, default=1800, help="轮询超时秒数")
+    ap.add_argument("--extra-formats", default=None,
+                    help="额外导出格式，逗号分隔：docx,html,latex（默认只出 md+json）")
     args = ap.parse_args(argv)
 
     if args.set_token:
@@ -451,6 +456,8 @@ def main(argv=None):
     if not args.inputs:
         ap.print_help()
         sys.exit(1)
+    if isinstance(args.extra_formats, str):
+        args.extra_formats = [x.strip() for x in args.extra_formats.split(",") if x.strip()]
     cmd_extract(args)
 
 
