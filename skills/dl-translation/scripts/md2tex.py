@@ -1037,12 +1037,12 @@ source\_sha256 = %(sha)s\\
            tz=TITLE_ZH,
            tz1=TITLE_ZH.split('？')[0] + '？' if '？' in TITLE_ZH else TITLE_ZH,
            tz2=TITLE_ZH.split('？')[1] if '？' in TITLE_ZH else '',
-           te=TITLE_EN, au=AUTHORS,
+           te=esc(TITLE_EN), au=AUTHORS,
            subj=(TITLE_EN + ' 中文译本') if TITLE_EN else (TITLE_ZH + ' 中译本'),
-           kw='%s, 中文译本, translation' % CITEKEY,
-           venue=VENUE, arxiv=ARXIV, arxivid=ARXIV.replace('arXiv:', '').strip(),
-           doi=DOI, key=CITEKEY, sha=SHA[:32],
-           srcfile=SRC_NAME.replace('_', r'\_'))
+           kw='%s, 中文译本, translation' % esc(CITEKEY),
+           venue=esc(VENUE), arxiv=ARXIV, arxivid=esc(ARXIV.replace('arXiv:', '').strip()),
+           doi=esc(DOI), key=esc(CITEKEY), sha=SHA[:32],
+           srcfile=esc(SRC_NAME))
 
 body = body.replace('@@REFS@@', refs_tex)
 
