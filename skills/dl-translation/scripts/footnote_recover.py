@@ -399,13 +399,15 @@ def check_all(rows, source, target, pdf_out, allow_pending, skip):
         if raw is None:
             problems.append("拿不到译文 PDF 文本层：%s" % pdf_out)
         else:
-            big = norm(raw)
+            # 中文长句在 PDF 文本层里常跨行断开（甚至断在词中间），
+            # 两边都去掉所有空白再比对，避免「内容明明在却报丢失」。
+            big = re.sub(r"\s+", "", raw)
             for tag in ("[^1]", "<sup>"):
                 if tag in raw:
                     problems.append("PDF 文本层残留字面 %s：脚注没被正确渲染" % tag)
             for r in needed:
-                key = (r["zh"] or r["plain"])[:14]
-                key = norm(re.sub(r"<[^>]+>", "", key))
+                key = re.sub(r"\s+", "",
+                             re.sub(r"<[^>]+>", "", (r["zh"] or r["plain"])[:14]))
                 if key and key not in big:
                     problems.append("PDF 文本层找不到脚注 %s 的内容（%s…）"
                                     % (r["marker"], key))

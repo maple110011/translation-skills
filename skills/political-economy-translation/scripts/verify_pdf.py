@@ -100,7 +100,8 @@ def main(argv=None):
     if not raw:
         info.append("（拿不到 PDF 文本层，跳过文本层检查；装 poppler 后可补全）")
     else:
-        big = re.sub(r"\s+", " ", raw)
+        # 中文长句在 PDF 文本层会跨行断开，去掉所有空白再逐条比对。
+        big = re.sub(r"\s+", "", raw)
         n_cjk = len(CJK.findall(raw))
         info.append("PDF 文本层 %d 字符，汉字 %d" % (len(raw), n_cjk))
         if n_cjk == 0:
@@ -123,7 +124,7 @@ def main(argv=None):
                 miss = []
                 for r in needed:
                     key = (r.get("zh") or r.get("plain") or "")[:14]
-                    key = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", key)).strip()
+                    key = re.sub(r"\s+", "", re.sub(r"<[^>]+>", "", key))
                     if key and key not in big:
                         miss.append("[^%s] %s…" % (r.get("marker", "?"), key))
                 info.append("脚注：清单 %d 条内容脚注，PDF 文本层命中 %d 条"
