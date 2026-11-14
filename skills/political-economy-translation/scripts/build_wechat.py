@@ -21,6 +21,20 @@
 2. 去掉参考文献整节
 3. 脚注移到所注段落之后，用引用框呈现；正文保留上标标记
 4. 开头两行：翻译&编辑 / 文献来源（APA 7）
+
+脚注的写法在各条流程里并不统一，本脚本一律先归一、再挂载，不要求上游
+迁就某一种形态：
+
+| 来源 | 形态 |
+|---|---|
+| MinerU 原稿 | 正文 `<sup>n</sup>`，文末可能没有脚注正文 |
+| `footnotes.py --patch` | 正文 `[^n]`，文末 `[^n]: ...`（可带 `<!-- FOOTNOTES-RECOVERED -->`） |
+| 人工整理 / Pandoc / Typora | `## 脚注` 节里 `1. ...`、`(1) ...`、`- ...`、`注 1 ...`、`<sup>1</sup> ...`、`[^1]: ...` |
+
+`harvest_footnotes()` 把这些定义全部收齐并从正文剥离，`normalize_marks()`
+再把正文里的 `[^n]` 统一成 `<sup>n</sup>`，后续环节只认这一种内部形态。
+`audit_notes()` 在写文件前硬校验：只要"定义了脚注却一条没进版面"、
+"输出残留字面 `[^n]`"或"残留裸 `<sup>`"，一律报错返回非零，绝不静默降级。
 """
 from __future__ import annotations
 
@@ -118,31 +132,258 @@ def paragraphs_of(body: str):
     return out
 
 
+# ---------------------------------------------------------------- 脚注：归一与抽取
+#
+# 上游三种写法必须都能进：MinerU 的 <sup>n</sup>、footnotes.py --patch 与
+# Pandoc 的 [^n] / [^n]:、人工整理的 ## 脚注 节。本节把这三种先收敛成
+# "编号 → 正文" 的字典 + 只带 <sup>n</sup> 的正文，后面的挂载与渲染
+# 就只需要处理一种形态。
+
+NOTE_HEADINGS = {
+    "脚注", "注释", "注", "尾注", "注解", "脚注与注释", "注释与说明",
+    "notes", "note", "footnotes", "footnote", "endnotes", "endnote",
+}
+REF_HEADINGS = {
+    "参考文献", "引用文献", "参考书目", "文献目录",
+    "references", "reference", "bibliography", "works cited",
+}
+UNICODE_SUP = {"\u00b9": 1, "\u00b2": 2, "\u00b3": 3, "\u2074": 4,
+               "\u2075": 5, "\u2076": 6, "\u2077": 7, "\u2078": 8, "\u2079": 9}
+SUP_IN_TEXT = re.compile(r"<sup>[ \t]*([\w-]{1,8})[ \t]*</sup>", re.I)
+FN_REF = re.compile(r"\[\^([\w-]{1,8})\](?![:：])")
+FENCE = re.compile(r"^[ \t]*(?:```|~~~)")
+
+
+def _norm_heading(text: str) -> str:
+    """'## 7. 脚注' / '**Notes**' 一律还原成可比对的小写裸名。"""
+    t = text.strip().strip("*_ \t")
+    t = re.sub(r"^[\d一二三四五六七八九十]+\s*[.、．)）]\s*", "", t)
+    t = re.sub(r"[\s\u3000]+", " ", t)
+    return t.strip().lower()
+
+
+def is_note_heading(text: str) -> bool:
+    return _norm_heading(text) in NOTE_HEADINGS
+
+
+def is_ref_heading(text: str) -> bool:
+    return _norm_heading(text) in REF_HEADINGS
+
+
+def _join_lines(parts) -> str:
+    """把折行的脚注正文接成一段。
+
+    行末连字符有两种来源，得分开处理：PDF 硬断词（`abso-` + `lute`）要去掉
+    连字符拼回去；复合专名（`Kaldor-` + `Verdoorn`）的连字符是词本身的一部分，
+    去掉就成了 KaldorVerdoorn。判据取"下一行首字母是否大写"——硬断词的下半截
+    永远是小写，能撞上大写的只有专名。
+    """
+    out = ""
+    for raw in parts:
+        cur = raw.strip()
+        if not cur:
+            continue
+        if not out:
+            out = cur
+        elif out.endswith("-") and cur[:1].isalpha():
+            if cur[:1].isupper():
+                out = out + cur            # Kaldor- + Verdoorn -> Kaldor-Verdoorn
+            else:
+                out = out[:-1] + cur       # abso- + lute -> absolute
+        else:
+            out += " " + cur
+    return re.sub(r"[ \t]{2,}", " ", out).strip()
+
+
+def _entry_head(line: str):
+    """这一行是不是一条脚注的开头？返回 (编号或 None, 行内正文) / None。
+
+    形态按"越具体越先试"排：`<sup>1</sup>`、`[^1]:`、`注 1`、`- `、`1.`。
+    编号统一按字符串处理——脚注号偶尔是字母（作者单位角标）。
+    """
+    m = re.match(r"^[ \t]*<sup>[ \t]*([\w-]{1,4})[ \t]*</sup>[ \t\u3000]*(.*)$", line, re.I)
+    if m:
+        return (m.group(1), m.group(2))
+    m = re.match(r"^[ \t]*\[\^([\w-]{1,8})\][:：]?[ \t]*(.*)$", line)
+    if m:
+        return (m.group(1), m.group(2))
+    m = re.match(r"^[ \t]*注[ \t\u3000]*(\d{1,3})[ \t\u3000:：.．、)）]*(.*)$", line)
+    if m:
+        return (m.group(1), m.group(2))
+    m = re.match(r"^[ \t]*(?:[-*+])[ \t]+(.*)$", line)
+    if m:
+        return (None, m.group(1))
+    # 1. / 1) / 1、/ 1．/ (1) / （1）——限定 1-3 位，挡掉 "2020. xxx" 这类年份开头
+    m = re.match(r"^[ \t]*[(（]?(\d{1,3})[)）.．、][ \t]*(.*)$", line)
+    if m:
+        return (m.group(1), m.group(2))
+    return None
+
+
+def _max_num_key(defs) -> int:
+    nums = [int(k) for k in defs if str(k).isdigit()]
+    return max(nums) if nums else 0
+
+
+def _parse_note_block(lines, defs: dict) -> None:
+    """把 `## 脚注` 节里的行拆成一条条定义，写进 defs。
+
+    条目之间的分界靠 `_entry_head`；不是条目开头的行一律算上一条的续行
+    （脚注折行很常见）。没有显式编号的条目（`- xxx`）按出现次序顺延，
+    且顺延值会跟着显式编号跳，避免 `1. 2. -` 这种混排撞号。
+    """
+    seq = _max_num_key(defs) + 1
+    key, parts = None, []
+
+    def flush():
+        nonlocal key, parts
+        if key is not None:
+            body = _join_lines(parts)
+            if body:
+                prev = defs.get(key)
+                defs[key] = (prev + " " + body).strip() if prev else body
+        key, parts = None, []
+
+    for raw in lines:
+        if not raw.strip():
+            continue
+        if re.fullmatch(r"[ \t]*([-*_])\1{2,}[ \t]*", raw):   # --- / *** / ___ 分隔线
+            continue
+        head = _entry_head(raw)
+        if head:
+            flush()
+            num, rest = head
+            if num:
+                key = str(num)
+                if num.isdigit():
+                    seq = int(num) + 1
+            else:
+                key = str(seq)
+                seq += 1
+            parts = [rest]
+        elif key is not None:
+            parts.append(raw)
+    flush()
+
+
+def harvest_footnotes(body: str):
+    """收齐全篇脚注定义并从正文剥离。返回 (defs, 正文)。
+
+    顺序不能反：先把 `## 脚注` 整节和 `[^n]:` 定义都摘走，再走块解析。
+    否则 `1. xxx` 会被 paragraphs_of 当成普通有序列表，`[^1]: A` 与
+    `[^2]: B` 相邻时又会被 flush() 拼成一段，编号信息直接烂掉。
+    """
+    lines = body.split("\n")
+    defs: dict = {}
+    keep: list = []
+    i, n = 0, len(lines)
+    in_fence = False
+
+    while i < n:
+        line = lines[i]
+        stripped = line.strip()
+
+        if FENCE.match(line):
+            in_fence = not in_fence
+            keep.append(line)
+            i += 1
+            continue
+        if in_fence:
+            keep.append(line)
+            i += 1
+            continue
+
+        # HTML 注释不进版面：<!-- FOOTNOTES-RECOVERED --> 是 footnotes.py --patch
+        # 留下的补回标记，留着会被转义成一行可见的乱码。
+        if re.fullmatch(r"<!--.*?-->", stripped):
+            i += 1
+            continue
+
+        m = re.match(r"^(#{2,6})[ \t]+(.*?)[ \t]*$", line)
+        if m and is_note_heading(m.group(2)):
+            level = len(m.group(1))
+            i += 1
+            block = []
+            while i < n:
+                nxt = lines[i]
+                if re.match(r"^(#{1,%d})[ \t]" % level, nxt):
+                    break            # 同级或更高级标题：本节到头
+                if FENCE.match(nxt):
+                    break            # 节内冒代码块，交回主循环，别吞掉代码
+                block.append(nxt)
+                i += 1
+            _parse_note_block(block, defs)
+            continue
+
+        # Pandoc 式定义：[^1]: 正文，续行以 2+ 空格 / tab 缩进
+        mm = re.match(r"^[ \t]{0,3}\[\^([\w-]{1,8})\]:[ \t]*(.*)$", line)
+        if mm:
+            key = mm.group(1)
+            parts = [mm.group(2)]
+            i += 1
+            while i < n:
+                nxt = lines[i]
+                if not nxt.strip():
+                    break
+                if re.match(r"^[ \t]{0,3}\[\^[\w-]{1,8}\]:", nxt):
+                    break
+                if not re.match(r"^(?:[ \t]{2,}|\t)\S", nxt):
+                    break
+                parts.append(nxt)
+                i += 1
+            txt = _join_lines(parts)
+            if txt:
+                defs[key] = (defs[key] + " " + txt).strip() if key in defs else txt
+            continue
+
+        keep.append(line)
+        i += 1
+
+    return defs, "\n".join(keep)
+
+
+def normalize_marks(body: str, defs) -> str:
+    """正文脚注标记统一成 `<sup>n</sup>`，后续环节只认这一种内部形态。"""
+    known = {str(k) for k in defs}
+    out, in_fence = [], False
+    for line in body.split("\n"):
+        if FENCE.match(line):
+            in_fence = not in_fence
+            out.append(line)
+            continue
+        if in_fence:
+            out.append(line)
+            continue
+        line = FN_REF.sub(lambda m: f"<sup>{m.group(1)}</sup>", line)
+        # Unicode 上标只在确有同号脚注时转换，否则 x² 会被当成脚注 2
+        for ch, num in UNICODE_SUP.items():
+            if str(num) in known and ch in line:
+                line = line.replace(ch, f"<sup>{num}</sup>")
+        out.append(line)
+    return "\n".join(out)
+
+
 # ---------------------------------------------------------------- 节处理
 def split_sections(blocks):
-    """抽出文末脚注，删掉参考文献整节。返回 (notes, 剩余块)。"""
-    notes, keep, mode = {}, [], None
+    """删掉参考文献整节。脚注节已在 harvest_footnotes 里剥离。
+
+    这里保留 notes 分支只是兜底：万一某节标题不在 NOTE_HEADINGS 里，
+    或者层级深到 harvest 没认出来，也不该把"## 脚注"几个字印到版面上。
+    """
+    keep, mode = [], None
     for kind, payload in blocks:
-        if kind == "h2":
-            name = payload.strip()
-            if name in ("参考文献", "References", "Bibliography"):
+        if kind in ("h2", "h3"):
+            if is_ref_heading(payload):
                 mode = "refs"
                 continue
-            if name in ("脚注", "注释", "Notes"):
+            if is_note_heading(payload):
                 mode = "notes"
                 continue
             mode = None
-        if mode == "refs":
-            continue
-        if mode == "notes":
-            if kind == "p":
-                payload = re.sub(r"^(?:\d+\.\s*)?", "", payload)
-            m = re.match(r"<sup>(\d+)</sup>[\s\u3000]*(.*)$", payload, re.S)
-            if m:
-                notes[m.group(1)] = m.group(2).strip()
+        if mode:
             continue
         keep.append((kind, payload))
-    return notes, keep
+    return keep
 
 
 def attach_notes(blocks, notes):
@@ -151,7 +392,7 @@ def attach_notes(blocks, notes):
     for kind, payload in blocks:
         if kind == "p":
             out.append(("p", payload))
-            for n in re.findall(r"<sup>(\d+)</sup>", payload):
+            for n in SUP_IN_TEXT.findall(payload):
                 if n in notes and n not in used:
                     used.add(n)
                     out.append(("note", (n, notes[n])))
@@ -163,6 +404,53 @@ def attach_notes(blocks, notes):
     return out
 
 
+def prepare(body: str):
+    """正文 → (脚注定义, 已挂好脚注的块序列)。build 与 to_markdown 共用。"""
+    defs, body = harvest_footnotes(body)
+    body = normalize_marks(body, defs)
+    blocks = paragraphs_of(body)
+    blocks = split_sections(blocks)
+    blocks = attach_notes(blocks, defs)
+    return defs, blocks
+
+
+def _num_key(x):
+    s = str(x)
+    return (0, int(s), "") if s.isdigit() else (1, 0, s)
+
+
+def audit_notes(defs, blocks, inner):
+    """脚注不许静默消失。返回 (错误, 提醒)——错误会让脚本不写文件。"""
+    errs, warns = [], []
+    rendered = [str(p[0]) for k, p in blocks if k == "note"]
+    marked = set()
+    for k, p in blocks:
+        if k == "p":
+            marked.update(SUP_IN_TEXT.findall(p))
+
+    if defs and not rendered:
+        errs.append(f"抽出 {len(defs)} 条脚注，一条也没进版面——正文标记与脚注编号对不上")
+    lost = [k for k in defs if str(k) not in set(rendered)]
+    if lost:
+        errs.append(f"脚注 {sorted(lost, key=_num_key)} 有定义却未进版面")
+    if re.search(r"\[\^[\w-]{1,8}\]", inner):
+        errs.append("输出里残留字面 [^n] 标记，读者会看到方括号编号")
+    if "<sup>" in inner.lower() or "</sup>" in inner.lower():
+        errs.append("输出里残留裸 <sup> 标签，未转成带样式的 span")
+
+    orphan = [k for k in defs if str(k) not in marked]
+    if orphan:
+        warns.append(f"脚注 {sorted(orphan, key=_num_key)} 在正文里找不到对应标记，"
+                     "已放到文末，请对照原文确认是不是漏了上标")
+    defined = {str(k) for k in defs}
+    unbacked = sorted((m for m in marked if m.isdigit() and m not in defined),
+                      key=_num_key)
+    if unbacked:
+        warns.append(f"正文上标 {unbacked} 没有对应的脚注定义——版面会留一个无注释的编号，"
+                     "检查脚注正文是不是在提取时丢了")
+    return errs, warns
+
+
 # ---------------------------------------------------------------- 行内标记
 def inline(text: str) -> str:
     """转义 + 行内标记。sup 先占位保住，转义之后再还原成真标签。"""
@@ -172,7 +460,7 @@ def inline(text: str) -> str:
     text = re.sub(r"(?<!\*)\*([^*\n]+?)\*(?!\*)", r"\1", text)   # 中文不用斜体
     text = re.sub(r"`([^`]+)`", r"\1", text)
     # 微信保留 <sup> 标签但不带样式，颜色与字号要自己给
-    text = re.sub(r"\x00S(\d+)S\x00",
+    text = re.sub(r"\x00S[ \t]*([\w-]+)[ \t]*S\x00",
                   rf'<span style="font-size:11px;line-height:0;vertical-align:super;'
                   rf'color:{ACCENT};padding-left:1px;">\1</span>',
                   text)
@@ -275,11 +563,7 @@ def apa_plain(meta):
 
 
 # ---------------------------------------------------------------- 组装
-def build(meta, body, translator, editor):
-    blocks = paragraphs_of(body)
-    notes, blocks = split_sections(blocks)
-    blocks = attach_notes(blocks, notes)
-
+def build(meta, blocks, translator, editor):
     if translator and editor and translator == editor:
         by = f"翻译&amp;编辑：{html.escape(translator)}"
     else:
@@ -358,10 +642,7 @@ def page(inner, title):
 """
 
 
-def to_markdown(meta, body, translator, editor):
-    blocks = paragraphs_of(body)
-    notes, blocks = split_sections(blocks)
-    blocks = attach_notes(blocks, notes)
+def to_markdown(meta, blocks, translator, editor):
     if translator and editor and translator == editor:
         out = [f"翻译&编辑：{translator}", ""]
     else:
@@ -416,20 +697,27 @@ def main(argv):
     editor = str(meta.get("editor") or "").strip() or translator
     os.makedirs(outdir, exist_ok=True)
 
-    inner = build(meta, body, translator, editor)
+    defs, blocks = prepare(body)
+    inner = build(meta, blocks, translator, editor)
+
     problems = self_check(inner)
-    if problems:
+    errs, warns = audit_notes(defs, blocks, inner)
+    if problems or errs:
         print("自检未通过：")
-        for p in problems:
+        for p in problems + errs:
             print("  ✗", p)
+        print("未写出任何文件。")
         return 1
-    print("自检通过：全内联、无 class、无 style 标签、无微信禁用属性")
+    for w in warns:
+        print("  !", w)
+    print(f"自检通过：全内联、无 class、无 style 标签、无微信禁用属性；"
+          f"脚注 {len(defs)} 条全部落位")
 
     title = (meta.get("title_zh") or meta.get("title") or "公众号版").strip()
     p1 = os.path.join(outdir, "wechat_article.html")
     open(p1, "w", encoding="utf-8").write(page(inner, title))
     p2 = os.path.join(outdir, "wechat_article.md")
-    open(p2, "w", encoding="utf-8").write(to_markdown(meta, body, translator, editor))
+    open(p2, "w", encoding="utf-8").write(to_markdown(meta, blocks, translator, editor))
     print("写出：", p1)
     print("写出：", p2)
     return 0

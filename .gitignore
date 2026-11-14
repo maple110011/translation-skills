@@ -17,3 +17,7 @@ MinerU输出/
 
 # WorkBuddy runtime leftovers
 *.pre-junction-backup/
+
+# Local backups written by skill scripts (never commit)
+*.bak_*
+*.bak_footnotes

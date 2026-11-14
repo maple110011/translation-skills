@@ -122,7 +122,12 @@ RECOVERED_MARK = "<!-- FOOTNOTES-RECOVERED -->"
 
 
 def join_lines(lines):
-    """把折行的脚注正文接成一段；行末连字符按断词处理，不误伤 Kaldor-Verdoorn。"""
+    """把折行的脚注正文接成一段。
+
+    行末连字符分两种：硬断词的（`abso-` + `lute`）去掉连字符拼回去；复合专名
+    的（`Kaldor-` + `Verdoorn`）连字符是词本身的一部分，去掉就成了 KaldorVerdoorn。
+    判据取"下一行首字母是否大写"——硬断词的下半截永远是小写。
+    """
     out = ""
     for ln in lines:
         cur = ln.strip()
@@ -131,8 +136,11 @@ def join_lines(lines):
         if not out:
             out = cur
             continue
-        if out.endswith("-") and cur and (cur[0].isalpha()):
-            out = out[:-1] + cur          # abso- + lute -> absolute
+        if out.endswith("-") and cur and cur[0].isalpha():
+            if cur[0].isupper():
+                out = out + cur           # Kaldor- + Verdoorn -> Kaldor-Verdoorn
+            else:
+                out = out[:-1] + cur      # abso- + lute -> absolute
         else:
             out += " " + cur
     return re.sub(r"\s{2,}", " ", out).strip()
