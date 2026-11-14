@@ -461,36 +461,55 @@ def check_body_hygiene(full_text):
 
 
 def check_footnotes(tgt_full, work_dir, skip=False):
-    """脚注核对是硬约束：MinerU 的 full.md 整类丢 page_footnote，不能靠人记得补。
+    """交付门禁：脚注清单 ↔ 译文 `## 脚注` 节逐条核对。
 
-    有 _work/脚注.csv 就必须有 `## 脚注` 节，且 [^n]: 定义数不少于内容脚注条数。
-    没有 CSV 说明第 1 步根本没跑 footnote_recover.py，同样拦下。
+    MinerU 的 full.md 整类过滤 page_footnote，块级对账查不出来；统一脚本
+    footnote_recover.py 负责恢复与补回，这里在交付前再验一次编号、页码、
+    链接与是否还有英文待译。两个 skill 用同一实现。
     """
     if skip:
         print("  （已显式跳过脚注核对）")
         return []
     csv_path = os.path.join(work_dir, "脚注.csv")
     if not os.path.isfile(csv_path):
-        return ["第 1 步未做脚注核对：找不到 _work/脚注.csv。"
-                "先跑 `python scripts/footnote_recover.py <提取目录> -o _work "
-                "--md 原文.md --check`；确无 MinerU 结果包时显式加 --skip-footnote-check"]
+        return ["第 1 步未做脚注恢复：找不到 %s/脚注.csv。先跑 "
+                "`python scripts/footnote_recover.py _work/extract -o _work "
+                "--source 原文.md --target 译文.md --apply --check`；"
+                "确无 MinerU 结果包时显式加 --skip-footnote-check" % work_dir]
     with open(csv_path, "r", encoding="utf-8-sig", newline="") as fh:
         rows = list(csv.DictReader(fh))
-    need_f = sum(1 for r in rows if r.get("category") == "footnote")
-    need_all = sum(1 for r in rows if r.get("category") in ("footnote", "affiliation"))
-    if need_all == 0:
+    needed = [r for r in rows if r.get("category") == "footnote"
+              and (r.get("marker") or "").isdigit()]
+    if not needed:
         print("✓ 脚注核对：清单 0 条需补")
         return []
     m = re.search(r"(?m)^##\s*脚注\s*$(.*?)(?=^##\s|\Z)", tgt_full, re.S)
     if not m:
-        return ["译文缺 `## 脚注` 节：_work/脚注.csv 有 %d 条需补的页底脚注"
-                "（内容脚注 %d 条），原文与译文必须同步补回" % (need_all, need_f)]
-    defs = len(re.findall(r"(?m)^\[\^\w+\]:", m.group(1)))
-    if defs < need_f:
-        return ["`## 脚注` 节只有 %d 条 `[^n]:` 定义，清单要求至少 %d 条内容脚注"
-                % (defs, need_f)]
-    print(f"✓ 脚注核对：清单 {need_all} 条需补（内容脚注 {need_f} 条）；"
-          f"译脚注节有 {defs} 条编号定义")
+        return ["译文缺 `## 脚注` 节：清单有 %d 条页底脚注要补，"
+                "原文与译文必须同步补回" % len(needed)]
+    defs = {mm.group(1): mm.group(2)
+            for mm in re.finditer(r"(?m)^\[\^(\w+)\]:\s*(.*)$", m.group(1))}
+    out = []
+    for r in needed:
+        n = r["marker"]
+        page = str(r.get("page", ""))
+        if n not in defs:
+            out.append("译文脚注节缺 `[^%s]:` 定义（第 %s 页）" % (n, page))
+            continue
+        line = defs[n]
+        if page not in line:
+            out.append("译文 `[^%s]` 页码不符：应为第 %s 页" % (n, page))
+        for u in re.findall(r"https?://[^\s<>'，。；]+", r.get("plain", "")):
+            if u not in line:
+                out.append("译文 `[^%s]` 丢了链接 %s" % (n, u[:60]))
+        if "<!-- 待译" in line or "TODO" in line:
+            out.append("译文 `[^%s]` 还是英文待译：填 _work/脚注_待译.csv 的 zh 列后重跑 --apply" % n)
+    if re.search(r"<sup>\s*\d", tgt_full):
+        out.append("译文仍有字面 `<sup>n</sup>`：交付形态只能是 `[^n]`")
+    if out:
+        return out
+    print("✓ 脚注核对：清单 %d 条需补，译文脚注节 %d 条编号定义；"
+          "逐条页码/链接/中文齐备" % (len(needed), len(defs)))
     return []
 
 
