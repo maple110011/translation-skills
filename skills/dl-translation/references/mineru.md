@@ -138,19 +138,19 @@ _work/extract/<文件名>/
 
 ```bash
 python scripts/footnote_recover.py ./_work/extract -o ./_work \
-    --md <stem>_原文.md --check --scaffold ./_work/待补脚注.md
+    --source <stem>_原文.md --target <stem>_zh.md --apply --check --pdf paper.pdf
 ```
 
-脚本产出 `脚注.csv`、`脚注_原文.md`、`待补脚注.md`，并分类：
+`--apply` 会把正文 `<sup>n</sup>` 归一成 `[^n]`，并给**原文与译文同步**插入 `## 脚注` 节（放在 REFERENCES 之前），写回前留 `.bak_footnotes` 备份、可重复运行。脚本产出 `脚注.csv`、`脚注_原文.md`、`脚注_待译.csv`、`脚注_交叉验证.md`，并分类：
 
 | 类别 | 判据 | 要不要补 |
 |---|---|---|
 | `footnote` | 带 `<sup>数字</sup>`、正文 ≥ 30 字 | **必须补并照译** |
-| `affiliation` | 机构 / 通讯 / 版权 / 会议注 | 可选；版权声明建议保留 |
+| `affiliation` | 机构 / 通讯 / 版权 / 会议注 | 常与正文脚注同号（都叫 1），**不占 `[^n]` 编号**；作引用块说明保留英文 |
 | `noise` | 版面误标，如标题里的 `40<sup>th</sup>` | 忽略 |
 | `other` | 其余无编号长文本 | 人工判 |
 
-`--check` 有缺失返回 1。**先补再译**，且原文与译文**同步补同一个 `## 脚注` 节**（否则 `fidelity_check.py` 会报块数不一致）；正文引用标记统一写 `[^n]`，不要写 `<sup>n</sup>`。细节见 SKILL.md 翻译规则「脚注」条。
+译文侧未填中文时会留 `<!-- 待译 -->`，`--check` 因此返回 1；填好 `_work/脚注_待译.csv` 的 `zh` 列后用 `--translations ... --apply --check` 回填。**先补再译**，`[^n]` 是唯一交付形态，不要写 `<sup>n</sup>`。脚本逐条核编号、页码、链接与中文；`fidelity_check.py --strict` 与 `verify_pdf.py` 还会在交付与 PDF 两层再验一遍。细节见 SKILL.md 翻译规则「脚注」条，两个 skill 的流程完全一致。
 
 两条不推荐的替代路径：`pdftotext -layout` 按页底抓——双栏论文的脚注在**栏底**而不是页底（Nagler 2023 就是），长脚注与 URL 还常被断行，召回不全；装 PyMuPDF/pdfplumber 按字号 + 坐标聚类——本机均未安装，引入外部依赖也违背本 skill「只用 Python 标准库」的约定。
 
@@ -167,7 +167,7 @@ python scripts/footnote_recover.py ./_work/extract -o ./_work \
 
 1. **数段落。** 取 PDF 的某一页，数它有几个自然段，再到 `full.md` 里数对应位置。差一个就说明合并或漏掉了。
 2. **比公式。** 随机挑三个含公式的段落，把 PDF 上的式子和 Markdown 里的 LaTeX 并排看。重点看上下标和撇号。
-3. **查脚注。** 跑 `python scripts/footnote_recover.py ./_work/extract -o ./_work --md <stem>_原文.md --check`；返回 1 就先按上节补，再动笔。不要只挑一页肉眼比对——`full.md` 是整类丢脚注，抽查一页看不出系统性缺失。
+3. **查脚注。** 跑 `python scripts/footnote_recover.py ./_work/extract -o ./_work --source <stem>_原文.md --target <stem>_zh.md --apply --check`；返回 1 就先按上节补（中文译文填 `脚注_待译.csv` 后回填），再动笔。不要只挑一页肉眼比对——`full.md` 是整类丢脚注，抽查一页看不出系统性缺失。给 `--pdf` 可做 PDF 文字层交叉验证，结果在 `_work/脚注_交叉验证.md`；双栏期刊脚注在栏底，未确认不等于提取包有错。
 
 发现系统性缺陷（比如整篇双栏串行），不要硬译——换 `--model` 重提，或用 `--pages` 分段重提，或改用别的工具。**在错误的底稿上翻译，后面所有校验都失去意义。**
 
