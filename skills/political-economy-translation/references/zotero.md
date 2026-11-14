@@ -1,100 +1,145 @@
 # 把译文 PDF 挂回 Zotero 条目
 
-多数文献是从 Zotero 文献库里拖出来的。Windows 下 Zotero 会把 PDF 放在
-`C:\WINDOWS\TEMP\Zotero\drag\`，这个临时目录**会被清空**：译到一半或交付时
-原文 PDF 常常已经不在，但文献条目还在库里。所以译文 PDF 出完、验收通过后，
-应该回到那个条目下面，而不是散落在工作区。
+文献多是从 Zotero 文献库里拖出来的：Windows 的 `Zotero\drag` 临时目录会被清空，原文 PDF 常常已经不在，但文献条目还在库里。译文 PDF 出完、验收通过后，应该回到那个条目下面，而不是散落在工作区。
 
-两个翻译 skill 共用 `scripts/zotero_attach.py` 的同一份实现。
+两个翻译 skill 共用 `scripts/zotero_attach.py` 的同一份实现（MD5 必须一致，改完复制到另一边）。
 
 ---
 
 ## 一、在流程里的位置
 
-第 6 步交付之后、`verify_pdf.py` 通过之后才挂。挂的是一个**已验收的** PDF，
-不是中间产物。公众号版、Markdown 译文与 PDF 是三份独立产物，只有 PDF 进 Zotero。
+第 7 步，`verify_pdf.py` 通过之后。挂的是**已验收的** PDF，不是中间产物；公众号版、Markdown 译文与 PDF 是三份独立产物，只有 PDF 进 Zotero。
 
 ```bash
-python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md
+python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md   # 单篇
+python scripts/zotero_attach.py --batch . --strict                # 一次交付多篇
 ```
-
-脚本会从译文的 YAML front matter 取 `title` / `title_en` / `doi` / `citekey`
-作为父条目线索；也可显式给 `--title`、`--doi`、`--parent-key`。
 
 ---
 
-## 二、零配置：待挂副本 + 操作指引（默认）
+## 二、走本地 API，不碰 zotero.org
 
-本机没有 Zotero API key 时，脚本**不会失败**，而是：
+Zotero 7+ 在 `127.0.0.1:23119/api` 上暴露一套本地 API：
 
-1. 把 PDF 复制到 `<PDF同级>/_work/zotero_inbox/`（可用 `--inbox` 改），
-   同名且 sha256 一致则复用，不重复复制；
-2. 写 `_work/zotero_attach.json`：源路径、副本路径、sha256、标题/DOI、
-   父条目 key（若给）、`zotero://select/...` 链接、生成时间、未自动上传的原因；
-3. 打印在 Zotero 里选中条目后的两步操作：
+| 能力 | 条件 |
+|---|---|
+| 读条目、子附件、附件 md5 | 不需要认证；只需「设置 → 高级 → 允许此计算机上的其他应用程序与 Zotero 通信」 |
+| 写条目、传文件（Zotero 10+） | `POST /api/local/authorize` 弹窗授权，用户点 **Always Allow** 拿到可长期复用的 key |
+| 文件落盘 | 上传后进 `<数据目录>/storage/<附件KEY>/`，与手动拖拽完全一样 |
 
-> 右键 → **添加附件 → 添加文件副本**（Attach Stored Copy of File）→ 选该 PDF；
-> 或把 PDF 直接拖到条目上，Zotero 会自动建成子附件。
+所以**不需要** zotero.org API key，**不需要** `pyzotero`，**不需要**联网。这也意味着旧文档里那套「没配 key 就只能手工拖」的前提不成立。
 
-若给了 `--parent-key`，还会打印 `zotero://select/library/items/<KEY>`，
-在浏览器/系统里打开可直接跳到该条目。
+### 首次配置（一次）
 
-**强制只用这条路**：`--prepare-only`。**只看不写**：`--dry-run`。
-
----
-
-## 三、配置后：自动创建子附件
-
-需要 Zotero Web API：
-
-1. 在 <https://www.zotero.org/settings/keys> 建一个 API key，勾「Allow library access」（写入还要勾 write）；
-2. 用户 ID 在 Zotero 设置的 Feeds/API 页（`Use this user ID for API calls`）；
-3. 安装可选依赖 `pip install pyzotero`（**只有自动上传这一步需要**，其余流程全标准库）；
-4. 配置任选其一：
-
-```bash
-set ZOTERO_API_KEY=xxxxxxxx
-set ZOTERO_USER_ID=1234567
-```
-
-或写 `~/.workbuddy/zotero.json`：
+1. Zotero → 设置 → 高级 → 勾「允许此计算机上的其他应用程序与 Zotero 通信」；
+2. 跑一次脚本，Zotero 弹窗问是否允许写入 → 点 **Always Allow**；
+3. key 落到 `~/.workbuddy/zotero.json`：
 
 ```json
-{"api_key": "xxxxxxxx", "user_id": "1234567", "library_type": "user", "inbox": ""}
+{"server_id": "9MDOd3HexaRq", "local_key": "<32 位>", "remember": true, "user_id": "0"}
 ```
 
-配置好后直接跑上面的命令即可；`--auto` 表示**必须**自动上传，做不到就返回 1。
+`server_id` 标识"这一套库"。换了库（或换了数据目录）这个 ID 会变，脚本会重新授权一次——这是官方要求的语义，不是 bug。要撤销：Zotero → 设置 → 高级 → **Clear Write Authorizations**。
 
-自动流程：按 DOI（优先）或标题做 quick search 找父条目 → 检查该条目下是否已有
-同名附件（有则跳过，幂等）→ 把 PDF 复制到短的无空格临时名 → 用
-`attachment_both` 建子附件并上传 → 重新拉一次子项列表复验 → 打印 `zotero://select/...`。
-
-**Windows 长路径坑**：路径里带空格/中文时 `attachment_simple` 可能不抛异常、
-只返回空的 `success` 列表。脚本先把文件复制成 `zot_upload.pdf` 再上传，并显式
-检查 `failure` / `success`，不把"看起来没报错"当成成功。
+只点 **Allow**（不点 Always Allow）也能跑，但 key 一次性，每次都要弹窗；脚本会提示。
 
 ---
 
-## 四、安全约束
+## 三、锚定：先证明挂给谁
 
-- **绝不直接读写 `zotero.sqlite`**：Zotero 运行时数据库被锁，手工插 item 会破坏同步，
-  也可能损坏整个文献库。写入只走官方 Web API 或 Zotero 自己的界面。
-- 不移动、不删除、不覆盖用户文件；只往 `zotero_inbox/` 复制一份副本。
-- 同名附件已存在就跳过，不重复挂、不覆盖原附件。
-- `--dry-run` 不复制、不上传、不写清单。
+线索按可靠性从高到低：
+
+| 顺序 | 线索 | 判据 |
+|---|---|---|
+| 1 | `--parent-key` | 直接取条目 |
+| 2 | DOI / arXiv | front matter 的 `doi` / `arxiv`，或原文 md 里捞出的 `10.xxxx/...`；`qmode=everything` 搜回来后**等值比较 DOI 字段** |
+| 3 | `source_pdf` | front matter 里那条原文 PDF 的文件名，与库里附件的 `filename` **逐字（NFKC 归一）相等** → 反查 `parentItem`。这是最硬的证据，因为该文件名就是 Zotero 自己写出来的 |
+| 4 | 英文标题 | 归一化后相似度 ≥ 0.85，且与第二名差 ≥ 0.08（唯一）；副标题差异单独放宽容 |
+
+**中文标题不参与匹配**：库里存的是英文原题，拿 `title_zh` 去搜只会命中噪声。`citekey` 只作搜索关键词，**绝不当作 DOI**（旧版把译文 citekey `xxx-zh` 塞进 DOI 参数，搜出来必然是噪声）。
+
+歧义时输出前三候选（key、相似度、标题）并返回 3，**一条都不写**。
 
 ---
 
-## 五、版本与故障排查
+## 四、判重与版本
+
+读父条目的 `children`，只比 `attachment`：
+
+| 情况 | 状态 | 动作 |
+|---|---|---|
+| 没有同名附件 | `attached` | 新建附件条目 → 三步上传 |
+| 同名，md5 相同 | `unchanged` | 跳过，不弹授权窗 |
+| 同名，md5 不同 | `updated` | **复用该附件条目**，覆盖其文件；附件数不变 |
+
+判据是 **filename + md5**，不是只看文件名——只看文件名会让改稿重出的 PDF 永远挂不上新版（旧版的行为，且与文档自述矛盾）。
+
+改稿后直接重跑即可；不要手工去 Zotero 里删旧附件，也不要新建"中译 v2"。
+
+---
+
+## 五、状态、退出码与降级
+
+| 状态 | 含义 | rc |
+|---|---|---|
+| `attached` / `updated` / `unchanged` | 挂好了（新建／覆盖／本就是这版） | 0 |
+| `error` | 硬错；若刚建过附件条目，已回滚删除，不留空壳 | 1 |
+| `pending` | 没锚定，或写不了 | 2 |
+| `ambiguous` | 多个候选，等人选 | 3 |
+
+`--strict` 把 `pending`／`ambiguous`／`prepared` 一律算失败（rc=1），交付门禁用；`--auto` 同理。
+
+写不进去时**不要复制副本**——Zotero 拖拽/导入时会自己把文件复制进 `storage/`，中间副本纯冗余。脚本改为在 `_zotero/` 下产出：
+
+- `pending.md`：一次交付一张汇总表（PDF 路径、父条目 key、标题、状态）；
+- `attach.js`：整段粘进 Zotero「工具 → 开发者 → 运行 JavaScript」，Run 一次挂完全部已锚定的：
+
+```js
+const jobs = [{ pdf: "E:\\...\\Xxx_zh.pdf", parent: "ABCD1234" }];
+for (const j of jobs) {
+  const item = Zotero.Items.getByLibraryAndKey(Zotero.Libraries.userLibraryID, j.parent);
+  await Zotero.Attachments.importFromFile({ file: j.pdf, parentItemID: item.id });
+}
+```
+
+只有显式 `--stage` 才把待挂 PDF 集中复制到 `_zotero/inbox/` 一处。
+
+记账：单篇写 `_work/zotero_attach.json`；总账 `_zotero/attached.csv` 按 `<stem>` 一行，记当前挂的是哪一版（核对 `md5`）。
+
+---
+
+## 六、实测踩到的三个坑（Zotero 10.0.8）
+
+这三条与官方文档的描述不一致，改代码前先看：
+
+1. **文件上传参数必须放在 form body 里**。官方文档写的是 query string（Web API 语义），本地实现照 query 传会返回 **500 空响应**；放 `application/x-www-form-urlencoded` 的 body 里才 200。
+2. **覆盖上传的 `If-Match` 要填旧文件的 md5**（文件 ETag），不是条目 version。填 version 返回 `400 Invalid If-Match header`。
+3. **用 `127.0.0.1` 而不是 `localhost`**。Windows 上 `localhost` 先试 `::1` 再回退 IPv4，每个请求多 2 秒；批量时肉眼可见。
+
+另外：`GET /items?itemType=attachment` 全量拉附件表会超时（本机 3285 条），不要建全量索引，用 quicksearch 反查即可。
+
+---
+
+## 七、安全约束
+
+- **绝不直接读写 `zotero.sqlite`**：Zotero 运行时数据库被锁，手工插 item 会破坏同步，也可能损坏整个文献库。写入只走官方本地/Web API。
+- 不移动、不删除、不覆盖用户的**原文**文件；只新增译文附件的副本。
+- 上传失败回滚：新建的空壳附件条目会被删掉，不在库里留"缺文件"的坏条目。
+- 同名同 md5 幂等跳过，不重复挂。
+- `--dry-run` 只读：查条目、判重，不写库、不产文件、不弹授权窗。
+
+---
+
+## 八、故障排查
 
 | 现象 | 原因 / 处理 |
 |---|---|
-| 「未配置 ZOTERO_API_KEY / ZOTERO_USER_ID」 | 没配置就走零配置待挂，这是正常路径，不是错误 |
-| 「没装 pyzotero」 | `pip install pyzotero`，或继续用待挂副本手动挂 |
-| 「没找到父条目」 | 给 `--parent-key`（Zotero 里选中条目，右键可复制 URI/Key），或补 `--title` / `--doi` |
-| 上传返回成功但复验没看到子项 | 同步延迟或权限问题，等同步完在 Zotero 里看一眼；脚本会返回 `attached-unverified` |
-| 想用 Zotero 本地 API 写 | Zotero 7 的本地 API **只读**；写支持要 Zotero 10 且需弹窗授权。本脚本走 Web API，不依赖本地端口 |
-| Zotero 没运行 / 本地端口不通 | 不影响 Web API 路径；本地 API 只在 Zotero 桌面端开启「Allow other applications…」后才可用 |
-
-清单 `_work/zotero_attach.json` 随交付一起留着，日后要核对"挂的是哪一版 PDF"
-看 `sha256` 即可；重新出 PDF 后重跑脚本会生成新副本与新 sha256。
+| 「本地 API 不可用」 | Zotero 没启动，或设置→高级 里那个开关没勾 |
+| 授权弹窗一直不来 | Zotero 版本 < 10，没有本地写入；用 `attach.js` 一键挂 |
+| 「用户在 Zotero 弹窗里拒绝了授权」 | 重跑，点 Allow / Always Allow；每分钟最多 5 次弹窗 |
+| 「授权弹窗请求过频」 | `429`，等一分钟 |
+| 「Invalid If-Match header」 | 覆盖时旧附件没有 md5；脚本会自动改成删除重建，若仍报错说明旧附件是 linked file |
+| 「复验对不上」 | 上传返回成功但读回 md5 不符；看 Zotero 是否在同步/校验中，稍后重跑 `unchanged` 即可确认 |
+| 「没找到父条目」 | 给 `--parent-key`；或补 front matter 的 `doi`／`arxiv`／`source_pdf`（`paper_meta.py --init` 能自动抓大部分） |
+| 三篇全 `pending` 而库里明明有 | 检查译文 md 是否缺 front matter，或批量扫到了 `_work/` 下的中间件（脚本已跳过该目录） |
+| 附件挂上了但打不开 | 到 `storage/<附件KEY>/` 看文件是否存在、字节数对不对；对不上就重跑，`update` 会覆盖 |
