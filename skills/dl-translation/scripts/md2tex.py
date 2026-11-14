@@ -34,6 +34,9 @@ ap.add_argument("--venue", default=None)
 ap.add_argument("--doi", default=None)
 ap.add_argument("--arxiv", default=None)
 ap.add_argument("--citekey", default=None)
+ap.add_argument("--footnotes", choices=["footnote", "endnote"], default="footnote",
+                help="footnote=正文 [^n] 渲染成 LaTeX 页底脚注（默认，保留脚注格式）；"
+                     "endnote=旧行为，脚注文字集中排在文末 ## 脚注 节")
 args = ap.parse_args()
 
 
@@ -59,6 +62,13 @@ if m:
         k, _, v = line.partition(':')
         fm[k.strip()] = v.strip().strip('"')
     text = text[m.end():]
+
+
+# 预扫脚注定义：正文里的 [^n] 要变成 \footnote{…}，而定义行在文末，
+# 必须先收集再排版，否则正文先走完时拿不到脚注文字。放在 front matter
+# 剥离之后，避免把 YAML 里的字段误当成脚注。
+FN_DEFS = {m.group(1): m.group(2).strip()
+           for m in re.finditer(r'(?m)^\[\^(\w+)\]:\s*(.*)$', text)}
 
 
 def pick(cli, *keys, default=''):
@@ -223,17 +233,34 @@ def link_cites(line, already=False):
     return line
 
 
+URL_PAT = re.compile(r'https?://[^\s<>，。；）)\]}]+')
+
+
 def inline(s, nolink=False):
-    """行内排版：数学/粗体/上标先占位，再整体识别引文（这样跨公式的引文组也能兜住）。"""
+    r"""行内排版：数学/粗体/上标先占位，再整体识别引文（这样跨公式的引文组也能兜住）。
+
+    URL 单独占位后走 \url{}：xurl 已加载，可断行可点击；直接 esc() 会变成
+    一长串不可断的普通文本，在页底脚注里必然撑出 Overfull \hbox。
+    """
+    urls = []
+    if 'http' in s:
+        def _hide_url(m):
+            urls.append(m.group(0))
+            return '\x01U%d\x02' % (len(urls) - 1)
+        s = URL_PAT.sub(_hide_url, s)
     store = []
     pieces = []
     for part in re.split(r'(\$[^$]+\$|<sup>[^<]*</sup>|\[\^\w+\])', s):
         if not part:
             continue
         if re.fullmatch(r'\[\^\w+\]', part):
-            # Markdown 脚注引用 [^n]：脚注文字集中在文末「## 脚注」节，
-            # 正文里只保留可渲染的上标编号，不用 <sup>（HTML 字面会进 PDF）。
-            store.append(r'\textsuperscript{' + esc(part[2:-1]) + '}')
+            n = part[2:-1]
+            if args.footnotes == 'footnote' and n in FN_DEFS:
+                # 页底真脚注：脚注文字跟着引用标记走，PDF 里保留脚注格式。
+                store.append(r'\footnote{' + inline(FN_DEFS[n], nolink=True) + '}')
+            else:
+                # 尾注模式：正文只留上标编号，文字在文末 ## 脚注 节。
+                store.append(r'\textsuperscript{' + esc(n) + '}')
             pieces.append('\x01M%d\x02' % (len(store) - 1))
             continue
         if part.startswith('<sup>') and part.endswith('</sup>'):
@@ -259,6 +286,8 @@ def inline(s, nolink=False):
         text = link_cites(text, True)
     for idx, val in enumerate(store):
         text = text.replace('\x01M%d\x02' % idx, val).replace('\x01B%d\x02' % idx, val)
+    for idx, u in enumerate(urls):
+        text = text.replace('\x01U%d\x02' % idx, r'\url{' + u + '}')
     return text
 
 
@@ -728,12 +757,14 @@ while i < len(body_lines):
         i += 1
         continue
 
-    # 文末脚注定义 [^n]: … 与正文里的 [^n] 引用配对（见 references/mineru.md）。
+    # 文末脚注定义：页底脚注模式下内容已经进了正文 \footnote{}，这里跳过；
+    # 尾注模式才排成编号段落（见 references/pdf-latex.md）。
     m_fn = re.match(r'^\[\^(\w+)\]:\s*(.*)$', s)
     if m_fn:
         flush()
-        out.append(r'\noindent\textsuperscript{%s}\, %s\par' %
-                   (esc(m_fn.group(1)), inline(m_fn.group(2))))
+        if args.footnotes == 'endnote':
+            out.append(r'\noindent\textsuperscript{%s}\, %s\par' %
+                       (esc(m_fn.group(1)), inline(m_fn.group(2))))
         i += 1
         continue
 

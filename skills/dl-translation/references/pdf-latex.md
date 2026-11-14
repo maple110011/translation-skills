@@ -90,6 +90,16 @@ PY
 6. 抽页面对照原文：公式块是否等号对齐、编号是否右对齐、图是否并排、附录链条是否左对齐紧排。
 7. 页码：`pdfinfo` 看页数是否合理（一般比原文多 15–30%，中文行宽不同）。
 8. **图片数**：`grep -c includegraphics paper.tex` 应对得上译文里 `![` 与 `<img src=` 的总数。早期版本的典型故障是「编译 0 错误、PDF 有页数，但一张图都没有，只剩路径文字与 caption」——只看 `!` 错误发现不了，必须数一遍。
+9. **脚注**：逐条核 `_work/脚注.csv` 的中文/英文关键串是否进了 PDF 文本层，TeX 里 `\footnote{}` 数不少于清单内容脚注数，文本层无字面 `[^n]` / `<sup>`。脚注在 Markdown 里是 `[^n]` + `## 脚注` 节，编译后必须变成页底真脚注，不能只剩一个上标数字。
+
+1–2、8、9 已脚本化，编译后直接跑（有问题返回 1）：
+
+```bash
+python scripts/verify_pdf.py _work/pdf/paper.pdf \
+    --tex _work/pdf/paper.tex --md <stem>_zh.md --footnotes _work/脚注.csv
+```
+
+`md2tex.py` 默认 `--footnotes footnote`（页底真脚注）；若稿件要求尾注形式，用 `--footnotes endnote`，脚注文字集中排在文末 `## 脚注` 节。两种模式都由 `verify_pdf.py` 验收。URL 走 `\url{}`（已加载 `xurl`），否则长链接在页底脚注里必然撑出 `Overfull \hbox`。
 
 ## 七、脚本解决不了的部分（交付时要说明）
 
