@@ -67,6 +67,8 @@ git tag dl/v1
 
 ## 五、维护约定
 
-- `scripts/footnote_recover.py`、`md2tex.py`、`verify_pdf.py`、`zotero_attach.py` 与 `dl-translation` 是**同一份实现**，改动后要同步复制到另一边，并在两个 SKILL.md 的脚本表里同步登记。
-- 仓库是唯一真相源；`~/.workbuddy/skills/` 是 junction，普通复制/备份工具不一定跟随它，备份以本仓库为准。工作区目录若移动或改名，junction 会断，重跑 `tools/link.ps1` 即可；删除 junction 只删链接、不动仓库内容。
-- 提交按逻辑块小步进行，别把多个 skill 的改动揉成一个 commit。
+导航与「改哪里」的完整清单在仓库根 [MAP.md](../../../MAP.md)。这里只留与本 skill 特有数据相关的三条：
+
+- 马恩原著文本、语料与 `_marx_ref/` 一律不入库；改动 `glossary/` 下的数据要能说明来源与许可。
+- 共享实现（`footnote_recover.py`／`md2tex.py`／`verify_pdf.py`／`zotero_attach.py`）改动后同步复制到 `dl-translation`，并用 `md5sum` 核对。
+- 仓库是唯一真相源，`~/.workbuddy/skills/` 是 junction：工作区移动或改名后重跑 `tools/link.ps1`；删除 junction 只删链接、不动仓库内容。

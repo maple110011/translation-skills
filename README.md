@@ -11,6 +11,8 @@
 
 `scripts/footnote_recover.py`、`md2tex.py`、`verify_pdf.py`、`zotero_attach.py` 在两个 skill 里是**同一份实现**（MD5 一致）；改动要同步复制到另一边，别只改一边。
 
+**要改代码或文档，先看 [MAP.md](MAP.md)**：它列了「想改某件事该动哪个文件」、哪些文件必须两边同改、三层文档各管什么。本文件只讲怎么用。
+
 ---
 
 ## 一、怎么用
