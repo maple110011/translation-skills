@@ -1,78 +1,75 @@
 # translation-skills
 
-两个原创翻译 skill 的单一仓库。仓库是唯一真相源，`~/.workbuddy/skills/` 下对应目录通过 NTFS 目录联接（junction）指向这里，编辑即提交，无需双向同步。
+两个自建翻译 skill 的单一仓库：把英文政治经济学文献、深度学习／数学／统计论文译成中文 Markdown，并用脚本证明"没漏段、引用没改、公式与脚注没丢"。
 
-```
-translation-skills/
-├── skills/
-│   ├── political-economy-translation/   政经文献英译中（40 个文件）
-│   └── dl-translation/                  ML / 数学 / 统计论文英译中（23 个文件）
-├── tools/
-│   ├── link.ps1        把本地 skill 目录切换为指向本仓库的 junction（可逆）
-│   ├── unlink.ps1      撤销 junction，恢复切换前的本地目录
-│   └── marxref-build/  马恩引文索引构建脚本（27 个 .py，纯代码，见该目录 README）
-├── .gitattributes
-├── .gitignore
-└── README.md
-```
+仓库是唯一真相源，`~/.workbuddy/skills/` 下的同名目录是指向这里的 NTFS junction，编辑即生效、无需双向同步。
 
-## 关于马恩原著文本：不包含
+| skill | 用途 | 主文档 |
+|---|---|---|
+| `political-economy-translation` | 政经期刊论文／书章／书评英译中；术语与人名治理、马恩引文、公众号排版稿 | [SKILL.md](skills/political-economy-translation/SKILL.md) |
+| `dl-translation` | 深度学习／数学／统计论文英译中；公式逐条对账、符号一览、图表重定位 | [SKILL.md](skills/dl-translation/SKILL.md) |
 
-**本仓库不包含任何马恩原著文本，仅包含索引构建脚本。**
+`scripts/footnote_recover.py`、`md2tex.py`、`verify_pdf.py`、`zotero_attach.py` 在两个 skill 里是**同一份实现**（MD5 一致）；改动要同步复制到另一边，别只改一边。
 
-- 不含《马克思恩格斯文集》（人民出版社 2009）中文译文、MECW 英文原文，也不含任何由原文衍生的 PDF、HTML、句级语料 `jsonl`、对齐表、页码映射或检索索引成品。工作区里的 `_marx_ref/`（约 919 MB）整份被 `.gitignore` 排除，从未提交。
-- 与马恩引文工具相关的只有**脚本代码**：`skills/political-economy-translation/scripts/marx_quotes.py`（从英文文献找引文并对到文集译文）、`marx_adopt.py`（采用表转决定表）、`references/marx-ref.md`（方法说明），以及 `tools/marxref-build/` 下 27 个索引构建脚本（约 160 KB）。这些文件里没有一句原著原文，中文长串均为注释与算法说明。
-- **这套索引构建脚本是项目内的工作脚本，有待进一步优化**：覆盖不全（第 8、9 卷未进索引）、句级对齐约四分之一存在错位风险需人工核对、参数与卷次映射硬编码、外部语料源未锁版本、无回归测试。详见 [`tools/marxref-build/README.md`](tools/marxref-build/README.md)。
+---
 
-因此本仓库体积始终在几 MB 量级，不存在马恩语料把仓库撑到 GitHub 上限的问题；后续优化脚本也只增加代码、不增加语料。
+## 一、怎么用
 
-不在本仓库内：`mathtranslations`（`libinyam/mathtranslations-skill` 的 clone，MIT，带 LICENSE/NOTICE）、`paper-xray`（`Wang-auspicious/paper-xray` 的 clone），以及顶层 12 个 `latex-*-audit` / `mathtranslation-*`（它们是 mathtranslations 仓库 `skills/` 子目录的逐字副本）。这些都是上游资产，留各自的 origin 便于 `git pull`，不要并进来。
-
-## 本地加载
+**加载**（Windows，不需要管理员权限）：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\link.ps1
 ```
 
-脚本把 `~/.workbuddy/skills/<name>` 里的原目录改名备份到 `~/.workbuddy/<name>.pre-junction-backup`（放在 `skills/` 之外，避免被当成新 skill 扫描），再创建 junction 指向本仓库的子目录。跨盘（C: → E:）已实测可用，创建 junction 不需要管理员权限。
+脚本把 `~/.workbuddy/skills/<name>` 原有目录改名备份到 `~/.workbuddy/<name>.pre-junction-backup`（放在 `skills/` 之外，避免被当成第二个 skill 扫描），再创建 junction 指向本仓库子目录。撤销用 `tools\unlink.ps1`；**备份目录确认无误前不要删**。
 
-撤销：
+**调用**：在 WorkBuddy 里按 skill 名字发起翻译任务即可，也可以直接跑 `skills/<name>/scripts/` 下的脚本。动手前先读对应 `SKILL.md`——它规定了步骤顺序、硬门槛与交付物，不要跳步凭记忆往下写。
 
-```powershell
-powershell -ExecutionPolicy Bypass -File tools\unlink.ps1
-```
+常用命令（在译文所在目录执行；`scripts/` 换成对应 skill 的路径，`<stem>` 是原文文件名）：
 
-删除 junction 只删链接、不动仓库内容，再把备份目录改回原名。**备份目录确认无误前不要删**。注意：普通复制/备份工具不一定跟随 junction，备份要以本仓库为准；工作区目录若移动或改名，junction 会断，重跑 `link.ps1` 即可。
+| 目的 | 命令 |
+|---|---|
+| PDF → Markdown | `python scripts/mineru_extract.py paper.pdf -o _work/extract --model vlm` |
+| 恢复并补全脚注 | `python scripts/footnote_recover.py _work/extract -o _work --source <stem>_原文.md --target <stem>_zh.md --apply --check --pdf paper.pdf` |
+| 回填中文脚注 | `python scripts/footnote_recover.py _work/extract -o _work --translations _work/脚注_待译.csv --target <stem>_zh.md --apply --check` |
+| 结构对账 | `python scripts/fidelity_check.py <stem>_原文.md <stem>_zh.md --glossary _work/<stem>_术语.csv --float-reflow --strict` |
+| 编译 PDF | `python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex --pdf` |
+| PDF 验收 | `python scripts/verify_pdf.py _work/pdf/paper.pdf --md <stem>_zh.md --footnotes _work/脚注.csv` |
+| 公众号版（政经） | `python scripts/build_wechat.py <stem>_zh.md <输出目录>` |
+| 回挂 Zotero | `python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md` |
 
-## 外部数据：马恩语料不入库
+---
 
-`political-economy-translation` 的 `scripts/marx_quotes.py` 可以把英文文献里的马恩直接引语对到《马克思恩格斯文集》的中文译文。它消费的是工作区里的 `_marx_ref/`（引擎 + 句级语料），通过 `--marxref` 或环境变量 `MARX_REF` 指定，**是可选依赖**：没有它，其余流程照常运行，只是跳过引文匹配。
+## 二、工作流
 
-`_marx_ref/` **不进本仓库**，理由有三：
+两个 skill 共用 0–6 步骨架，**每一步的产物是下一步的输入**：
 
-1. **体积**：当前 919 MB（PDF 332 MB、分卷中间文件 332 MB、句级索引 jsonl 109 MB、HTML 88 MB）。GitHub 建议仓库 <1 GB、"强烈建议 <5 GB"，单文件 >100 MiB 会被直接阻断。919 MB 已经贴着建议线，而且 Git 会保留**每一次历史版本**——加卷次、加索引、做新版本快照，仓库只会单调膨胀；一旦 push 过，想清除得用 `git filter-repo` 重写历史。GitHub 官方文档也直说 Git 不是备份工具。
-2. **版权**：MECW 英文版多为 CC0，但《马克思恩格斯文集》（人民出版社 2009）的中文译文是受版权保护的整理成果。把中译全文放进**公开**仓库有侵权风险；这条比体积更硬。
-3. **职责**：语料是数据、不是代码，更新频率和发布节奏与 skill 完全不同，也不该跟着 skill 一起打 tag。
+| 步骤 | 做什么 | 硬门槛 |
+|---|---|---|
+| 0 | 确认源文件、交付格式、输出位置；顺口问一句要不要 PDF | — |
+| 1 | 取到可译正文：MinerU 提取、抽查三页、**脚注恢复**、参考文献切分 | 脚注 `--check` 不 PASS 不许进第 2 步 |
+| 2 | 动笔前锁定术语／专名（dl 侧还有符号一览与保留英文术语一览） | — |
+| 3 | 逐段／分块翻译，段落一进一出、公式与标记原样保留 | — |
+| 4 | 机械校验：公式定界符、公式逐条比对（dl）、结构对账、引用、脚注逐条核对 | `--strict` 失败必须修到清零 |
+| 5 | 人工审校清单 → 决定表 → `review_apply.py` 一条龙回填并重跑校验 | 改不动或重跑失败都返回 1 |
+| 6 | 拼回书目、写元信息、归档；按需出 PDF／公众号版，最后回挂 Zotero | 交付前四层脚注门禁、`verify_pdf.py` |
 
-仓库里只有**索引构建脚本**（`tools/marxref-build/`）与调用脚本、说明文档，没有一行原著文本——见开头「关于马恩原著文本：不包含」。若确实需要给语料做云端备份，按优先级考虑：私有仓库 → 对象存储 / 网盘 → Git LFS / Release 附件；但先解决授权，且**不要放进这个代码仓库**。更省事的做法是备份「索引构建脚本 + 语料版本号 + 来源清单 + 内容哈希」，运行时从本地重建——脚本部分已经这么做了。
+**脚注是两边完全统一的**：主源为 MinerU `content_list.json` 的 `page_footnote`（`full.md` 会整类丢掉），PDF 文字层只作交叉验证；`--apply` 给原文与译文两侧同步插 `## 脚注` 节，`[^n]` 是唯一交付形态；`fidelity_check.py`、`build_wechat.py`、`verify_pdf.py` 还会再验三遍。PDF 默认把 `[^n]` 排成页底 `\footnote{}`；若正文没有引用标记（不硬猜位置），脚本自动降级为文末编号段落，绝不静默丢内容。
 
-`.gitignore` 里已挡住 `_marx_ref/`、`*.pdf`、`*.zip` 等二进制大文件。`skills/political-economy-translation/references/glossary/names_xinhua.tsv.gz`（3.6 MB）是 skill 自带的数据依赖，保留跟踪；其来源与许可待核后在许可文件里注明。
+**两条发布分支互不干扰**：`md2tex.py` + `verify_pdf.py` 出 PDF，`build_wechat.py` 出公众号稿，都以同一份译稿为源。文献来自 Zotero 时，用 `zotero_attach.py` 把**已验收**的 PDF 挂回原条目；零配置生成待挂副本与操作指引，配置 Web API key 后自动创建子附件。
 
-## 官方包更新
+**各自的侧重**：政经 skill 强在术语四态／人名权威层、参考文献 sha256 隔离、马恩引文、发布口径基准副本；`dl-translation` 强在公式逐条对账、符号表、浮动对象按首次引用重定位与 `--float-reflow` 位置无关核对。
 
-`political-economy-translation` 的基线是 `political-economy-translation_skill_2026-11-07.zip`，当前本地版 `2026-11-07.2`（见该 skill 的 `SKILL.md` front matter 与 `<versioning>` 节）。
+---
 
-拿到新官方包时**不要整份覆盖**：把新 zip 解压到临时目录，用 `git diff --no-index <解压目录> skills/political-economy-translation/` 看差异；两边都改过的文件（当前是 `SKILL.md`、`references/mineru.md`、`references/review-checklist.md`）要人工逐段合并，本地新增的 `scripts/footnotes.py`、`references/footnotes.md` 一律保留。更彻底的做法是另开 `upstream` 分支只存官方原版，`git merge upstream` 让 Git 直接报冲突。合并完打 tag：
+## 三、注意事项
 
-```bash
-git tag political-economy/v2026-11-07.2
-git tag ml-math-stats/v1
-```
-
-一个仓库的 tag 覆盖全部子目录，所以 tag 一律带 skill 名前缀；单 skill 历史用 `git log --oneline -- skills/<name>/` 看。
-
-## 许可
-
-尚未选定。两个 skill 与 `tools/marxref-build/` 下的索引构建脚本都是自建代码，但 `political-economy-translation` 内含 `names_xinhua.tsv.gz` 等第三方数据，公开前需逐项核来源与许可；马恩原著文本与语料（见上）一律不入库。定许可前请勿把本仓库设为 Public。
-
-`tools/marxref-build/` 的脚本虽不含原文，但其中 `fetch_*` / `index_mecw.py` 会在运行时抓取外部马恩文本，是否抓取及后续使用、分发的授权责任在使用者；本仓库既不提供也不代管语料。
+- **硬门槛不要跳过**：`--strict` 的失败、`footnote_recover.py --check` 的返回 1、`verify_pdf.py` 的 FAIL 都要修完再交付。报告"校验通过"时把各项结论写进交付说明，不要只写一句"通过"。
+- **`--strict-soft` 默认不开**：疑似未译段、段长异常、术语一致等是建议性发现，误报多；需要零容忍时才加，别把"文档写硬规则、实现只报告"当成已拦住。
+- **图表已按首次引用归位时，结构对账必须带 `--float-reflow`**，否则搬动过的图块会被误报成"块级结构不一致"。
+- **Zotero 拖拽的临时路径会失效**：`C:\WINDOWS\TEMP\Zotero\drag\` 会被清空，原文 PDF 可能中途就不在。需要重跑提取时先用 `D:\临时\` 里的原件或工作区的 MinerU 提取稿，别依赖 drag 目录。回挂流程见两个 skill 的 `references/zotero.md`。
+- **外部依赖**：MinerU token（`mineru_extract.py` 首次运行引导录入）、`pdftotext` / `pdfinfo` / `xelatex`（poppler + TeX Live，用于脚注交叉验证与 PDF）、`pyzotero`（仅自动上传 Zotero 附件时需要）、`_marx_ref/`（政经引文匹配，可选）。除这些之外脚本只用 Python 标准库。
+- **junction 与备份**：普通复制/备份工具不一定跟随 junction，备份以本仓库为准；工作区目录移动或改名会让 junction 断，重跑 `tools\link.ps1` 即可；删除 junction 只删链接、不动仓库内容。
+- **提交**：按逻辑块小步提交，别把两个 skill 的改动揉成一个 commit；tag 一律带 skill 名前缀（一个 tag 覆盖全部子目录）。
+- **不入库的东西**：`.gitignore` 挡住 `*.pdf`、`*.zip`、`*.bak_*`、`_marx_ref/` 等；交付译文与 PDF 在工作区里，不在这个代码仓库。马恩原著文本与语料一律不入库，详见 [政经 skill 开发文档](skills/political-economy-translation/references/development.md)（官方包合并、索引脚本状态、许可与仓库边界也都在那里）。
+- **许可未定**，公开前需核对 `names_xinhua.tsv.gz` 等第三方数据的来源与许可；定许可前请勿把本仓库设为 Public。
