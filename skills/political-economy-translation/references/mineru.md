@@ -124,14 +124,17 @@ _work/extract/<文件名>/
 - **错位**：脚注被丢进正文末尾、或被当成正文段落。特征是正文里冒出一个孤立年份、`ibid.`、或与上下文无关的完整句子。
 - **整批丢失**：vlm 只把正文里的上标标记提出来（`<sup>n</sup>`），页底脚注正文一条也不写。实测一篇 45 页期刊论文 17 条脚注全丢，只剩 13 个标记；另外 4 个标记变形——两个被塞进行内公式（`^ { 7 }`、`^ { 8 }`），两个退化成句末裸数字（`. 5`、`power. 15`）。还有一条脚注跨页，前半在页 7 页底、后半在页 8 页底。**块级对账对此完全免疫**：译文与源文都缺，块数照样一一对应。
 
-**处理**：不要靠翻页抽查，用 `scripts/footnotes.py` 拿 PDF 文字层独立检出页底脚注，与 `full.md` 逐条对账；`--strict` 不通过就不许进入翻译。
+**处理**：不要靠翻页抽查。MinerU 的版面识别其实**认得出**脚注（`content_list.json` 里 `type=page_footnote` 带页码与完整文字），只是生成 `full.md` 时按类型白名单整类过滤。所以主源用提取包，`scripts/footnote_recover.py` 直接从那里恢复并自动补回原文与译文两侧：
 
 ```bash
-python scripts/footnotes.py paper.pdf --md _work/extract/paper/full.md -o _work/ --strict
-python scripts/footnotes.py paper.pdf --md full.md --patch _work/paper_脚注已补.md --auto-mark -o _work/
+python scripts/footnote_recover.py ./_work/extract -o ./_work \
+    --source <stem>_原文.md --target <stem>_zh.md --apply --check --pdf paper.pdf
+# 中文译文填 _work/脚注_待译.csv 的 zh 列后回填
+python scripts/footnote_recover.py ./_work/extract -o ./_work \
+    --translations _work/脚注_待译.csv --target <stem>_zh.md --apply --check
 ```
 
-脚本会报出缺失定义、缺失标记、以及可疑标记所在行号；`--patch` 补回 `[^n]: ...` 并统一标记，公式内变形的标记按报告手工补。判据与真实案例见 [footnotes.md](footnotes.md)。
+`--apply` 归一 `<sup>n</sup>` → `[^n]`、在 REFERENCES 之前给两侧同步插 `## 脚注` 节、逐条写 `[^n]: 第 N 页脚注 n：…`，写回前留备份且幂等；`--check` 逐条核编号、页码、链接与中文，未填中文直接返回 1。`--pdf` 只作 PDF 文字层交叉验证（双栏期刊脚注在栏底，未确认不等于提取包有错）。作者机构／版权注与正文脚注同号时不占编号，作引用块说明保留英文。判据、编号规则与四层门禁见 [footnotes.md](footnotes.md)；旧 `scripts/footnotes.py` 只是兼容入口。
 
 ### 5. 公式编号被吞
 

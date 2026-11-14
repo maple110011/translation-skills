@@ -14,8 +14,8 @@
 | `notation.py check` | 正文符号是否都进了表、表里是否有正文用不到的符号、格子是否包 `$` | 缺失项按频次判断；多余项逐个核对（多为抄错） |
 | `review_queue.py` | 术语不一致、候选术语、公式/符号待定项 | 术语不一致默认照表改 |
 | `footnote_recover.py --check` | `content_list.json` 里的 `page_footnote` 是否全部补进 `## 脚注` 节（`full.md` 会整类丢脚注） | 返回 1 就是有脚注没补，先补再交付 |
-| `fidelity_check.py --strict`（脚注门禁） | `_work/脚注.csv` 存在、译文有 `## 脚注` 节、`[^n]:` 定义数 ≥ 清单内容脚注条数 | 硬性失败；只有纯 Markdown 输入可显式 `--skip-footnote-check` 并写明理由 |
-| `md2tex.py --pdf` 后的文本层 | `pdftotext` 搜脚注里的关键词，确认脚注真的进了 PDF（编译 0 错误不代表内容在） | 搜不到就查 `## 脚注` 节是否被渲染 |
+| `fidelity_check.py --strict`（脚注门禁） | `_work/脚注.csv` 存在、译文有 `## 脚注` 节，逐条核编号/页码/链接/中文齐备 | 硬性失败；只有纯 Markdown 输入可显式 `--skip-footnote-check` 并写明理由 |
+| `verify_pdf.py --footnotes _work/脚注.csv` | 编译 `!` 错误、`Overfull \vbox`、图片数、书签、文本层，逐条核脚注是否进 PDF（默认页底 `\footnote{}`） | 返回 1 就别交付；搜不到先查 `## 脚注` 节与 `--footnotes` 模式 |
 
 这些结论要写进交付说明，不要只说"校验通过"。**脚注这一项不可跳过**：MinerU 静默丢整类 `page_footnote`，编译不会报错，只有脚本门禁能挡住。
 
