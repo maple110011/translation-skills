@@ -49,7 +49,7 @@ version: 2026-11-07.2
 确定三件事：源文件是什么、交付成什么、译文放哪里。
 
 - 源文件优先级：**出版版 PDF > 作者提供的 docx/tex > MinerU 提取的 Markdown**。三者冲突时以 PDF 为准，提取结果只是工作草稿。
-- 交付默认是 Markdown。用户要 Word/PDF 再另说，本流程先产出 Markdown。
+- 交付默认是 Markdown；**第 0 步顺口问一句要不要 PDF**（可选分支在第 6 步，`md2tex.py` + `verify_pdf.py`）。公众号排版稿也是可选分支，两条发布线都以同一份 `[^n]` 译稿为源，互不干扰。
 - 输出放在源文件同目录，命名 `<原文名>_zh.md`；中间产物放 `_work/`。
 
 用户没说清就只问一次，不要为格式细节来回确认。
@@ -72,25 +72,33 @@ python scripts/mineru_extract.py paper.pdf -o ./_work/extract --model vlm
 
 提取完成后**必须对照 PDF 抽查**：随机翻三页，比对段落数、公式、脚注。提取错了再译，等于把错误洗进译文。
 
-### 脚注体检：提取后、切分前的硬门槛
+### 脚注恢复：提取后、动笔前的硬门槛
 
-抽查三页挡不住脚注问题，因为 MinerU 最常**整批**丢掉页底脚注：正文里剩几个 `<sup>n</sup>`，脚注正文一条也没有；标记有时还被塞进行内公式（`^ { 8 }`）、或退化成句末一个裸数字。实测一篇 45 页论文 17 条脚注全丢、4 个标记变形，而块级对账照样全绿——译文和源文本来就都缺，脚本查不出"两边一起少"。所以不要靠眼睛，用脚本拿 PDF 文字层独立对一次账：
+MinerU 的版面识别**认得出**页底脚注（`content_list.json` 里 `type=page_footnote`），但生成 `full.md` 时按类型白名单把它们**整类过滤**：正文常只剩 `<sup>n</sup>` 标记，脚注正文一条也没有。块级对账对此完全免疫——原文与译文一起缺，块数照样对得上。实测一篇 45 页期刊论文 17 条脚注全丢、4 个标记变形，而对账全绿。
 
-```bash
-python scripts/footnotes.py paper.pdf --md _work/extract/paper/full.md -o _work/ --strict
-```
-
-脚本从 PDF 文字层检出页底脚注（编号 + 缩进正文，含跨页续文），与 Markdown 里的标记／定义逐条比对，产出 `_work/full_脚注.csv` 和 `_work/full_脚注体检.md`。`--strict` 在定义或标记缺失时返回非零——**不 PASS 不许进第 2 步**。缺定义时先补：
+两个翻译 skill 现在共用同一套脚本，以 MinerU 提取包为主源，PDF 文字层只作交叉验证：
 
 ```bash
-python scripts/footnotes.py paper.pdf --md full.md --patch _work/paper_脚注已补.md --auto-mark -o _work/
+# 1) 恢复并自动补回原文与译文两侧（--pdf 可选，做文字层交叉验证）
+python scripts/footnote_recover.py ./_work/extract -o ./_work \
+    --source <stem>_原文.md --target <stem>_zh.md --apply --check --pdf paper.pdf
+
+# 2) 填 _work/脚注_待译.csv 的 zh 列（中文脚注译文），再回填
+python scripts/footnote_recover.py ./_work/extract -o ./_work \
+    --translations _work/脚注_待译.csv --target <stem>_zh.md --apply --check
+
+# 3) 出 PDF 后连文本层一起验
+python scripts/footnote_recover.py ./_work/extract -o ./_work \
+    --source <stem>_原文.md --target <stem>_zh.md --check --pdf-out <stem>_zh.pdf
 ```
 
-`--patch` 统一 `<sup>n</sup>` → `[^n]`、把缺失的 `[^n]: ...` 写回文末，幂等且不覆盖原文件；`--auto-mark` 只补形态最明确的行末裸数字。体检报告列出的「可疑标记」行号，要对照 PDF 手工把藏在 `^ { n }`、`\mathrm{...}` 里的标记补成 `[^n]`——脚本**不碰公式**，改错一个字符整条公式就坏了。补完重跑确认 PASS，再拿补回稿去做切分与翻译。
+`--apply` 做三件事：把正文 `<sup>n</sup>` 归一成 `[^n]`、在 REFERENCES 之前给**原文与译文同步**插入 `## 脚注` 节、逐条写 `[^n]: 第 N 页脚注 n：…`；写回前自动留 `.bak_footnotes` 备份，重复运行幂等。译文侧先放英文原文加 `<!-- 待译 -->` 标记，**`--check` 会因此返回 1**，直到填入中文并重跑。作者机构／版权注常与正文脚注同号（都叫 1），不占 `[^n]` 编号，作为引用块说明保留英文；版面噪声（`40<sup>th</sup>`）不补。
 
-**`[^n]` 就是交付形态，不用再转 `<sup>n</sup>`。** 第 5 步的 `build_wechat.py` 直接认 `[^n]`（以及 `## 脚注` 节里的 `1.`、`(1)`、`-`、`注 1`、`<sup>1</sup>` 各种写法），内部先归一成一种形态再挂载。之前它只认 `<sup>`，`--patch` 过的稿子在公众号版里会**静默丢光全部脚注**、正文还留着字面 `[^1]`，而自检照样报通过——现在由 `audit_notes()` 兜底，丢一条就报错不写文件。
+**`[^n]` 是唯一交付形态**：公众号版 `build_wechat.py` 认它（内部归一成 `<sup>` 渲染），PDF 版 `md2tex.py` 默认把它排成页底 `\footnote{}`。不许在交付稿里留字面 `<sup>n</sup>`；`fidelity_check.py --strict`、`build_wechat.py` 的 `audit_notes()`、`verify_pdf.py` 三层都会拦。
 
-无脚注的文献不会被卡住：脚本报「未检出」并 PASS，但仍要翻两页页底确认文字层可读。期刊把作者单位角标编成脚注 1 时用 `--drop 1` 排除；没有 `pdftotext` 时用 `--text` 传已导出的文字层。判据、误报排除与真实案例见 [references/footnotes.md](references/footnotes.md)。
+`--pdf` 的交叉验证只用来发现提取包被污染或跨页续文被截断：**双栏期刊的脚注在栏底不在页底**，`pdftotext -layout` 的缩进特征会失效，未确认不等于提取包有错，详见 `_work/脚注_交叉验证.md`。判据、编号规则与真实案例见 [references/footnotes.md](references/footnotes.md)；旧命令 `scripts/footnotes.py` 保留为兼容入口，不再作为主流程。
+
+无脚注的文献不会被卡住：清单 0 条即 PASS，但仍要翻两页页底确认。纯 Markdown 输入、没有 MinerU 结果包时，`fidelity_check.py` 可显式加 `--skip-footnote-check` 并在交付报告写明理由。
 
 **参考文献先切出去，不进翻译上下文。** 书目整条保持英文原样（规则 4），让模型读它没有任何收益，代价却实在：一篇论文的书目常占 15–20% 的篇幅，一百条英文著录过一遍，总有一条被"顺手"译掉书名、调换姓序，或把破折号改成短横。
 
@@ -246,7 +254,7 @@ cp references/style/default.md _work/<stem>_风格.md
 - **列表项一进一出。** 源文三个 `-`，译文必须三个 `-`；嵌套层级不变。
 - **表格：表头译，数据不动。** 数字、单位、显著性星号、括号里的标准误一律原样；表注照译。
 - **图片：`alt` 译，路径一字不改。** 路径改了图就断了。
-- **脚注：标记保留，内容译。** `[^1]` 或 `<sup>1</sup>` 都行，一个字符不动，脚注正文照译；文末定义写 `[^1]: ...` 或 `## 脚注` 节下的 `1. ...` 都行。两种形态 `build_wechat.py` 都认，不必为了排版去改标记。
+- **脚注：标记不动，内容照译。** 正文引用标记统一写 `[^n]`（不许写 `<sup>n</sup>`），脚注文字写在 REFERENCES 之前的 `## 脚注` 节里，条目形如 `[^n]: 第 N 页脚注 n：…`；原文侧英文、译文侧中文，两侧同步增删才能保持块级对账。第 1 步的 `footnote_recover.py --apply` 已把结构与英文原文补好，这里只需把 `脚注_待译.csv` 的 `zh` 列填成中文再回填。页码、编号、链接一字不改。
 - **引用块 `>`：层级保留，内容译。** 编者按、长引文都用这个。
 - **代码块与公式块：整块不动。** 一个字符都不改。
 - **参考文献标记：一行不动。** `<!-- REFS-ORIGINAL … -->` 原样留在原位置——不译、不删、不挪、不缩进、不在它前后添加空行。它不是正文，是"此处原样嵌入书目"的指令，交付前由脚本替换。改写它，`fidelity_check.py` 会报结构块数不一致，`split_refs.py --restore` 也会直接拒绝拼回。
@@ -321,6 +329,8 @@ python scripts/semantic_audit.py <stem>_正文.md <stem>_正文_zh.md -o _work/<
 **子任务不等于换了个脑子**：底层还是同一个模型，系统性理解偏差照样在。它消除的是"我刚译完所以我觉得对"这条路径，不是模型的能力边界，所以仍要搭配抽样回译。
 
 **知道它能查什么、不能查什么。** 块级结构能发现"整段没了"或"多出一段"，但发现不了段内的增删——那由段落长度启发式兜底，而启发式会误报（表格段、人名罗列段天生比例异常），每一条都要回原文确认。它也不能判断译文对不对、术语准不准、中文通不通——这三件事只能靠人读。**脚本通过不等于译文合格**，它只是把机械错误挡在人工校对之前。
+
+**口径要分清**：块结构、引用、公式残留、正文卫生、脚注门禁是真硬校验（`--strict` 返回 1）；疑似未译段、段长异常、术语一致、语体这些是**建议性发现**，只打印不拦，因为误报多。要零容忍时加 `--strict-soft` 把它们一并升级为硬性失败。`review_apply.py` 回填后重跑的结构对账已带 `--strict`，失败直接影响退出码。
 
 脚本判不了的事情，人工过一遍（详细版见 [references/review-checklist.md](references/review-checklist.md)）：
 
@@ -416,9 +426,11 @@ python scripts/split_refs.py --restore _work/<stem>_正文_zh.md -o <stem>_zh.md
 | `_work/<stem>_引文采用.csv` | 马恩引文的裁定结果：哪几句用文集译文、为什么（有引文时才有） |
 | `_work/<stem>_待校对.md` | 审校清单：机械发现 + 人工判断项（含马恩引文核对） |
 | `_work/<stem>_数字核对.md` | 数值比对结果（脚本产出，通常 0 处） |
-| `_work/<stem>_脚注体检.md` / `_脚注.csv` | 第 1 步脚注对账结论与逐条脚注正文；证明脚注没有被整批丢掉 |
+| `_work/脚注.csv` / `脚注_原文.md` / `脚注_待译.csv` | 第 1 步从 `content_list.json` 恢复的脚注清单、英文原文与中文待译表；证明脚注没有被整批丢掉 |
+| `_work/脚注_交叉验证.md` | PDF 文字层交叉验证结果（给 `--pdf` 时产出） |
 | `<stem>_校对报告.txt` | `fidelity_check.py` 的原始输出 |
 | `_work/<stem>_原文_发布口径.md` | 按发布版式重排过的源文基准（图表归位、元信息剔除后），供校验用；**不改原文文件** |
+| `<stem>_zh.pdf` / `_work/pdf/paper.tex` | 可选 PDF 版（用户要时产出）：页底真脚注，编译后必须跑 `verify_pdf.py` |
 | `<stem>_公众号版.html` / `.md` | 可直接粘贴进公众号的排版稿（用户要公众号版时才出） |
 | 归档后的总表 | 下一节的合并结果 |
 
@@ -492,6 +504,18 @@ python scripts/merge_glossary.py _work/<stem>_术语.csv -o _work/merge
 
 标题本身怎么处理，看分发渠道：Markdown 交付稿可以留 H1；**公众号版不放标题**（微信有自己的标题字段，正文里再写一遍是重复），front matter 里的 `title` 照留，那是元数据。
 
+### 可选：编译 PDF 版（页底脚注）
+
+用户要 PDF 时走这一条，不要手搓模板；`md2tex.py` 与 `dl-translation` 是同一份实现，踩过的坑都写在 [references/pdf-latex.md](references/pdf-latex.md)。
+
+```bash
+python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex --source-pdf paper.pdf --pdf
+python scripts/verify_pdf.py _work/pdf/paper.pdf --tex _work/pdf/paper.tex \
+    --md <stem>_zh.md --footnotes _work/脚注.csv
+```
+
+默认 `--footnotes footnote`：正文 `[^n]` 渲染成 LaTeX 页底 `\footnote{}`，**脚注格式保留在 PDF 里**；要尾注形式用 `--footnotes endnote`。`verify_pdf.py` 检查编译 `!` 错误、`Overfull \vbox`（长表被整块截断）、`includegraphics` 数、书签重复、文本层汉字与连字，并**逐条核 `脚注.csv` 的内容是否进了 PDF 文本层**；有问题返回 1。PDF 与公众号版是两条独立发布分支，都以同一份 `[^n]` 译稿为源。
+
 ### 公众号版：另出一份可直接粘贴的排版稿
 
 ```bash
@@ -546,8 +570,11 @@ python scripts/build_wechat.py <stem>_zh.md <输出目录>
 |---|---|---|
 | `scripts/mineru_extract.py` | PDF/图片/Office → Markdown，token 只需设置一次 | `--set-token`、`--token-status`、`--pages`、`--ocr`、`--model` |
 | `scripts/split_refs.py` | 把参考文献区换成一行标记（不进上下文），交付前原样拼回 | `--check`、`-o`、`--restore`、`--heading` |
-| `scripts/footnotes.py` | 拿 PDF 文字层检出页底脚注，与 MinerU 稿对账；补回丢失的定义与标记 | `--md`、`-o`、`--strict`、`--patch`、`--auto-mark`、`--text`、`--drop` |
+| `scripts/footnote_recover.py` | 从 `content_list.json` 恢复页底脚注；两侧自动补 `## 脚注` 节、中文回填、PDF 文字层交叉验证与内容级门禁（与 `dl-translation` 同一实现） | `-o`、`--source`、`--target`、`--apply`、`--translations`、`--check`、`--pdf`、`--pdf-out`、`--skip-footnote-check` |
+| `scripts/footnotes.py` | 兼容入口：把旧的 `--md/--strict/--patch` 命令转发到 `footnote_recover.py`；不再作为主流程 | 旧参数 |
 | `scripts/build_wechat.py` | 译稿 → 公众号排版稿；脚注归一、挂到所注段落后、硬校验不许静默丢失 | `<译稿.md>` `<输出目录>` |
+| `scripts/md2tex.py` | 译稿 → XeLaTeX／PDF；`[^n]` 默认排成页底真脚注，URL 走 `\url{}`，xelatex 跨进程锁 | `--pdf`、`--footnotes`、`--source-pdf`、`--title-en` 等 |
+| `scripts/verify_pdf.py` | PDF 验收：编译错误、`Overfull \vbox`、图片数、书签、文本层、逐条核脚注是否进 PDF | `<PDF>`、`--tex`、`--md`、`--footnotes` |
 | `scripts/_test_footnotes.py` | `build_wechat.py` 的脚注形态回归测试（13 种写法 + 1 条必须报警的失败用例） | 无 |
 | `scripts/extract_terms.py` | 从英文原文挖候选术语，标注已收录/新增，可生成项目表模板 | `--glossary`、`--min-count`、`--top`、`--write-project` |
 | `scripts/mine_terms_from_pairs.py` | 有平行译文时，从「原文—译稿」句对反推实际用过的译法 | `--auto`、`--pairs`、`--min-count`、`--known` |
@@ -562,7 +589,7 @@ python scripts/build_wechat.py <stem>_zh.md <输出目录>
 | `scripts/review_apply.py` | 执行人的意见：改术语表、改译文、重跑校验、登记已决条目、重生成清单 | `--decisions`、`--resolved`、`--manifest`、`--suggest` |
 | `scripts/paper_meta.py` | 生成、写入、检查译文顶部的 YAML 元信息 | `--init`、`--inject`、`--check` |
 | `scripts/normalize_math.py` | 统一 `\[…\]`→`$$…$$`、`\(…\)`→`$…$`，跳过代码块与 `\\[2pt]` | `--inplace`、`-o`、`--check` |
-| `scripts/fidelity_check.py` | 与原文对账：结构、引用、公式、未译段、术语一致性 | `--glossary`、`--strict` |
+| `scripts/fidelity_check.py` | 与原文对账：结构、引用、公式、未译段、术语一致性；硬查脚注清单与译文 `## 脚注` 节；`--strict-soft` 可把建议项升级为硬失败 | `--glossary`、`--strict`、`--strict-soft`、`--skip-footnote-check` |
 | `scripts/merge_glossary.py` | 合并多份术语表，做姓名规范化与权威译名裁决，输出四态分流 | `-o`、`--verified`、`--no-normalize` |
 | `scripts/prune_glossary.py` | 按跨文献频次裁剪术语表，低频条目移入档案 | `--min-files`、`--keep-verified` |
 
@@ -619,7 +646,8 @@ python scripts/build_wechat.py <stem>_zh.md <输出目录>
 | [references/terminology-growth.md](references/terminology-growth.md) | 想从零系统积累核心术语表、判断某个词该不该进表时 |
 | [references/marx-ref.md](references/marx-ref.md) | 有马恩引文、要核对文集译文、判断匹配可信度时 |
 | [references/mineru.md](references/mineru.md) | 需要从 PDF 提取、token 配置出问题、提取质量可疑时 |
-| [references/footnotes.md](references/footnotes.md) | 第 1 步脚注体检；判断脚注是真丢了、跨页续文，还是把公式平方误认成标记时 |
+| [references/footnotes.md](references/footnotes.md) | 第 1 步脚注恢复；判断交叉验证结果、编号冲突、跨页续文与边界时 |
+| [references/pdf-latex.md](references/pdf-latex.md) | 用户要 PDF 时；编译、页底脚注模式、验收清单与已知排版坑 |
 | [references/review-checklist.md](references/review-checklist.md) | 交付前 |
 </reference_files>
 

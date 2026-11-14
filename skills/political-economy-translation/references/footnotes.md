@@ -1,10 +1,12 @@
-# 脚注：MinerU 最容易整批丢掉的东西
+# 脚注：从 MinerU 提取包恢复，补到译文 Markdown 与 PDF
 
-这一节讲 `scripts/footnotes.py` 为什么存在、它怎么判定、哪些事它不做。
+这一节讲 `scripts/footnote_recover.py` 为什么存在、怎么判定、哪些事它不做。
+`political-economy-translation` 与 `dl-translation` 共用**同一份脚本实现**，
+下文路径按各 skill 自己的 `scripts/` 理解。
 
 ---
 
-## 一、为什么抽查和对账都挡不住
+## 一、为什么抽查和块级对账都挡不住
 
 MinerU（vlm 尤其）把期刊页底的脚注当成版面噪声：正文里的上标标记留下，脚注正文整批不写。实测 Kapeller et al. (2026, *Review of Political Economy*, 45 页)：
 
@@ -12,107 +14,125 @@ MinerU（vlm 尤其）把期刊页底的脚注当成版面噪声：正文里的�
 |---|---|---|
 | 页底脚注 | 17 条（1–17，连续） | 0 条 |
 | 正文标记 | 17 个 | 13 个 `<sup>n</sup>` |
-| 变形标记 | — | 2 个塞进行内公式（`^ { 7 }`、`^ { 8 }`），2 个退化成句末裸数字（`. 5`、`power. 15`） |
+| 变形标记 | — | 2 个塞进行内公式（`^ { 7 }`、`^ { 8 }`），2 个退化成句末裸数字 |
 | 跨页续文 | 脚注 6 前半在页 7 页底、后半在页 8 页底 | 无 |
 
-**关键在于 `fidelity_check.py` 对此完全免疫**：它比的是译文与源文的块序列，两边都缺这 17 段，块数照样一一对应，引用、公式、图片全绿。抽查三页也挡不住——抽到的那页可能恰好有脚注，也可能没有；就算看到 3 条，也推不出"另外 14 条去哪了"。
-
-所以脚注必须**拿 PDF 自己再数一遍**，与提取稿对账，结论落成文件。这是第 1 步的硬门槛，不是可选项。
+**关键在于 `fidelity_check.py` 对此完全免疫**：它比的是译文与源文的块序列，两边都缺这 17 段，块数照样一一对应。抽查三页也挡不住——抽到的那页可能恰好有脚注，也可能没有。
 
 ---
 
-## 二、用法
+## 二、主源是 `content_list.json`，PDF 文字层只作交叉验证
+
+2026-11-14 的实证结论：MinerU 的版面识别**认得出**脚注——`*_content_list.json`（`type=page_footnote`，含 `page_idx` / `bbox` / 完整 `text`）、`content_list_v2.json`、`layout.json` 三处条数一致；**只有服务端生成 `full.md` 时按类型白名单把 `page_footnote` 整类过滤**。所以不需要重新 OCR、不需要装 PDF 库、不需要换 `--model`。
+
+旧流程（`scripts/footnotes.py`）从 `pdftotext -layout` 按「页底编号 + 缩进」抓脚注，在单栏期刊上有效，但**双栏期刊的脚注排在栏底而不是页底**，缩进特征会变，可能整条漏检。因此现在：
+
+- **主源**：`content_list.json` 的 `page_footnote`，准确、带页码、带原文；
+- **交叉验证**：`--pdf paper.pdf`（或 `--text` 传已导出文字层），只用来发现「提取包被污染」「跨页续文被截断」「文字层不可读」，产出 `_work/脚注_交叉验证.md`；
+- 交叉验证**未确认不等于提取包有错**，不覆盖主源结果，也不作为硬失败。
+
+脚本按 `text` 分类：
+
+| 类别 | 判据 | 处理 |
+|---|---|---|
+| `footnote` | 有数字编号、正文 ≥30 字 | 要译成中文，占 `[^n]` 编号 |
+| `affiliation` | 含 University / Department / Copyright / PMLR / @ 等且 ≥40 字 | 原刊机构／版权信息，保留英文，作引用块说明 |
+| `noise` | 短文本、版面误标（如标题里的 `40<sup>th</sup>`） | 不补 |
+| `other` | 其余无编号长文本 | 人工判断 |
+
+**作者角标常与正文脚注同号**（都叫 1）：若也生成 `[^1]:`，会与真正的内容脚注抢同一个编号，译文里只剩一条。所以 `affiliation` 一律不占 `[^n]` 编号。
+
+---
+
+## 三、完整链路
 
 ```bash
-# 1) 体检（提取之后、切分之前）。--strict 不通过返回 1
-python scripts/footnotes.py paper.pdf --md _work/extract/paper/full.md -o _work/ --strict
+# 1) 提取后立刻恢复并补回两侧（--pdf 可选）
+python scripts/footnote_recover.py ./_work/extract -o ./_work \
+    --source <stem>_原文.md --target <stem>_zh.md --apply --check --pdf paper.pdf
 
-# 2) 补回：统一标记 + 写回缺失定义 + 自动补行末裸数字
-python scripts/footnotes.py paper.pdf --md full.md \
-    --patch _work/paper_脚注已补.md --auto-mark -o _work/
+# 2) 填 _work/脚注_待译.csv 的 zh 列，把中文回填译文
+python scripts/footnote_recover.py ./_work/extract -o ./_work \
+    --translations _work/脚注_待译.csv --target <stem>_zh.md --apply --check
 
-# 3) 对补回稿重跑，确认 PASS，再拿它去做 split_refs 与翻译
-python scripts/footnotes.py paper.pdf --md _work/paper_脚注已补.md -o _work/ --strict
+# 3) 出 PDF 后连文本层一起验
+python scripts/footnote_recover.py ./_work/extract -o ./_work \
+    --source <stem>_原文.md --target <stem>_zh.md --check --pdf-out <stem>_zh.pdf
 ```
 
-没有 `pdftotext` 时，先 `pdftotext -layout paper.pdf pdftotext.txt`，再加 `--text pdftotext.txt`（PDF 参数可省）。文字层后端优先级：`pdftotext -layout` → PyMuPDF → pdfplumber → pypdf；前两者能给出更接近版面的缩进，判定最准。
-
-| 参数 | 作用 |
-|---|---|
-| `--md` | MinerU 的 `full.md`（必填） |
-| `-o` | 报告与 CSV 输出目录，默认 `_work/` |
-| `--strict` | 定义或标记缺失时返回非零，用于卡住流水线 |
-| `--patch OUT.md` | 写出补回稿；**不覆盖原文件**，可重复运行 |
-| `--auto-mark` | 配合 `--patch`，把行末孤立数字补成 `[^n]` |
-| `--text` | 传入已导出的文字层 |
-| `--drop 1` | 排除指定编号（期刊把作者单位角标编成脚注 1 时） |
-| `--max-num 60` | 编号上限，防止把图号、年份当脚注 |
-
-产出两份：`_work/full_脚注.csv`（编号、页码、跨页续页、正文）与 `_work/full_脚注体检.md`（结论与可疑位置）。
+产出：`_work/脚注.csv`（编号、页码、分类、原文、中文译文、各层命中情况）、`脚注_原文.md`、`脚注_待译.csv`、`脚注_交叉验证.md`、`待补脚注.md`（给 `--scaffold` 时）。
 
 ---
 
-## 三、判定规则：怎么把脚注和公式、页码、图号分开
+## 四、判定规则（交叉验证这一层用）
 
-`pdftotext -layout` 把每页页底排成「编号独占一行 + 整体缩进的几行正文」。脚本按页（`\f`）扫描：
+`pdftotext -layout` 把每页页底排成「编号独占一行 + 整体缩进的几行正文」。脚本按页（`\f`）扫描，下面几条是从 17 条脚注的真实案例里调出来的：
 
-1. **编号行**：`^\s{0,8}(\d{1,2})\s*$`。前导空格上限 8 是为了排除居中公式的分子（如帕累托式里那个孤零零的 `1`）。
-2. **正文首行**：缩进 ≥ 2 个空格、长度 ≥ 25。缩进阈值必须放宽——本篇脚注 4、5 只有 2 空格，用 ≥3 就会整条丢掉。
-3. **编号必须递增**（`expected` 从 1 起）。这一条挡掉了绝大多数误报：页码、公式编号、图号都不按 1-2-3 连续出现。跳号会被记为「编号缺口」并判 FAIL。
-4. **散文优先于公式**：首行含 `\tag`、`\frac`、`\mathbb`、`≥` 等记号时，先看有没有两个相邻英文实词；有就仍算脚注正文。脚注 4 的首行里有 `P(X . xi )`，只凭 `P(` 判公式会把它整条丢掉。
+1. **编号行** `^\s{0,8}(\d{1,2})\s*$`：前导空格上限 8，排除居中公式的分子。
+2. **正文首行**：缩进 ≥2 个空格、长度 ≥25。阈值必须放宽——脚注 4、5 只有 2 空格，用 ≥3 会整条丢掉。
+3. **编号必须递增**（`expected` 从 1 起）：挡掉页码、公式编号、图号这些不按 1-2-3 连续出现的误报。
+4. **散文优先于公式**：首行含 `\tag`、`\frac`、`\mathbb`、`≥` 时，先看有没有两个相邻英文实词；有就仍算脚注正文（脚注 4 首行里有 `P(X . xi )`）。
 5. **排除页眉**：`REVIEW OF POLITICAL ECONOMY`、`J. KAPELLER ET AL.` 之类。
-6. **折行合并**：行末连字符接小写字母时按断词拼接（`abso-` + `lute` → `absolute`），接大写字母时保留连字符（`Kaldor-` + `Verdoorn` → `Kaldor-Verdoorn`）；顺手还原 `ﬁ/ﬀ/ﬂ` 连字。
+6. **折行合并**：行末连字符接小写字母按断词拼接（`abso-` + `lute` → `absolute`），接大写字母保留连字符（`Kaldor-` + `Verdoorn`）；还原 `ﬁ/ﬀ/ﬂ` 连字。
+7. **跨页续文**：某页最后几行有整体缩进、以小写字母或引号开头的块，且上一条脚注不以句末标点收尾，就并进上一条。
 
-**跨页续文**：若某页最后 4 行里有整体缩进、以小写字母或引号开头的块，且上一条脚注**不以句末标点收尾**，就把它并进上一条，并在 CSV 的 `continued_on` 记下续页。本篇脚注 6 就这样拼回成完整句：页 7 页底停在 `…throughout the analysis,`，页 8 页底续 `is available as a git repository for replication and extension. …`。
+注意 `plain()` 只剥真正的排版标签（`<sup>`、`<i>`、`<span>` 等），**不会把 `<t.nagler@lmu.de>` 这样的邮箱当标签吃掉**。
 
 ---
 
-## 四、可疑标记：脚本改什么、不改什么
+## 五、补全到译文 Markdown
 
-MinerU 稿里标记检测四种形态：`<sup>n</sup>`、`[^n]`、Unicode 上标（¹²³）、以及**可疑位置**——行内公式里的 `^ { n }`、公式外的句末裸数字与行末孤立数字。
+`--apply` 做三件事，且**原文与译文两侧插入同样的结构**，块级对账才不会错位：
 
-可疑位置只列「PDF 里有脚注、Markdown 里却没标记」的编号。本篇待补 `[5, 7, 8, 15]`，报告给出 5 个行号，其中 102 / 145 / 157 / 344 正是人工核对要找的四处；`^ { 2 }` 这类数学平方、年份、小数、图号全部不列。这一步把"在 875 行里找 4 个数字"变成"核 5 行"。
+1. 正文 `<sup>n</sup>` 归一成 `[^n]`；
+2. 在 `## REFERENCES` / `## 参考文献` 之前插入 `## 脚注` 节（没有书目就放文末）；
+3. 逐条写 `[^n]: 第 N 页脚注 n：<内容>`，原文侧英文、译文侧中文。
 
-| 形态 | `--patch` | 理由 |
+写回前自动留 `*.bak_footnotes` 备份；重复运行幂等，已有定义按清单重写（所以填好中文后能覆盖「待译」占位）。译文侧若 `zh` 还是空的，会写英文原文加 `<!-- 待译：请填入中文脚注译文 -->`，**`--check` 因此返回 1**，直到中文回填。
+
+**`[^n]` 是唯一交付形态**：不许留字面 `<sup>n</sup>`；公众号版 `build_wechat.py` 认它（内部归一成 `<sup>` 渲染），PDF 版 `md2tex.py` 也认它。两者是同一份译稿的两条发布分支。
+
+脚注文字里的页码、编号、URL 一字不改——`--check` 会逐条比对这些，链接丢了直接报出来。
+
+---
+
+## 六、补全到译文 PDF（保留脚注格式）
+
+```bash
+python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex --source-pdf paper.pdf --pdf
+python scripts/verify_pdf.py _work/pdf/paper.pdf --tex _work/pdf/paper.tex \
+    --md <stem>_zh.md --footnotes _work/脚注.csv
+```
+
+`md2tex.py` 默认 `--footnotes footnote`：预扫 `## 脚注` 节的 `[^n]:` 定义，把正文 `[^n]` 渲染成 LaTeX 页底 `\footnote{…}`，**脚注是页底真脚注，不是文末一段编号列表**。要尾注形式用 `--footnotes endnote`。
+
+两个已踩过的坑：
+
+- **长 URL 必须走 `\url{}`**（已加载 `xurl`）。当普通文本排进页底脚注时无法断行，实测撑出 2 处 `Overfull \hbox`；改走 `\url{}` 后归零。
+- **`\footnote{}` 里的内容要过 `inline()`**：行内公式、粗体、上标仍要正确渲染，不能把 Markdown 字面塞进去。
+
+`verify_pdf.py` 会逐条核 `_work/脚注.csv` 的中文/英文关键串是否出现在 PDF 文本层，并检查 TeX 里 `\footnote{}` 数不少于清单内容脚注数、文本层无字面 `[^n]` / `<sup>`。
+
+---
+
+## 七、四层门禁
+
+| 环节 | 查什么 | 失败行为 |
 |---|---|---|
-| `<sup>n</sup>`、Unicode 上标 | 自动转 `[^n]` | 形态唯一，无风险 |
-| 行末孤立数字（`.$ 5`、`power. 15`） | `--auto-mark` 自动补 | 在行尾，不在公式内，误伤概率极低 |
-| `^ { n }`、`\mathrm{...}` 里的标记 | **不动**，只报行号 | 改错一个字符整条公式就坏了，必须对照 PDF 手工判断 |
-| 缺失的 `[^n]: ...` 定义 | 自动写回文末，加 `<!-- FOOTNOTES-RECOVERED -->` | 幂等；已有定义不覆盖，第二次跑不会重复追加 |
+| `footnote_recover.py --check` | 清单、两侧 `## 脚注` 节、逐条编号/页码/URL/待译、`<sup>` 残留；给 `--pdf-out` 时还查 PDF 文本层 | 返回 1 |
+| `fidelity_check.py --strict` | `_work/脚注.csv` 存在、译文有 `## 脚注` 节、逐条编号/页码/链接/中文齐备 | `hard_fail` → 返回 1 |
+| `build_wechat.py`（公众号分支） | `self_check()` 查样式白名单，`audit_notes()` 查脚注是否静默丢失 | 报错不写文件 |
+| `verify_pdf.py`（PDF 分支） | 编译错误、`Overfull \vbox`、图片数、书签、文本层、逐条脚注进 PDF | 返回 1 |
 
-补回稿的角色是**新的翻译用稿**：拿它去做 `split_refs.py` 切分、术语提取、逐段翻译。原 `full.md` 留着当证据，不改。
-
----
-
-## 五、交付到公众号版：`[^n]` 与 `<sup>n</sup>` 已经对齐
-
-`--patch` 的产出是 `[^n]` + `[^n]: ...`，而 MinerU 原稿是 `<sup>n</sup>`。两种形态在 `build_wechat.py` 里都直接可用，**不需要为了排版回头改标记**：
-
-- `harvest_footnotes()` 先收齐定义——`[^n]:` 行（含缩进续行）、`## 脚注`／`## 注释`／`## Notes` 节下的 `1.`、`(1)`、`-`、`注 1`、`<sup>1</sup>` 条目，都认；
-- `normalize_marks()` 再把正文 `[^n]` 归一成 `<sup>n</sup>`，下游只处理一种形态；
-- `audit_notes()` 在写文件前硬校验：抽出定义却一条没进版面、某条只有定义没上版面、输出残留字面 `[^n]` 或裸 `<sup>`，一律报错不写文件。
-
-这一层是补出来的。此前 `build_wechat.py` 只认 `<sup>`，凡是用过 `--patch` 的稿子，公众号版会**静默丢光全部脚注**、正文还留着字面 `[^1]`，而样式自检照样报"通过"。本地稿库里 5 份 `[^n]` 稿（9／25／9／9／17 条）实证：旧版脚注框 0 条、字面残留 8～50 处；新版全部落位、残留归零。改动是否退化，跑 `python scripts/_test_footnotes.py`（13 种写法 + 1 条必须报警的失败用例）。
+唯一豁免：**纯 Markdown 输入、没有 MinerU 结果包**时，`fidelity_check.py` 显式加 `--skip-footnote-check`，并在交付报告里写明理由。
 
 ---
 
-## 六、回归结果（真实文献）
+## 八、边界与人工责任
 
-| 用例 | 结果 |
-|---|---|
-| MinerU 原始 `full.md` + PDF，`--strict` | FAIL，退出 1；检出 17 条、编号连续、跨页续文 1 处；缺失定义 17 条、缺标记 `[5,7,8,15]`、可疑位置 5 处 |
-| `--patch --auto-mark` | 新增 17 条定义、自动补 2 个标记；`<sup>` 数字型全转 `[^n]`（剩下的 7 个是作者单位字母角标，本就不该动） |
-| 补回稿重跑 | 定义 17、标记 15，仍缺 7、8 → 仍 FAIL，报告改说「部分完成，按行号手工补」 |
-| 已整理好的源稿（17 标记 + 17 定义）+ PDF，`--strict` | **PASS，退出 0** |
-| 同一补回稿再 patch 一次 | 定义仍是 17 条，幂等 |
-| 无脚注文献（`items` 为空） | PASS + 一句「翻两页页底确认文字层可读」，不卡 `--strict` |
-
----
-
-## 七、边界与人工责任
-
-- 脚本检的是**页底编号脚注**。尾注、夹注、表下注、无编号的「Notes」不在此列，仍要人工翻 PDF 确认。
-- 双栏期刊、脚注排在栏底而非页底的版面，`pdftotext -layout` 的缩进特征会变，可能漏检；看报告里的「编号缺口」就能发现。
-- 期刊把作者单位角标编进脚注序列时，编号会与正文脚注混排：用 `--drop` 排除，并在译文里按发布口径处理。
-- `--patch` 只保证**定义**齐全；标记位置是否落在原注那句话之后，脚本判不了，必须人读。规则 2 要求「位置是结构的一部分」，补标记时不要顺手挪段落。
-- 文字层来自 PDF 而非 OCR；扫描件无文字层时脚本会报「取不到」，先 OCR 再来对账。
+- 检的是**页底编号脚注**。尾注、夹注、表下注、无编号的 Notes 不在 `page_footnote` 里，仍要人工翻 PDF 确认。
+- 双栏期刊、脚注排在栏底的版面：主源仍是 `content_list.json`（不受版面影响）；交叉验证可能报「未确认」，看 `脚注_交叉验证.md` 逐条目视即可。
+- `--apply` 只保证**结构与内容齐全**；正文 `[^n]` 标记该落在哪句话之后，脚本判不了，必须人读。规则 2 要求「位置是结构的一部分」，补标记时不要顺手挪段落。
+- `\footnote{}` 里不放行间公式、`align` 环境、整段代码；这类内容改成尾注或正文注，避免编译期炸掉。
+- 文字层来自 PDF 而非 OCR；扫描件无文字层时交叉验证会报「取不到」，先 OCR 再来对账。
+- 旧命令 `scripts/footnotes.py` 保留为兼容入口：它把 `--md/--strict/--patch` 转发给新脚本，但**不再从 PDF 文字层检出脚注**，`--patch` 也不再写回 Markdown。
