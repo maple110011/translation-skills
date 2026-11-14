@@ -573,7 +573,7 @@ python scripts/paper_meta.py --check <stem>_zh.md                # 查漏字段
 
 **front matter、符号一览、保留英文术语一览都不算"增"。** 规则 3 约束的是正文段落；这三块是文件属性／术语清点，标准渲染不显示，所有对账脚本都会先剥掉它们再比对。但边界要守住：front matter 只放元信息，符号表只放符号与含义，保留英文术语表只放英文串与简述，不许塞内容摘要、译者按语。
 
-**交付时对话里只回复**：译文绝对路径；校验结论（公式多少处逐字一致、正文结构是否通过、定理环境几条一致、符号表缺几条、`keep` 术语几条且是否全部保住、浮动对象重定位几处／几处无引用）；原文中有无疑点或提取缺陷；没做的部分（没有附录、公式是图片无法提取）。**不复述译文内容。**
+**交付时对话里只回复**：译文绝对路径；校验结论（公式多少处逐字一致、正文结构是否通过、定理环境几条一致、符号表缺几条、`keep` 术语几条且是否全部保住、浮动对象重定位几处／几处无引用）；原文中有无疑点或提取缺陷；没做的部分（没有附录、公式是图片无法提取）；**Zotero 挂载状态**（`attached`／`updated`／`unchanged`／`pending（需你点授权）`）。**不复述译文内容。**
 
 ### 可选：编译 PDF 版（版式贴着原文）
 
@@ -613,15 +613,38 @@ python scripts/verify_pdf.py _work/pdf/paper.pdf --tex _work/pdf/paper.tex \
 它查编译 `!` 错误、`Overfull \vbox`、`\hbox>1pt`、`includegraphics` 数、书签重复、文本层汉字与连字，并**逐条核 `脚注.csv` 的内容是否进了 PDF 文本层**。剩下的手工项：`pdftotext` 抽页看中文连续与 `ﬀﬁﬂ`、每页 `BT` 二十来个、`PyPDF2` 打印书签、`/Link` 落点、剥离链接后无漏链引文。
 
 **不要**在正文末尾追加"译者说明""术语对照表""译后记"——除非用户明确要求。
-### 回挂 Zotero（文献来自 Zotero 时）
+## 第 7 步：回挂 Zotero（有 PDF 时）
 
-用户从 Zotero 文献库拖来 PDF 时，Windows 的 `Zotero\drag` 临时目录会被清空，原文 PDF 可能已经不在；译文 PDF 出完且 `verify_pdf.py` 通过之后，把它挂回原条目：
+文献多半是从 Zotero 文献库里拖来的，译文 PDF 出完、`verify_pdf.py` 通过之后必须挂回原条目——产物散在工作区里，过三个月没人知道它对应哪一条。这一步**向外部系统写数据**，所以有独立的状态、退出码和账本，不是"顺手做一下"。
 
 ```bash
-python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md
+python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md   # 单篇
+python scripts/zotero_attach.py --batch . --strict                # 一次交付多篇
 ```
 
-零配置时生成待挂副本、`_work/zotero_attach.json` 清单与在 Zotero 里选中条目后的两步操作；配置 Web API key（可选依赖 `pyzotero`）后自动创建子附件并复验。脚本**不碰 `zotero.sqlite`**，也不移动或删除用户文件。详见 [references/zotero.md](references/zotero.md)。
+走 **Zotero 本地 API**（`127.0.0.1:23119`），不碰 `zotero.sqlite`，不需要 zotero.org 账号，也不需要 `pyzotero`：
+
+- **读**（锚定、判重）不需要任何授权；
+- **写**（建附件、传文件）第一次会弹窗，点 **Always Allow**，key 存 `~/.workbuddy/zotero.json`，以后零弹窗；
+- Zotero < 10 没有本地写入能力，脚本自动降到下面说的「一键挂」。
+
+锚定按可靠性从高到低：`--parent-key` → DOI／arXiv（front matter 的 `doi`／`arxiv`）→ front matter 的 `source_pdf` 与库里附件文件名精确匹配 → 英文标题相似度（≥0.85 且唯一）。**中文标题不参与匹配**——库里存的是英文原题，拿译文标题去搜只会命中噪声。
+
+状态六种：`attached`（新建）、`updated`（覆盖旧版）、`unchanged`（已是当前版本）、`ambiguous`（多个候选，用 `--parent-key` 重跑）、`pending`（没锚定或写不了）、`error`（硬错，空壳附件已回滚）。退出码 0／1／2／3 = 全挂上／硬错／有待挂／需人选；**`--strict` 把任何没挂上的都算失败**，交付门禁用这个。
+
+写不进去时（Zotero 没开、版本太低、用户拒绝授权）不要手工复制副本，脚本在 `_zotero/` 下产出两样东西：
+
+- `pending.md`——一次交付一张汇总表，带父条目 key 与标题；
+- `attach.js`——整段粘进 Zotero「工具 → 开发者 → 运行 JavaScript」，Run 一次挂完全部已锚定的。
+
+| 产出 | 内容 |
+|---|---|
+| `_work/zotero_attach.json` | 单篇结果：父条目 key、附件 key、md5、走的哪条线索、状态 |
+| `_zotero/attached.csv` | 总账，按 `<stem>` 一行，记当前挂的是哪一版（看 `md5`） |
+
+判重用 **filename + md5**：同名同 md5 跳过，同名不同 md5 原地覆盖那个附件（附件数不变，不会多出第二个"中译"）。改稿重出 PDF 直接重跑，不要手工去 Zotero 里删。
+
+详见 [references/zotero.md](references/zotero.md)。
 
 </workflow>
 
@@ -642,7 +665,7 @@ python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md
 | `scripts/md2tex.py` | 译文 Markdown → XeLaTeX（`--pdf` 顺带编译两遍出 PDF）：`[^n]` 默认排成页底 `\footnote{}`、URL 走 `\url{}`、公式分组对齐、编号右对齐、引文跳转、符号表锚点、书签与元信息；内置图片/裸图适配、数学竖线保护、超宽表格自适应、跨进程编译锁 | `--source-pdf`、`--pdf`、`--footnotes`、`--title-en`、`--authors`、`--venue`、`--doi`、`--arxiv`、`--citekey` |
 | `scripts/verify_pdf.py` | PDF 验收：编译 `!` 错误、`Overfull \vbox`/`\hbox`、`includegraphics` 数、书签重复、文本层汉字与连字、**逐条核脚注是否进 PDF 文本层** | `<PDF>`、`--tex`、`--md`、`--footnotes` |
 | `scripts/review_apply.py` | 执行人的意见：改术语表与译文、重跑四步校验（结构对账带 `--strict`，失败影响退出码）、登记已决、重生成清单 | `--decisions`、`--resolved`、`--manifest`、`--math`、`--notation` |
-| `scripts/zotero_attach.py` | 把已验收的译文 PDF 挂回 Zotero 父条目（零配置待挂／Web API 自动上传，不碰 sqlite，幂等） | `<PDF>`、`--md`、`--parent-key`、`--title`、`--doi`、`--auto`、`--prepare-only`、`--dry-run` |
+| `scripts/zotero_attach.py` | 把已验收的译文 PDF 挂回 Zotero 父条目（本地 API 读写，Zotero 10+ 可自动上传；filename+md5 判重，改稿原地覆盖；不碰 sqlite） | `<PDF>`、`--md`、`--batch`、`--strict`、`--parent-key`、`--title`、`--doi`、`--attach-title`、`--prepare-only`、`--dry-run`、`--stage` |
 | `scripts/paper_meta.py` | 生成、写入、检查译文顶部的 YAML 元信息 | `--init`、`--inject`、`--check` |
 
 全部只用 Python 标准库，无需安装依赖。唯一外部依赖是 MinerU 的 token（仅提取 PDF 时需要）。

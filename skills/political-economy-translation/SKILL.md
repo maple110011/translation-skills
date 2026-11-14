@@ -481,7 +481,7 @@ python scripts/merge_glossary.py _work/<stem>_术语.csv -o _work/merge
 
 只看报告里"待裁决"涨了多少：涨得多说明这个分支的译法还没收敛，该停下来定一次内部标准，而不是继续逐篇临时决定。若确认没有新冲突，把 `_work/merge/glossary_master.csv` 的条目并回 `references/glossary/glossary_core.csv`，下次翻译即可查到。
 
-对话里只回复：译文绝对路径；校验结论（哪些通过、哪些需人工判断）；原文中有无疑点或提取缺陷；以及没做的部分（没有附录、公式是图片无法提取）。不复述译文内容。
+对话里只回复：译文绝对路径；校验结论（哪些通过、哪些需人工判断）；原文中有无疑点或提取缺陷；以及没做的部分（没有附录、公式是图片无法提取）；**Zotero 挂载状态**（`attached`／`updated`／`unchanged`／`pending（需你点授权）`）。不复述译文内容。
 
 **不要**在正文末尾追加"译者说明""术语对照表""译后记"——除非用户明确要求。它们会让译文与原文结构不再一一对应。
 ### 发布稿口径：把元信息从正文里清掉
@@ -563,17 +563,40 @@ python scripts/build_wechat.py <stem>_zh.md <输出目录>
 
 粘完在手机上预览一次。少数情况下底色仍掉，用壹伴或 135 编辑器中转一遍即可——它们做的就是同一件事（CSS 内联化），只是多一层兜底。
 
-</workflow>
+## 第 7 步：回挂 Zotero（有 PDF 时）
 
-### 回挂 Zotero（文献来自 Zotero 时）
-
-用户从 Zotero 文献库拖来 PDF 时，Windows 的 `Zotero\drag` 临时目录会被清空，原文 PDF 可能已经不在；译文 Markdown、可选 PDF／公众号版都出完且验收通过之后，把译文 PDF 挂回原条目：
+文献多半是从 Zotero 文献库里拖来的，译文 PDF 出完、`verify_pdf.py` 通过之后必须挂回原条目——产物散在工作区里，过三个月没人知道它对应哪一条。这一步**向外部系统写数据**，所以有独立的状态、退出码和账本，不是"顺手做一下"。
 
 ```bash
-python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md
+python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md   # 单篇
+python scripts/zotero_attach.py --batch . --strict                # 一次交付多篇
 ```
 
-零配置时生成待挂副本、`_work/zotero_attach.json` 清单与在 Zotero 里选中条目后的两步操作；配置 Web API key（可选依赖 `pyzotero`）后自动创建子附件并复验。脚本**不碰 `zotero.sqlite`**，也不移动或删除用户文件。详见 [references/zotero.md](references/zotero.md)。
+走 **Zotero 本地 API**（`127.0.0.1:23119`），不碰 `zotero.sqlite`，不需要 zotero.org 账号，也不需要 `pyzotero`：
+
+- **读**（锚定、判重）不需要任何授权；
+- **写**（建附件、传文件）第一次会弹窗，点 **Always Allow**，key 存 `~/.workbuddy/zotero.json`，以后零弹窗；
+- Zotero < 10 没有本地写入能力，脚本自动降到下面说的「一键挂」。
+
+锚定按可靠性从高到低：`--parent-key` → DOI／arXiv（front matter 的 `doi`／`arxiv`）→ front matter 的 `source_pdf` 与库里附件文件名精确匹配 → 英文标题相似度（≥0.85 且唯一）。**中文标题不参与匹配**——库里存的是英文原题，拿译文标题去搜只会命中噪声。
+
+状态六种：`attached`（新建）、`updated`（覆盖旧版）、`unchanged`（已是当前版本）、`ambiguous`（多个候选，用 `--parent-key` 重跑）、`pending`（没锚定或写不了）、`error`（硬错，空壳附件已回滚）。退出码 0／1／2／3 = 全挂上／硬错／有待挂／需人选；**`--strict` 把任何没挂上的都算失败**，交付门禁用这个。
+
+写不进去时（Zotero 没开、版本太低、用户拒绝授权）不要手工复制副本，脚本在 `_zotero/` 下产出两样东西：
+
+- `pending.md`——一次交付一张汇总表，带父条目 key 与标题；
+- `attach.js`——整段粘进 Zotero「工具 → 开发者 → 运行 JavaScript」，Run 一次挂完全部已锚定的。
+
+| 产出 | 内容 |
+|---|---|
+| `_work/zotero_attach.json` | 单篇结果：父条目 key、附件 key、md5、走的哪条线索、状态 |
+| `_zotero/attached.csv` | 总账，按 `<stem>` 一行，记当前挂的是哪一版（看 `md5`） |
+
+判重用 **filename + md5**：同名同 md5 跳过，同名不同 md5 原地覆盖那个附件（附件数不变，不会多出第二个"中译"）。改稿重出 PDF 直接重跑，不要手工去 Zotero 里删。
+
+详见 [references/zotero.md](references/zotero.md)。
+
+</workflow>
 
 <scripts>
 | 脚本 | 用途 | 关键参数 |
@@ -598,7 +621,7 @@ python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md
 | `scripts/marx_quotes.py` | 把英文原文里的马恩引文对到《马克思恩格斯文集》译文，带卷次/章/页与可信度 | `--source`、`--target`、`--marxref`、`--years`、`--map`、`--anchor` |
 | `scripts/review_apply.py` | 执行人的意见：改术语表、改译文、重跑校验、登记已决条目、重生成清单 | `--decisions`、`--resolved`、`--manifest`、`--suggest` |
 | `scripts/paper_meta.py` | 生成、写入、检查译文顶部的 YAML 元信息 | `--init`、`--inject`、`--check` |
-| `scripts/zotero_attach.py` | 把已验收的译文 PDF 挂回 Zotero 父条目（零配置待挂／Web API 自动上传，不碰 sqlite，幂等） | `<PDF>`、`--md`、`--parent-key`、`--title`、`--doi`、`--auto`、`--prepare-only`、`--dry-run` |
+| `scripts/zotero_attach.py` | 把已验收的译文 PDF 挂回 Zotero 父条目（本地 API 读写，Zotero 10+ 可自动上传；filename+md5 判重，改稿原地覆盖；不碰 sqlite） | `<PDF>`、`--md`、`--batch`、`--strict`、`--parent-key`、`--title`、`--doi`、`--attach-title`、`--prepare-only`、`--dry-run`、`--stage` |
 | `scripts/normalize_math.py` | 统一 `\[…\]`→`$$…$$`、`\(…\)`→`$…$`，跳过代码块与 `\\[2pt]` | `--inplace`、`-o`、`--check` |
 | `scripts/fidelity_check.py` | 与原文对账：结构、引用、公式、未译段、术语一致性；硬查脚注清单与译文 `## 脚注` 节；`--strict-soft` 可把建议项升级为硬失败 | `--glossary`、`--strict`、`--strict-soft`、`--skip-footnote-check` |
 | `scripts/merge_glossary.py` | 合并多份术语表，做姓名规范化与权威译名裁决，输出四态分流 | `-o`、`--verified`、`--no-normalize` |

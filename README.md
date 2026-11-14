@@ -36,7 +36,7 @@ powershell -ExecutionPolicy Bypass -File tools\link.ps1
 | 编译 PDF | `python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex --pdf` |
 | PDF 验收 | `python scripts/verify_pdf.py _work/pdf/paper.pdf --md <stem>_zh.md --footnotes _work/脚注.csv` |
 | 公众号版（政经） | `python scripts/build_wechat.py <stem>_zh.md <输出目录>` |
-| 回挂 Zotero | `python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md` |
+| 回挂 Zotero | `python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md`（批量交付：`--batch <目录> --strict`） |
 
 ---
 
@@ -52,11 +52,12 @@ powershell -ExecutionPolicy Bypass -File tools\link.ps1
 | 3 | 逐段／分块翻译，段落一进一出、公式与标记原样保留 | — |
 | 4 | 机械校验：公式定界符、公式逐条比对（dl）、结构对账、引用、脚注逐条核对 | `--strict` 失败必须修到清零 |
 | 5 | 人工审校清单 → 决定表 → `review_apply.py` 一条龙回填并重跑校验 | 改不动或重跑失败都返回 1 |
-| 6 | 拼回书目、写元信息、归档；按需出 PDF／公众号版，最后回挂 Zotero | 交付前四层脚注门禁、`verify_pdf.py` |
+| 6 | 拼回书目、写元信息、归档；按需出 PDF／公众号版 | 交付前四层脚注门禁、`verify_pdf.py` |
+| 7 | 把已验收的译文 PDF 挂回 Zotero 父条目 | `zotero_attach.py`：本地 API 读写、6 种状态与退出码 |
 
 **脚注是两边完全统一的**：主源为 MinerU `content_list.json` 的 `page_footnote`（`full.md` 会整类丢掉），PDF 文字层只作交叉验证；`--apply` 给原文与译文两侧同步插 `## 脚注` 节，`[^n]` 是唯一交付形态；`fidelity_check.py`、`build_wechat.py`、`verify_pdf.py` 还会再验三遍。PDF 默认把 `[^n]` 排成页底 `\footnote{}`；若正文没有引用标记（不硬猜位置），脚本自动降级为文末编号段落，绝不静默丢内容。
 
-**两条发布分支互不干扰**：`md2tex.py` + `verify_pdf.py` 出 PDF，`build_wechat.py` 出公众号稿，都以同一份译稿为源。文献来自 Zotero 时，用 `zotero_attach.py` 把**已验收**的 PDF 挂回原条目；零配置生成待挂副本与操作指引，配置 Web API key 后自动创建子附件。
+**两条发布分支互不干扰**：`md2tex.py` + `verify_pdf.py` 出 PDF，`build_wechat.py` 出公众号稿，都以同一份译稿为源。文献来自 Zotero 时，第 7 步用 `zotero_attach.py` 把**已验收**的 PDF 挂回原条目：走 Zotero 本地 API，一次「Always Allow」授权后全自动，`filename + md5` 判重，改稿原地覆盖。
 
 **各自的侧重**：政经 skill 强在术语四态／人名权威层、参考文献 sha256 隔离、马恩引文、发布口径基准副本；`dl-translation` 强在公式逐条对账、符号表、浮动对象按首次引用重定位与 `--float-reflow` 位置无关核对。
 
@@ -68,7 +69,7 @@ powershell -ExecutionPolicy Bypass -File tools\link.ps1
 - **`--strict-soft` 默认不开**：疑似未译段、段长异常、术语一致等是建议性发现，误报多；需要零容忍时才加，别把"文档写硬规则、实现只报告"当成已拦住。
 - **图表已按首次引用归位时，结构对账必须带 `--float-reflow`**，否则搬动过的图块会被误报成"块级结构不一致"。
 - **Zotero 拖拽的临时路径会失效**：`C:\WINDOWS\TEMP\Zotero\drag\` 会被清空，原文 PDF 可能中途就不在。需要重跑提取时先用 `D:\临时\` 里的原件或工作区的 MinerU 提取稿，别依赖 drag 目录。回挂流程见两个 skill 的 `references/zotero.md`。
-- **外部依赖**：MinerU token（`mineru_extract.py` 首次运行引导录入）、`pdftotext` / `pdfinfo` / `xelatex`（poppler + TeX Live，用于脚注交叉验证与 PDF）、`pyzotero`（仅自动上传 Zotero 附件时需要）、`_marx_ref/`（政经引文匹配，可选）。除这些之外脚本只用 Python 标准库。
+- **外部依赖**：MinerU token（`mineru_extract.py` 首次运行引导录入）、`pdftotext` / `pdfinfo` / `xelatex`（poppler + TeX Live，用于脚注交叉验证与 PDF）、`_marx_ref/`（政经引文匹配，可选）。回挂 Zotero 只用标准库 + 本地 API，**不需要 `pyzotero`**。除这些之外脚本只用 Python 标准库。
 - **junction 与备份**：普通复制/备份工具不一定跟随 junction，备份以本仓库为准；工作区目录移动或改名会让 junction 断，重跑 `tools\link.ps1` 即可；删除 junction 只删链接、不动仓库内容。
 - **提交**：按逻辑块小步提交，别把两个 skill 的改动揉成一个 commit；tag 一律带 skill 名前缀（一个 tag 覆盖全部子目录）。
 - **不入库的东西**：`.gitignore` 挡住 `*.pdf`、`*.zip`、`*.bak_*`、`_marx_ref/` 等；交付译文与 PDF 在工作区里，不在这个代码仓库。马恩原著文本与语料一律不入库，详见 [政经 skill 开发文档](skills/political-economy-translation/references/development.md)（官方包合并、索引脚本状态、许可与仓库边界也都在那里）。
