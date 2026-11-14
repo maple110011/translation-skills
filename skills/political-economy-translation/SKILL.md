@@ -565,6 +565,16 @@ python scripts/build_wechat.py <stem>_zh.md <输出目录>
 
 </workflow>
 
+### 回挂 Zotero（文献来自 Zotero 时）
+
+用户从 Zotero 文献库拖来 PDF 时，Windows 的 `Zotero\drag` 临时目录会被清空，原文 PDF 可能已经不在；译文 Markdown、可选 PDF／公众号版都出完且验收通过之后，把译文 PDF 挂回原条目：
+
+```bash
+python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md
+```
+
+零配置时生成待挂副本、`_work/zotero_attach.json` 清单与在 Zotero 里选中条目后的两步操作；配置 Web API key（可选依赖 `pyzotero`）后自动创建子附件并复验。脚本**不碰 `zotero.sqlite`**，也不移动或删除用户文件。详见 [references/zotero.md](references/zotero.md)。
+
 <scripts>
 | 脚本 | 用途 | 关键参数 |
 |---|---|---|
@@ -588,6 +598,7 @@ python scripts/build_wechat.py <stem>_zh.md <输出目录>
 | `scripts/marx_quotes.py` | 把英文原文里的马恩引文对到《马克思恩格斯文集》译文，带卷次/章/页与可信度 | `--source`、`--target`、`--marxref`、`--years`、`--map`、`--anchor` |
 | `scripts/review_apply.py` | 执行人的意见：改术语表、改译文、重跑校验、登记已决条目、重生成清单 | `--decisions`、`--resolved`、`--manifest`、`--suggest` |
 | `scripts/paper_meta.py` | 生成、写入、检查译文顶部的 YAML 元信息 | `--init`、`--inject`、`--check` |
+| `scripts/zotero_attach.py` | 把已验收的译文 PDF 挂回 Zotero 父条目（零配置待挂／Web API 自动上传，不碰 sqlite，幂等） | `<PDF>`、`--md`、`--parent-key`、`--title`、`--doi`、`--auto`、`--prepare-only`、`--dry-run` |
 | `scripts/normalize_math.py` | 统一 `\[…\]`→`$$…$$`、`\(…\)`→`$…$`，跳过代码块与 `\\[2pt]` | `--inplace`、`-o`、`--check` |
 | `scripts/fidelity_check.py` | 与原文对账：结构、引用、公式、未译段、术语一致性；硬查脚注清单与译文 `## 脚注` 节；`--strict-soft` 可把建议项升级为硬失败 | `--glossary`、`--strict`、`--strict-soft`、`--skip-footnote-check` |
 | `scripts/merge_glossary.py` | 合并多份术语表，做姓名规范化与权威译名裁决，输出四态分流 | `-o`、`--verified`、`--no-normalize` |
@@ -649,6 +660,7 @@ python scripts/build_wechat.py <stem>_zh.md <输出目录>
 | [references/footnotes.md](references/footnotes.md) | 第 1 步脚注恢复；判断交叉验证结果、编号冲突、跨页续文与边界时 |
 | [references/pdf-latex.md](references/pdf-latex.md) | 用户要 PDF 时；编译、页底脚注模式、验收清单与已知排版坑 |
 | [references/review-checklist.md](references/review-checklist.md) | 交付前 |
+| [references/zotero.md](references/zotero.md) | 文献来自 Zotero、要把译文 PDF 挂回条目时 |
 </reference_files>
 
 <versioning>

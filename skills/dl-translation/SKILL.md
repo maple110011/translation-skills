@@ -613,6 +613,16 @@ python scripts/verify_pdf.py _work/pdf/paper.pdf --tex _work/pdf/paper.tex \
 它查编译 `!` 错误、`Overfull \vbox`、`\hbox>1pt`、`includegraphics` 数、书签重复、文本层汉字与连字，并**逐条核 `脚注.csv` 的内容是否进了 PDF 文本层**。剩下的手工项：`pdftotext` 抽页看中文连续与 `ﬀﬁﬂ`、每页 `BT` 二十来个、`PyPDF2` 打印书签、`/Link` 落点、剥离链接后无漏链引文。
 
 **不要**在正文末尾追加"译者说明""术语对照表""译后记"——除非用户明确要求。
+### 回挂 Zotero（文献来自 Zotero 时）
+
+用户从 Zotero 文献库拖来 PDF 时，Windows 的 `Zotero\drag` 临时目录会被清空，原文 PDF 可能已经不在；译文 PDF 出完且 `verify_pdf.py` 通过之后，把它挂回原条目：
+
+```bash
+python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md
+```
+
+零配置时生成待挂副本、`_work/zotero_attach.json` 清单与在 Zotero 里选中条目后的两步操作；配置 Web API key（可选依赖 `pyzotero`）后自动创建子附件并复验。脚本**不碰 `zotero.sqlite`**，也不移动或删除用户文件。详见 [references/zotero.md](references/zotero.md)。
+
 </workflow>
 
 <scripts>
@@ -632,6 +642,7 @@ python scripts/verify_pdf.py _work/pdf/paper.pdf --tex _work/pdf/paper.tex \
 | `scripts/md2tex.py` | 译文 Markdown → XeLaTeX（`--pdf` 顺带编译两遍出 PDF）：`[^n]` 默认排成页底 `\footnote{}`、URL 走 `\url{}`、公式分组对齐、编号右对齐、引文跳转、符号表锚点、书签与元信息；内置图片/裸图适配、数学竖线保护、超宽表格自适应、跨进程编译锁 | `--source-pdf`、`--pdf`、`--footnotes`、`--title-en`、`--authors`、`--venue`、`--doi`、`--arxiv`、`--citekey` |
 | `scripts/verify_pdf.py` | PDF 验收：编译 `!` 错误、`Overfull \vbox`/`\hbox`、`includegraphics` 数、书签重复、文本层汉字与连字、**逐条核脚注是否进 PDF 文本层** | `<PDF>`、`--tex`、`--md`、`--footnotes` |
 | `scripts/review_apply.py` | 执行人的意见：改术语表与译文、重跑四步校验（结构对账带 `--strict`，失败影响退出码）、登记已决、重生成清单 | `--decisions`、`--resolved`、`--manifest`、`--math`、`--notation` |
+| `scripts/zotero_attach.py` | 把已验收的译文 PDF 挂回 Zotero 父条目（零配置待挂／Web API 自动上传，不碰 sqlite，幂等） | `<PDF>`、`--md`、`--parent-key`、`--title`、`--doi`、`--auto`、`--prepare-only`、`--dry-run` |
 | `scripts/paper_meta.py` | 生成、写入、检查译文顶部的 YAML 元信息 | `--init`、`--inject`、`--check` |
 
 全部只用 Python 标准库，无需安装依赖。唯一外部依赖是 MinerU 的 token（仅提取 PDF 时需要）。
@@ -691,4 +702,5 @@ python scripts/verify_pdf.py _work/pdf/paper.pdf --tex _work/pdf/paper.tex \
 | [references/mineru.md](references/mineru.md) | 需要从 PDF 提取、token 配置出问题、提取质量可疑、脚注分类与交叉验证判据时 |
 | [references/pdf-latex.md](references/pdf-latex.md) | 用户要 PDF 时；页底脚注模式、验收清单与已知排版坑 |
 | [references/review-checklist.md](references/review-checklist.md) | 交付前；人工过一遍时 |
+| [references/zotero.md](references/zotero.md) | 文献来自 Zotero、要把译文 PDF 挂回条目时 |
 </reference_files>
