@@ -52,7 +52,9 @@ import urllib.request
 import zipfile
 
 API_BASE = "https://mineru.net/api/v4"
-CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".workbuddy", "secrets")
+# token 默认放宿主约定的目录；换宿主或想放别处时用 MINERU_CONFIG_DIR 覆盖。
+CONFIG_DIR = (os.environ.get("MINERU_CONFIG_DIR")
+              or os.path.join(os.path.expanduser("~"), ".workbuddy", "secrets"))
 CONFIG_PATH = os.path.join(CONFIG_DIR, "mineru_token.json")
 LEGACY_PATHS = [
     os.path.join(os.path.expanduser("~"), ".dsh", "mineru-token"),

@@ -53,13 +53,18 @@ import urllib.request
 
 LOCAL_BASE = "http://127.0.0.1:23119/api"
 LOCAL_ORIGIN = "http://127.0.0.1:23119"
-CONFIG_DEFAULT = pathlib.Path.home() / ".workbuddy" / "zotero.json"
+CONFIG_DEFAULT = pathlib.Path(os.environ.get("ZOTERO_CONFIG")
+                              or (pathlib.Path.home() / ".workbuddy" / "zotero.json"))
 APP_NAME = "translation-skills (zotero_attach)"
 SKIP_DIRS = {"_work", "_dist", "_zotero", "node_modules", ".git", "__pycache__"}
 
 EXIT_OK, EXIT_ERR, EXIT_PENDING, EXIT_AMBIG = 0, 1, 2, 3
 TITLE_MIN = 0.85
 TITLE_GAP = 0.08
+
+
+class LocalUnavailable(RuntimeError):
+    """Zotero 本地 API 连不上（没启动、没开开关、版本太低）。"""
 
 
 # ---------------------------------------------------------------- 小工具
@@ -81,9 +86,11 @@ def http(method, url, body=None, headers=None, timeout=60):
             return r.status, dict(r.headers), r.read()
     except urllib.error.HTTPError as e:
         return e.code, dict(e.headers or {}), e.read()
-    except urllib.error.URLError as e:
-        raise SystemExit("连不上 Zotero 本地 API（%s）。确认 Zotero 已启动，且「设置 → 高级」"
-                         "里勾了「允许此计算机上的其他应用程序与 Zotero 通信」。" % e.reason)
+    except (urllib.error.URLError, ConnectionError, TimeoutError) as e:
+        raise LocalUnavailable(
+            "连不上 Zotero 本地 API（%s）。确认 Zotero 已启动，且「设置 → 高级」里"
+            "勾了「允许此计算机上的其他应用程序与 Zotero 通信」。"
+            % getattr(e, "reason", e))
 
 
 def md5_of(path):
@@ -261,7 +268,7 @@ class Local:
         """探活并取 server id。返回 False 表示本地 API 不可用。"""
         try:
             st, hd, _ = self.call("GET", "/", timeout=8)
-        except SystemExit:
+        except (SystemExit, LocalUnavailable):
             return False
         if st != 200:
             return False
@@ -600,8 +607,11 @@ def emit_pending(entries, zdir):
     rows = ["  { pdf: %s, parent: %s }," % (json.dumps(e["pdf"], ensure_ascii=False),
                                             json.dumps(e["parent_key"]))
             for e in entries if e.get("parent_key")]
+    hint = ("// 由 zotero_attach.py 生成：把译文 PDF 挂到已锚定的父条目下"
+            if rows else
+            "// 本批次没有已锚定的条目（多半是 Zotero 没启动）。启动 Zotero 后重跑本脚本再粘这段。")
     js = "\n".join([
-        "// 由 zotero_attach.py 生成：把译文 PDF 挂到已锚定的父条目下",
+        hint,
         "const jobs = [", *rows, "];",
         "let ok = 0; const fail = [];",
         "for (const j of jobs) {",
@@ -616,8 +626,9 @@ def emit_pending(entries, zdir):
         "",
     ])
     (zdir / "pending.md").write_text("\n".join(md), encoding="utf-8")
-    (zdir / "attach.js").write_text(js, encoding="utf-8")
-    return zdir / "pending.md", zdir / "attach.js"
+    js_path = zdir / "attach.js"
+    js_path.write_text(js, encoding="utf-8")
+    return zdir / "pending.md", js_path
 
 
 # ---------------------------------------------------------------- 单篇
@@ -655,7 +666,11 @@ def run_one(pdf, args, api, cfg):
     print("译文 PDF：%s（%s 字节）" % (pdf, format(pdf.stat().st_size, ",")))
     if md:
         print("  元信息 → %s" % pathlib.Path(md).name)
-    anchor, cands = resolve(api, args, fm, pdf)
+    try:
+        anchor, cands = resolve(api, args, fm, pdf)
+    except LocalUnavailable as e:
+        print("  锚定 → 本地 API 不可用：%s" % e)
+        return {**base, "status": "pending", "rc": EXIT_PENDING, "note": str(e)}
 
     if not anchor:
         if cands:
@@ -866,7 +881,8 @@ def main(argv=None):
                 print("\n待挂副本已集中到：%s" % inbox)
             p1, p2 = emit_pending(todo, zdir)
             print("待挂清单：%s" % p1)
-            print("一键脚本：%s" % p2)
+            if p2:
+                print("一键脚本：%s" % p2)
 
     print("\n" + "=" * 62)
     for r in results:
