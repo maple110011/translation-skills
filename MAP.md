@@ -30,7 +30,8 @@
 | PDF 版式（首页、符号表位置、公式分组） | `references/pdf-latex.md` + `scripts/md2tex.py` | 改版式要重编样例并跑 `verify_pdf.py` |
 | PDF 验收口径 | `scripts/verify_pdf.py` + `SKILL.md` 第 6 步的验收段 | 加检查项要同时改文档，否则"文档说查、代码不查" |
 | 回挂 Zotero | `references/zotero.md` + `scripts/zotero_attach.py` | 走本地 API，**绝不碰 `zotero.sqlite`** |
-| MinerU 提取 | `references/mineru.md` + `scripts/mineru_extract.py` | 两份文案不同，口径必须一致 |
+| 取 arXiv 源码（dl 侧） | `references/arxiv-source.md` + `scripts/arxiv_src.py` | 多版本主文件、自定义宏、脚注怎么处理都在这两份里 |
+| MinerU 提取（无源码时） | `references/mineru.md` + `scripts/mineru_extract.py` | 两份文案不同，口径必须一致 |
 | 图表／浮动对象 | dl：`references/figures.md`；政经：`SKILL.md` 的「图表归位」一节 | 政经还没抽成独立文件，改一边时另一边也看一眼 |
 | 符号一览 | `references/notation.md` + `scripts/notation.py` | dl 专有 |
 | 马恩引文核对 | `references/marx-ref.md` + `scripts/marx_quotes.py` | 政经专有；依赖 `_marx_ref/`（可选） |

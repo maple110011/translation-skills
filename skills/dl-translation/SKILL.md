@@ -308,7 +308,18 @@ python scripts/figures.py audit <stem>_原文.md <stem>_zh.md --csv _work/图目
 
 **已有 Markdown** —— 直接用，先扫一遍提取缺陷：公式是否被拆成图片、`\begin{align}` 是否塌成一行、表格是否塌成纯文本、脚注是否丢失、上下标是否被压平（`x_i^2` 变成 `xi2`）。
 
-**有 PDF** —— 用 `scripts/mineru_extract.py`：
+**有 arXiv 版本（首选）** —— 直接取作者源码，别从 PDF 抠：
+
+```bash
+python scripts/arxiv_src.py 2207.01848 -o ./_work/arxiv
+python scripts/arxiv_src.py https://arxiv.org/abs/2112.10510v2 -o ./_work/arxiv
+```
+
+产出 `main.flat.tex`（已展开 `\input`、剥掉注释）、`figures/`、`结构清单.md`、`脚注.csv`。真公式、真定理环境、真 `\cite`/`\bibitem` 都在源码里——省下的不是提取时间，是逐条核对公式的时间。
+
+**先确认版本**：一个包里常有好几个可编译主文件（`main.tex`、`main_neurips_*.tex`…），`main.tex` 未必是手上那篇 PDF 的版本。用章节数、附录范围、图表数与 PDF 比对，对不上就 `--main` 指定。arXiv 版常常比会议版多附录、多脚注，**以哪一版为准要问用户**，别默默挑大的那个。详见 [references/arxiv-source.md](references/arxiv-source.md)。
+
+**没有源码，或版本对不上 PDF** —— 用 `scripts/mineru_extract.py`：
 
 ```bash
 python scripts/mineru_extract.py paper.pdf -o ./_work/extract --model vlm
@@ -316,7 +327,11 @@ python scripts/mineru_extract.py paper.pdf -o ./_work/extract --model vlm
 
 首次运行会引导录入 token 并保存；`--token-status` 可查 token 来源。参数与排障见 [references/mineru.md](references/mineru.md)。
 
-**提取完立刻恢复脚注（硬性，动笔之前）**：MinerU 的版面识别**认得出**页底脚注（`content_list.json` 里 `type=page_footnote`，与 `content_list_v2.json`、`layout.json` 条数一致），但服务端生成 `full.md` 时按类型白名单输出，**`page_footnote` 被整类过滤**：正文常常只剩一个 `<sup>n</sup>` 引用标记，脚注正文 100% 丢失。脚注里常有条件、假设、复现链接，漏掉等于改条件。
+**脚注必须一条不落，但两条路线来源不同。**
+
+**走 tex 路线时**：脚注不在 `content_list.json` 里，`footnote_recover.py` 那条链路走不通。脚本已产出 `_work/脚注.csv`（`page` 为空、`text` 是源码原文），填 `zh` 列后回填译文；译文照常写 `## 脚注` 节，条数必须与 `结构清单.md` 的「脚注明细」相等；`fidelity_check.py` 加 `--skip-footnote-check`，完整性改由**条数相等**保证。tex 里没有页码概念，这一层校验换成了序号对账，见 [references/arxiv-source.md](references/arxiv-source.md) 第三节。
+
+**走 PDF 路线时**——提取完立刻恢复脚注（硬性，动笔之前）：MinerU 的版面识别**认得出**页底脚注（`content_list.json` 里 `type=page_footnote`，与 `content_list_v2.json`、`layout.json` 条数一致），但服务端生成 `full.md` 时按类型白名单输出，**`page_footnote` 被整类过滤**：正文常常只剩一个 `<sup>n</sup>` 引用标记，脚注正文 100% 丢失。脚注里常有条件、假设、复现链接，漏掉等于改条件。
 
 两个 skill 共用同一份 `footnote_recover.py`，一条链走完「恢复 → 两侧补回 → 中文回填 → 交付与 PDF 验收」：
 
@@ -336,7 +351,7 @@ python scripts/footnote_recover.py ./_work/extract -o ./_work \
 
 `--apply` 把正文 `<sup>n</sup>` 归一成 `[^n]`、在 REFERENCES 之前给**原文与译文同步**插入 `## 脚注` 节、逐条写 `[^n]: 第 N 页脚注 n：…`，写回前留 `.bak_footnotes` 备份且可重复运行。译文侧未填中文时会留 `<!-- 待译 -->`，**`--check` 因此返回 1**，直到回填完成。作者机构／版权注常与正文脚注同号（都叫 1），不占 `[^n]` 编号，作为引用块说明保留英文；`noise`（如 `40<sup>th</sup>`）不补。
 
-**这一步不可少、不可跳过**：`fidelity_check.py --strict` 会硬查 `_work/脚注.csv` 是否存在、译文是否有 `## 脚注` 节，并**逐条核编号、页码、链接与中文是否齐备**。唯一豁免是**纯 Markdown 输入、没有 MinerU 结果包**时显式加 `--skip-footnote-check`，并在交付报告里写明理由。分类、交叉验证与对账规范见 [references/mineru.md](references/mineru.md)「页底脚注」一节；本 skill 与 `political-economy-translation` 的脚注流程完全一致。
+**这一步不可少、不可跳过**：`fidelity_check.py --strict` 会硬查 `_work/脚注.csv` 是否存在、译文是否有 `## 脚注` 节，并**逐条核编号、页码、链接与中文是否齐备**。豁免只有两种：纯 Markdown 输入、没有 MinerU 结果包；或走 arXiv 源码路线（脚注基准来自源码的 `\footnote`，没有页码）。两种情况都要显式加 `--skip-footnote-check`，并在交付报告里写明理由与替代判据。分类、交叉验证与对账规范见 [references/mineru.md](references/mineru.md)「页底脚注」一节；本 skill 与 `political-economy-translation` 的脚注流程完全一致。
 
 **有 docx** —— 用 pandoc 或宿主的 docx 转换能力转 Markdown，转换后同样检查公式与表格。
 
@@ -653,7 +668,8 @@ python scripts/zotero_attach.py --batch . --strict                # 一次交付
 <scripts>
 | 脚本 | 用途 | 关键参数 |
 |---|---|---|
-| `scripts/mineru_extract.py` | PDF/图片/Office → Markdown，token 只需设置一次 | `--set-token`、`--token-status`、`--pages`、`--ocr`、`--model` |
+| `scripts/arxiv_src.py` | 取 arXiv e-print 源码：解包、找主文件、展开 `\input`、收图、出结构清单与脚注清单 | `<id|url>`、`-o`、`--from`、`--main`、`--md`、`--no-flat`、`--refresh` |
+| `scripts/mineru_extract.py` | PDF/图片/Office → Markdown，token 只需设置一次；**没有 arXiv 源码时才用** | `--set-token`、`--token-status`、`--pages`、`--ocr`、`--model` |
 | `scripts/footnote_recover.py` | 从 `content_list.json` 恢复 `page_footnote`；`--apply` 两侧同步补 `## 脚注` 节、中文回填、PDF 文字层交叉验证、`--check` 内容级门禁（与 `political-economy-translation` 同一实现） | `-o`、`--source`、`--target`、`--apply`、`--translations`、`--check`、`--pdf`、`--pdf-out`、`--skip-footnote-check` |
 | `scripts/mathscan.py` | 内部模块：定位全部公式片段（行间/行内），供其余脚本共用 | 不作为命令调用 |
 | `scripts/normalize_math.py` | 统一 `\[…\]`→`$$…$$`、`\(…\)`→`$…$`，跳过代码块与 `\\[2pt]` | `--inplace`、`-o`、`--check` |
@@ -724,7 +740,8 @@ python scripts/zotero_attach.py --batch . --strict                # 一次交付
 | [references/figures.md](references/figures.md) | 处理图与实验表格时；多面板图被拆散、图注游离、宽图读不清、要导出 HTML/docx 时 |
 | [references/terminology.md](references/terminology.md) | 定译法、判断学科分流、缩写处理、维护术语表时 |
 | [references/workflow.md](references/workflow.md) | 长文（>1.5 万词）、断点续译、原文更新、批量多篇时 |
-| [references/mineru.md](references/mineru.md) | 需要从 PDF 提取、token 配置出问题、提取质量可疑、脚注分类与交叉验证判据时 |
+| [references/arxiv-source.md](references/arxiv-source.md) | 论文有 arXiv 版本、要取源码而不是从 PDF 提取时；多版本主文件、宏、脚注怎么处理 |
+| [references/mineru.md](references/mineru.md) | 没有源码、只能从 PDF 提取时；token 配置、提取质量、脚注分类与交叉验证判据 |
 | [references/pdf-latex.md](references/pdf-latex.md) | 用户要 PDF 时；页底脚注模式、验收清单与已知排版坑 |
 | [references/review-checklist.md](references/review-checklist.md) | 交付前；人工过一遍时 |
 | [references/zotero.md](references/zotero.md) | 文献来自 Zotero、要把译文 PDF 挂回条目时 |

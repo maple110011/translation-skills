@@ -49,6 +49,7 @@
 | `_work/<stem>_风格.md`（政经侧） | 本篇的语体与体例约定：自称、论证动词、句式、数字与引文格式 | 改稿与续译的基准，防止同一篇前后不一致 |
 | `_work/公式差异.csv`、`符号缺漏.csv`、`图目录.csv` | 公式、符号、图表的逐条比对结果（通常清零后留档） | 复核这些最容易「看着没事其实错了」的部分 |
 | `<stem>_待校对.md` 与 `_work/人工待校.csv` | 机械发现 + 必须人判断的清单 | 明确「哪些还没定」，避免把「脚本过了」当成「没问题」 |
+| `_work/arxiv/结构清单.md`、`脚注.csv`（tex 路线） | 源码统计：章节树、公式／定理／图表／引用／脚注计数，以及自定义宏定义表 | 译文定稿后逐项对账的基准；tex 路线下脚注的完整性靠它 |
 | `<stem>_zh.pdf`（按需） | 版式贴着原文的中文 PDF：页底真脚注、书签、符号表可跳转 | 送审、打印、按页引用 |
 | `<stem>_公众号版.html`（按需，政经侧） | 内联样式的排版稿 | 直接粘进公众号编辑器，不掉版式 |
 | `_work/zotero_attach.json`、`_zotero/attached.csv` | 回挂记录：父条目、附件 key、md5 | 知道「挂上去的是哪一版」；改稿后据此判断要不要重挂 |
@@ -133,8 +134,9 @@ python skills/dl-translation/scripts/fidelity_check.py --help
 ```bash
 S=skills/dl-translation/scripts          # Windows: set S=skills\dl-translation\scripts
 
-# 1. PDF → Markdown（首次要 MinerU token）
-python $S/mineru_extract.py paper.pdf -o _work/extract --model vlm
+# 1. 取源：有 arXiv 版本就直接取作者源码，没有才从 PDF 提取
+python $S/arxiv_src.py 2207.01848 -o _work/arxiv
+# python $S/mineru_extract.py paper.pdf -o _work/extract --model vlm   # 没有源码时
 
 # 2. 恢复脚注，原文与译文两侧同步补 ## 脚注 节
 python $S/footnote_recover.py _work/extract -o _work \
@@ -171,7 +173,7 @@ translation-skills/
 │   │   ├── SKILL.md              # 流程、硬门槛、交付物
 │   │   ├── references/           # 细则：准确性规则、符号、图表、PDF、文献库…
 │   │   │   └── glossary/         # 术语数据（ML/DL、数学、统计）
-│   │   └── scripts/              # 16 个脚本，纯标准库
+│   │   └── scripts/              # 17 个脚本，纯标准库
 │   └── political-economy-translation/
 │       ├── SKILL.md
 │       ├── references/           # 细则：五条硬规则、术语、风格、马恩引文…
@@ -208,7 +210,8 @@ translation-skills/
 | 依赖 | 必需？ | 用途 |
 |---|---|---|
 | Python 3.9+ | 是 | 全部脚本，**只用标准库** |
-| MinerU token | 提取时必需 | PDF／图片 → Markdown；`mineru_extract.py --set-token` 录入 |
+| arXiv e-print（联网） | 论文有 arXiv 版本时 | 直接取作者 LaTeX，省掉提取与公式校对；没有源码才退回 MinerU |
+| MinerU token | 需要从 PDF 提取时 | PDF／图片 → Markdown；`mineru_extract.py --set-token` 录入 |
 | poppler（`pdftotext`／`pdfinfo`） | 脚注交叉验证、PDF 验收时需要 | 读 PDF 文字层 |
 | TeX Live（`xelatex` + ctex） | 出 PDF 时需要 | 中文排版编译 |
 | Zotero 10+ | 回挂文献库时需要 | 本地 API 读写；没有 Zotero 时该步自动降级 |
@@ -242,7 +245,7 @@ translation-skills/
 
 ## 隐私
 
-- 脚本不出网，唯一的外部调用是 MinerU 提取（可跳过，直接喂已提取的 Markdown）。
+- 脚本默认不出网，只有两处例外：arXiv e-print 下载（取源码）与 MinerU 提取（可跳过，直接喂已提取的 Markdown 或 LaTeX）。
 - 文献库回挂走 Zotero 本地 API（`127.0.0.1`），不经过 zotero.org，不需要账号；**不读写 `zotero.sqlite`**。
 - 术语表与译名数据都在本地，不含个人身份信息。
 

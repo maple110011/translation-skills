@@ -10,7 +10,8 @@
 | `review-checklist.md` | 交付前清单：脚本查过的读结论、必须人读的、交付时怎么说、最容易漏的十处 | 第 5 步；交付前 |
 | `figures.md` | 图与表：三条底线、就近重定位、并排图块写法、子图说明、宽图、实验表格 | 有浮动对象时 |
 | `workflow.md` | 长文断点、原文更新、批量多篇、只译一部分、与其他工具的边界 | 正文超约 1.5 万词或一次多篇时 |
-| `mineru.md` | MinerU token、调用参数、五类会骗人的提取缺陷、抽查与排障 | 第 1 步提取 |
+| `mineru.md` | MinerU token、调用参数、五类会骗人的提取缺陷、抽查与排障 | 没有 arXiv 源码、只能从 PDF 提取时 |
+| `arxiv-source.md` | 从 arXiv e-print 取作者 LaTeX：产出、多版本主文件怎么选、宏与脚注怎么处理、怎么按清单对账 | 论文有 arXiv 版本时（优先于 PDF 提取） |
 | `pdf-latex.md` | 译文 md → PDF：首页版式、公式分组、间距、跳转、图表（与政经共用） | 用户要 PDF 时 |
 | `zotero.md` | 译文 PDF 回挂 Zotero 父条目：锚定、判重、附件命名、降级（与政经共用） | 第 7 步 |
 | `glossary/` | 数据：`ml_dl_core.csv`、`math_core.csv`、`stat_core.csv` | 查译名；`terminology.md` 会告诉你优先级 |
