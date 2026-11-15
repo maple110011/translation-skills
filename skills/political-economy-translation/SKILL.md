@@ -68,7 +68,7 @@ python scripts/mineru_extract.py paper.pdf -o ./_work/extract --model vlm
 
 第一次运行会引导录入 token 并保存，之后不用再输；`--token-status` 可查看 token 从哪来。参数取舍、故障排查见 [references/mineru.md](references/mineru.md)。
 
-**有 docx** —— 用 `workbuddy-docx` 或 pandoc 转 Markdown，转换后同样要检查公式与表格。
+**有 docx** —— 用 pandoc 或宿主的 docx 转换能力转 Markdown，转换后同样要检查公式与表格。
 
 提取完成后**必须对照 PDF 抽查**：随机翻三页，比对段落数、公式、脚注。提取错了再译，等于把错误洗进译文。
 
@@ -575,7 +575,7 @@ python scripts/zotero_attach.py --batch . --strict                # 一次交付
 走 **Zotero 本地 API**（`127.0.0.1:23119`），不碰 `zotero.sqlite`，不需要 zotero.org 账号，也不需要 `pyzotero`：
 
 - **读**（锚定、判重）不需要任何授权；
-- **写**（建附件、传文件）第一次会弹窗，点 **Always Allow**，key 存 `~/.workbuddy/zotero.json`，以后零弹窗；
+- **写**（建附件、传文件）第一次会弹窗，点 **Always Allow**，key 存 `~/.workbuddy/zotero.json`（换位置用 `--config` 或 `ZOTERO_CONFIG`），以后零弹窗；
 - Zotero < 10 没有本地写入能力，脚本自动降到下面说的「一键挂」。
 
 锚定按可靠性从高到低：`--parent-key` → DOI／arXiv（front matter 的 `doi`／`arxiv`）→ front matter 的 `source_pdf` 与库里附件文件名精确匹配 → 英文标题相似度（≥0.85 且唯一）。**中文标题不参与匹配**——库里存的是英文原题，拿译文标题去搜只会命中噪声。
@@ -707,5 +707,5 @@ git log --oneline -- SKILL.md                 # 单文件历史
 - 改写 `SKILL.md`、`references/mineru.md`、`references/review-checklist.md`
 - 重写 `scripts/build_wechat.py` 的脚注层：`[^n]` / `<sup>n</sup>` / `## 脚注` 节统一归一，新增 `audit_notes()` 硬校验；配 `scripts/_test_footnotes.py` 回归测试。旧版只认 `<sup>`，`footnotes.py --patch` 过的稿子会静默丢光脚注
 
-若仓库采用「多个 skill 各占一个子目录」的结构，本地 `~/.workbuddy/skills/<name>` 可用 Windows 目录联接（junction）指向仓库子目录：编辑即提交，无需双向同步。
+若仓库采用「多个 skill 各占一个子目录」的结构，可在宿主的 skills 目录建目录联接（Windows junction / Unix symlink）指向仓库子目录：编辑即生效，无需双向同步。
 </versioning>

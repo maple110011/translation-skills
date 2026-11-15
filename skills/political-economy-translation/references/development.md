@@ -57,7 +57,7 @@ git tag dl/v1
 
 ## 四、许可与仓库边界
 
-尚未选定许可。两个 skill 与 `tools/marxref-build/` 下的索引构建脚本都是自建代码，但本 skill 内含 `references/glossary/names_xinhua.tsv.gz`（3.6 MB）等第三方数据，公开前需逐项核来源与许可；马恩原著文本与语料一律不入库。**定许可前请勿把本仓库设为 Public。**
+代码以 MIT 发布（见仓库根 `LICENSE`）。例外是本 skill 内含 `references/glossary/names_xinhua.tsv.gz`（3.6 MB）等第三方数据，其来源与许可需单独核对，不自动适用 MIT；马恩原著文本与语料一律不入库。二次分发前请逐项确认。
 
 `.gitignore` 已挡住 `_marx_ref/`、`*.pdf`、`*.zip`、`*.bak_*` 等二进制大文件；`names_xinhua.tsv.gz` 是 skill 自带数据依赖，保留跟踪。
 
@@ -71,4 +71,4 @@ git tag dl/v1
 
 - 马恩原著文本、语料与 `_marx_ref/` 一律不入库；改动 `glossary/` 下的数据要能说明来源与许可。
 - 共享实现（`footnote_recover.py`／`md2tex.py`／`verify_pdf.py`／`zotero_attach.py`）改动后同步复制到 `dl-translation`，并用 `md5sum` 核对。
-- 仓库是唯一真相源，`~/.workbuddy/skills/` 是 junction：工作区移动或改名后重跑 `tools/link.ps1`；删除 junction 只删链接、不动仓库内容。
+- 仓库是唯一真相源：如果宿主的 skills 目录用目录联接（Windows junction／Unix symlink）指向本仓库子目录，编辑即生效；工作区移动或改名后重建联接即可，删除联接只删链接、不动仓库内容。

@@ -14,7 +14,7 @@ MinerU 把 PDF 转成 Markdown，包括公式（LaTeX）、表格、图片、双
 |---|---|---|
 | 1 | `--token sk-xxx` | 一次性覆盖，不落盘 |
 | 2 | 环境变量 `MINERU_TOKEN` | 适合 CI |
-| 3 | `~/.workbuddy/secrets/mineru_token.json` | `--set-token` 写入，Linux/macOS 下权限 600 |
+| 3 | `~/.workbuddy/secrets/mineru_token.json` | `--set-token` 写入，权限 600；换位置用 `MINERU_CONFIG_DIR` |
 | 4 | `~/.dsh/mineru-token`、`~/.dsh/mineru-token.txt` | 旧位置，只读，不会改写 |
 | 5 | 交互输入 | 仅在终端下触发，问一次是否保存 |
 
@@ -35,12 +35,12 @@ python scripts/mineru_extract.py --token-status
 输出形如：
 
 ```
-来源：C:\Users\xxx\.dsh\mineru-token（旧文件，只读）
+来源：C:\Users\<用户名>\.dsh\mineru-token（旧文件，只读）
 指纹：sk-oDm…mniY  (len=51)
 解析顺序：
     命令行 --token
     环境变量 MINERU_TOKEN
-    本脚本配置 C:\Users\xxx\.workbuddy\secrets\mineru_token.json
+    本脚本配置 C:\Users\<用户名>\.workbuddy\secrets\mineru_token.json
   ✓ 旧文件 ~/.dsh/mineru-token（只读）
     交互输入
 ```

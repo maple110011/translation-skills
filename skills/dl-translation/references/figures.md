@@ -200,7 +200,7 @@ td { border: none; padding: 4px; text-align: center; }
 figure, table + p { text-align: center; }
 ```
 
-要 docx 且要求期刊格式时，走 `workbuddy-docx`，别在 Markdown 里堆 `<br>` 和空行——那会破坏结构对账。
+要 docx 且要求期刊格式时，用宿主的 docx 转换能力（或 pandoc），别在 Markdown 里堆 `<br>` 和空行——那会破坏结构对账。
 
 ---
 

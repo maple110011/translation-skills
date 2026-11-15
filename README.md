@@ -1,78 +1,215 @@
 # translation-skills
 
-两个自建翻译 skill 的单一仓库：把英文政治经济学文献、深度学习／数学／统计论文译成中文 Markdown，并用脚本证明"没漏段、引用没改、公式与脚注没丢"。
+> 两个面向 AI 编程助手的翻译 Skill：把英文政治经济学文献、深度学习／数学／统计论文译成中文 Markdown，并用可执行的校验证明「没漏段、引用没改、公式与脚注没丢」。
 
-仓库是唯一真相源，`~/.workbuddy/skills/` 下的同名目录是指向这里的 NTFS junction，编辑即生效、无需双向同步。
+大模型翻译的通病不是读不懂英文，而是**读起来挺顺、逐字对不上**：公式差一个下标、定理弱化了条件、脚注整批消失、参考文献被顺手翻了。这些错误在中文里看不出破绽，等到要引用时才发现。
 
-| skill | 用途 | 主文档 |
+本仓库的做法是把「对不对」变成**可执行的检查**：每一步都产出可复核的文件，能机械比对的一律交给脚本，检查不过就返回非零。译文不是「模型说它译完了」，而是「对账跑完了」。
+
+---
+
+## 两个 Skill
+
+| Skill | 译什么 | 强在哪 |
 |---|---|---|
-| `political-economy-translation` | 政经期刊论文／书章／书评英译中；术语与人名治理、马恩引文、公众号排版稿 | [SKILL.md](skills/political-economy-translation/SKILL.md) |
-| `dl-translation` | 深度学习／数学／统计论文英译中；公式逐条对账、符号一览、图表重定位 | [SKILL.md](skills/dl-translation/SKILL.md) |
+| [`dl-translation`](skills/dl-translation/SKILL.md) | 深度学习、机器学习、数学、统计论文 | 公式逐字符比对、符号一览、定理条件与强度、浮动对象按首次引用重定位 |
+| [`political-economy-translation`](skills/political-economy-translation/SKILL.md) | 政治经济学期刊论文、书章、书评 | 术语四态与人名权威层、马恩引文对到文集译文、参考文献 sha256 隔离、公众号排版稿 |
 
-`scripts/footnote_recover.py`、`md2tex.py`、`verify_pdf.py`、`zotero_attach.py` 在两个 skill 里是**同一份实现**（MD5 一致）；改动要同步复制到另一边，别只改一边。
-
-**要改代码或文档，先看 [MAP.md](MAP.md)**：它列了「想改某件事该动哪个文件」、哪些文件必须两边同改、三层文档各管什么。本文件只讲怎么用。
+两者共用同一套骨架（0–7 步）与同一份底层实现（脚注恢复、PDF 编译、PDF 验收、文献库回挂），差异在领域规则。
 
 ---
 
-## 一、怎么用
+## 何时用 / 什么时候别用
 
-**加载**（Windows，不需要管理员权限）：
+**用（满足任一即可）**
 
-```powershell
-powershell -ExecutionPolicy Bypass -File tools\link.ps1
-```
+- 论文、预印本、书章、书评的英译中，译文要长期查阅或供人审阅
+- 正文含公式推导、定理—证明、算法伪代码、实验表格，要求逐字保真
+- 要求术语全文一致、关键术语保留英文原文、脚注一条不丢
+- 交付物需要是可验收的东西：Markdown、排版 PDF、公众号稿，或回挂到文献库
+- 想复核一份已有译文「到底漏没漏」
 
-脚本把 `~/.workbuddy/skills/<name>` 原有目录改名备份到 `~/.workbuddy/<name>.pre-junction-backup`（放在 `skills/` 之外，避免被当成第二个 skill 扫描），再创建 junction 指向本仓库子目录。撤销用 `tools\unlink.ps1`；**备份目录确认无误前不要删**。
+**别用**
 
-**调用**：在 WorkBuddy 里按 skill 名字发起翻译任务即可，也可以直接跑 `skills/<name>/scripts/` 下的脚本。动手前先读对应 `SKILL.md`——它规定了步骤顺序、硬门槛与交付物，不要跳步凭记忆往下写。
-
-常用命令（在译文所在目录执行；`scripts/` 换成对应 skill 的路径，`<stem>` 是原文文件名）：
-
-| 目的 | 命令 |
-|---|---|
-| PDF → Markdown | `python scripts/mineru_extract.py paper.pdf -o _work/extract --model vlm` |
-| 恢复并补全脚注 | `python scripts/footnote_recover.py _work/extract -o _work --source <stem>_原文.md --target <stem>_zh.md --apply --check --pdf paper.pdf` |
-| 回填中文脚注 | `python scripts/footnote_recover.py _work/extract -o _work --translations _work/脚注_待译.csv --target <stem>_zh.md --apply --check` |
-| 结构对账 | `python scripts/fidelity_check.py <stem>_原文.md <stem>_zh.md --glossary _work/<stem>_术语.csv --float-reflow --strict` |
-| 编译 PDF | `python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex --pdf` |
-| PDF 验收 | `python scripts/verify_pdf.py _work/pdf/paper.pdf --md <stem>_zh.md --footnotes _work/脚注.csv` |
-| 公众号版（政经） | `python scripts/build_wechat.py <stem>_zh.md <输出目录>` |
-| 回挂 Zotero | `python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md`（批量交付：`--batch <目录> --strict`） |
+- 中译英——全部对账逻辑假定「源为英文、目标为中文」
+- 文学、思想史、时评——那类文本的重点是语气与脉络，与「公式优先」的取舍相反
+- 只要摘要或要点——直接摘要，不必走这套流程
+- 纯排版工程（复刻作者的 `.tex` 工程、修编译错误）——本仓库只把**已定稿的中文 Markdown** 编成 PDF
 
 ---
 
-## 二、工作流
+## 设计原则
 
-两个 skill 共用 0–6 步骨架，**每一步的产物是下一步的输入**：
+1. **产物驱动。** 每一步产出确定的文件，下一步只吃这些文件。中间件留在 `_work/`，交付物留在稿件根目录。
+2. **能机械查的不靠人读。** 结构块数、引用条数、公式字符、脚注编号、数值、图表位置、PDF 文本层——全部脚本比对；人只判断语义与风格。
+3. **不过就不交付。** `--strict` 失败、脚注 `--check` 返回 1、`verify_pdf` FAIL，都汇进退出码，不允许「打印警告然后继续」。
+
+---
+
+## 工作流
+
+两个 Skill 共用 0–7 步，**每一步的产物是下一步的输入**：
 
 | 步骤 | 做什么 | 硬门槛 |
 |---|---|---|
-| 0 | 确认源文件、交付格式、输出位置；顺口问一句要不要 PDF | — |
+| 0 | 确认源文件、交付格式、输出位置；问一句要不要 PDF | — |
 | 1 | 取到可译正文：MinerU 提取、抽查三页、**脚注恢复**、参考文献切分 | 脚注 `--check` 不 PASS 不许进第 2 步 |
 | 2 | 动笔前锁定术语／专名（dl 侧还有符号一览与保留英文术语一览） | — |
-| 3 | 逐段／分块翻译，段落一进一出、公式与标记原样保留 | — |
-| 4 | 机械校验：公式定界符、公式逐条比对（dl）、结构对账、引用、脚注逐条核对 | `--strict` 失败必须修到清零 |
-| 5 | 人工审校清单 → 决定表 → `review_apply.py` 一条龙回填并重跑校验 | 改不动或重跑失败都返回 1 |
-| 6 | 拼回书目、写元信息、归档；按需出 PDF／公众号版 | 交付前四层脚注门禁、`verify_pdf.py` |
-| 7 | 把已验收的译文 PDF 挂回 Zotero 父条目 | `zotero_attach.py`：本地 API 读写、6 种状态与退出码 |
+| 3 | 逐段／分块翻译，段落一进一出，公式与标记原样保留 | — |
+| 4 | 机械校验：公式定界符、公式逐条比对、结构对账、引用、脚注逐条核对 | `--strict` 失败必须修到清零 |
+| 5 | 人工审校清单 → 决定表 → 一条龙回填并重跑校验 | 改不动或重跑失败都返回 1 |
+| 6 | 拼回书目、写元信息、归档；按需出 PDF／公众号稿 | 交付前四层脚注门禁、`verify_pdf.py` |
+| 7 | 把已验收的译文 PDF 挂回文献库（Zotero）父条目 | 六种状态与退出码，`--strict` 可做交付门禁 |
 
-**脚注是两边完全统一的**：主源为 MinerU `content_list.json` 的 `page_footnote`（`full.md` 会整类丢掉），PDF 文字层只作交叉验证；`--apply` 给原文与译文两侧同步插 `## 脚注` 节，`[^n]` 是唯一交付形态；`fidelity_check.py`、`build_wechat.py`、`verify_pdf.py` 还会再验三遍。PDF 默认把 `[^n]` 排成页底 `\footnote{}`；若正文没有引用标记（不硬猜位置），脚本自动降级为文末编号段落，绝不静默丢内容。
-
-**两条发布分支互不干扰**：`md2tex.py` + `verify_pdf.py` 出 PDF，`build_wechat.py` 出公众号稿，都以同一份译稿为源。文献来自 Zotero 时，第 7 步用 `zotero_attach.py` 把**已验收**的 PDF 挂回原条目：走 Zotero 本地 API，一次「Always Allow」授权后全自动，`filename + md5` 判重，改稿原地覆盖。
-
-**各自的侧重**：政经 skill 强在术语四态／人名权威层、参考文献 sha256 隔离、马恩引文、发布口径基准副本；`dl-translation` 强在公式逐条对账、符号表、浮动对象按首次引用重定位与 `--float-reflow` 位置无关核对。
+脚注是两边完全统一的：主源为 MinerU `content_list.json` 的 `page_footnote`（`full.md` 会整类丢掉），PDF 文字层只作交叉验证；`[^n]` 是唯一交付形态，`fidelity_check.py`、`build_wechat.py`、`verify_pdf.py` 会再验三遍。PDF 默认排成页底真脚注；正文没有引用标记时自动降级为文末编号段落，绝不静默丢内容。
 
 ---
 
-## 三、注意事项
+## 安装
 
-- **硬门槛不要跳过**：`--strict` 的失败、`footnote_recover.py --check` 的返回 1、`verify_pdf.py` 的 FAIL 都要修完再交付。报告"校验通过"时把各项结论写进交付说明，不要只写一句"通过"。
-- **`--strict-soft` 默认不开**：疑似未译段、段长异常、术语一致等是建议性发现，误报多；需要零容忍时才加，别把"文档写硬规则、实现只报告"当成已拦住。
-- **图表已按首次引用归位时，结构对账必须带 `--float-reflow`**，否则搬动过的图块会被误报成"块级结构不一致"。
-- **Zotero 拖拽的临时路径会失效**：`C:\WINDOWS\TEMP\Zotero\drag\` 会被清空，原文 PDF 可能中途就不在。需要重跑提取时先用 `D:\临时\` 里的原件或工作区的 MinerU 提取稿，别依赖 drag 目录。回挂流程见两个 skill 的 `references/zotero.md`。
-- **外部依赖**：MinerU token（`mineru_extract.py` 首次运行引导录入）、`pdftotext` / `pdfinfo` / `xelatex`（poppler + TeX Live，用于脚注交叉验证与 PDF）、`_marx_ref/`（政经引文匹配，可选）。回挂 Zotero 只用标准库 + 本地 API，**不需要 `pyzotero`**。除这些之外脚本只用 Python 标准库。
-- **junction 与备份**：普通复制/备份工具不一定跟随 junction，备份以本仓库为准；工作区目录移动或改名会让 junction 断，重跑 `tools\link.ps1` 即可；删除 junction 只删链接、不动仓库内容。
-- **提交**：按逻辑块小步提交，别把两个 skill 的改动揉成一个 commit；tag 一律带 skill 名前缀（一个 tag 覆盖全部子目录）。
-- **不入库的东西**：`.gitignore` 挡住 `*.pdf`、`*.zip`、`*.bak_*`、`_marx_ref/` 等；交付译文与 PDF 在工作区里，不在这个代码仓库。马恩原著文本与语料一律不入库，详见 [政经 skill 开发文档](skills/political-economy-translation/references/development.md)（官方包合并、索引脚本状态、许可与仓库边界也都在那里）。
-- **许可未定**，公开前需核对 `names_xinhua.tsv.gz` 等第三方数据的来源与许可；定许可前请勿把本仓库设为 Public。
+两种方式，按你需要选：
+
+**A. 作为 Skill 使用。** 把 `skills/<name>/` 整个目录复制到你所用宿主的 skills 目录，重启会话即可按名字调用：
+
+| 宿主 | 目录 |
+|---|---|
+| WorkBuddy | `~/.workbuddy/skills/` |
+| Claude Code 等读取 `SKILL.md` 的工具 | 各自的 skills 目录 |
+
+Windows 下如果希望「改仓库即生效」而不复制，可用 `tools/link.ps1` 建目录联接（junction）指向仓库子目录，撤销用 `tools/unlink.ps1`。这是便利脚本，不是必需步骤。
+
+**B. 只用脚本。** 不装 Skill 也能直接跑，脚本只依赖 Python 标准库：
+
+```bash
+python skills/dl-translation/scripts/fidelity_check.py --help
+```
+
+---
+
+## 快速开始
+
+以一篇深度学习论文为例（在译文目录下执行）：
+
+```bash
+S=skills/dl-translation/scripts          # Windows: set S=skills\dl-translation\scripts
+
+# 1. PDF → Markdown（首次要 MinerU token）
+python $S/mineru_extract.py paper.pdf -o _work/extract --model vlm
+
+# 2. 恢复脚注，原文与译文两侧同步补 ## 脚注 节
+python $S/footnote_recover.py _work/extract -o _work \
+    --source <stem>_原文.md --target <stem>_zh.md --apply --check --pdf paper.pdf
+
+# 3. 结构、引用、公式、脚注一起对账
+python $S/fidelity_check.py <stem>_原文.md <stem>_zh.md --strict
+python $S/math_fidelity.py <stem>_原文.md <stem>_zh.md --strict
+
+# 4. 编译 PDF 并验收
+python $S/md2tex.py <stem>_zh.md _work/pdf/paper.tex --pdf
+python $S/verify_pdf.py _work/pdf/paper.pdf --md <stem>_zh.md --footnotes _work/脚注.csv
+
+# 5. 回挂文献库（可选）
+python $S/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md
+```
+
+政经侧把 `$S` 换成 `skills/political-economy-translation/scripts`，并在第 1 步前用 `split_refs.py` 把参考文献切出去。
+
+---
+
+## 文件结构
+
+```
+translation-skills/
+├── README.md                     # 本文件：是什么、怎么用
+├── MAP.md                        # 维护者地图：改一件事该动哪个文件
+├── LICENSE
+├── docs/                         # 决策存档：为什么这么做（只增不改）
+│   ├── README.md
+│   └── 2026-11-zotero回挂流程重设.md
+├── skills/
+│   ├── dl-translation/
+│   │   ├── SKILL.md              # 流程、硬门槛、交付物
+│   │   ├── references/           # 细则：准确性规则、符号、图表、PDF、文献库…
+│   │   │   └── glossary/         # 术语数据（ML/DL、数学、统计）
+│   │   └── scripts/              # 16 个脚本，纯标准库
+│   └── political-economy-translation/
+│       ├── SKILL.md
+│       ├── references/           # 细则：五条硬规则、术语、风格、马恩引文…
+│       │   ├── style/            # 默认风格总表
+│       │   └── glossary/         # 术语与权威人名数据
+│       └── scripts/              # 24 个脚本，纯标准库
+├── tools/
+│   ├── link.ps1 / unlink.ps1     # Windows 目录联接（可选便利脚本）
+│   └── marxref-build/            # 马恩文集句级索引构建（实验性）
+```
+
+两层文档各管一段：**`SKILL.md` 说按什么顺序做、什么算通过**；**`references/` 说这条规则具体怎么判**。`docs/` 只记取舍与证据，不写操作手册。
+
+---
+
+## 校验能抓到什么
+
+| 脚本 | 查什么 | 抓不到什么 |
+|---|---|---|
+| `fidelity_check.py` | 正文块一一对应、标题层级、引用原样、定理环境、未译段、术语一致、正文卫生、脚注逐条 | 译错但结构正确的句子 |
+| `math_fidelity.py` | 公式数量、逐字一致、`\tag` 编号、`$` 配对 | 数学上等价但改了写法的公式 |
+| `notation.py` | 符号表与正文是否互相覆盖 | 符号含义译错 |
+| `figures.py` | 图注数、图号、就近性、正文引用、文件存在 | 图内容译错（位图） |
+| `semantic_audit.py` | 年份、小数、百分比、千分位、页码区间 | 非数值的事实错误 |
+| `verify_pdf.py` | 编译错误、`Overfull \vbox`、图片数、书签、文本层汉字、脚注是否进 PDF | 版面美观 |
+| `zotero_attach.py` | 父条目是否锚对、附件是否已是最新、上传后 md5 是否一致 | 译文质量 |
+
+**机械校验通过 ≠ 译文无误**：审校清单（`references/review-checklist.md`）单独列了必须人读的部分。
+
+---
+
+## 依赖
+
+| 依赖 | 必需？ | 用途 |
+|---|---|---|
+| Python 3.9+ | 是 | 全部脚本，**只用标准库** |
+| MinerU token | 提取时必需 | PDF／图片 → Markdown；`mineru_extract.py --set-token` 录入 |
+| poppler（`pdftotext`／`pdfinfo`） | 脚注交叉验证、PDF 验收时需要 | 读 PDF 文字层 |
+| TeX Live（`xelatex` + ctex） | 出 PDF 时需要 | 中文排版编译 |
+| Zotero 10+ | 回挂文献库时需要 | 本地 API 读写；没有 Zotero 时该步自动降级 |
+| 马恩文集语料 `_marx_ref/` | 可选 | 政经 skill 的引文匹配；没有它其余步骤照常 |
+
+不需要 `pyzotero`，不需要任何云服务账号。
+
+---
+
+## 文档在哪
+
+| 想看 | 去 |
+|---|---|
+| 怎么用、有哪些坑 | 本文件 |
+| 改代码：动哪个文件、哪些必须两边同改 | [MAP.md](MAP.md) |
+| 某个 skill 的细则 | `skills/<name>/references/README.md`（索引） |
+| 为什么这样设计、否掉了什么 | [docs/README.md](docs/README.md) |
+| 某个脚本怎么调 | `python skills/<name>/scripts/<script>.py --help` |
+
+---
+
+## 状态与边界
+
+**已可用**：脚注恢复链路、结构与公式对账、PDF 编译与验收、文献库回挂、公众号排版。
+
+**实验性**：`tools/marxref-build/`（马恩文集索引构建），脚本仍在迭代，不保证输出稳定。
+
+**不在本仓库**：任何原文与译文、生成的 PDF、马恩原著文本与语料（`_marx_ref/`）、个人文献库数据。译文与产物属于使用者自己的稿子，仓库只放方法与代码。
+
+---
+
+## 隐私
+
+- 脚本不出网，唯一的外部调用是 MinerU 提取（可跳过，直接喂已提取的 Markdown）。
+- 文献库回挂走 Zotero 本地 API（`127.0.0.1`），不经过 zotero.org，不需要账号；**不读写 `zotero.sqlite`**。
+- 术语表与译名数据都在本地，不含个人身份信息。
+
+---
+
+## 许可
+
+代码以 **MIT** 发布，见 [LICENSE](LICENSE)。
+
+例外：`skills/*/references/glossary/` 下的部分数据来自第三方（如新华社译名库 `names_xinhua.tsv.gz`），其来源与许可需单独核对，不自动适用 MIT；马恩原著文本与语料一律不入库。二次分发前请逐项确认。

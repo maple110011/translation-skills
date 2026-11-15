@@ -33,7 +33,7 @@ Zotero 7+ 在 `127.0.0.1:23119/api` 上暴露一套本地 API：
 
 1. Zotero → 设置 → 高级 → 勾「允许此计算机上的其他应用程序与 Zotero 通信」；
 2. 跑一次脚本，Zotero 弹窗问是否允许写入 → 点 **Always Allow**；
-3. key 落到 `~/.workbuddy/zotero.json`：
+3. key 落到 `~/.workbuddy/zotero.json`（这是默认路径，换位置用 `--config` 或环境变量 `ZOTERO_CONFIG`）：
 
 ```json
 {"server_id": "9MDOd3HexaRq", "local_key": "<32 位>", "remember": true, "user_id": "0"}
@@ -106,7 +106,7 @@ Zotero 里那个附件的**文件名与标题**按同一套规则生成：
 
 `--strict` 把 `pending`／`ambiguous`／`prepared` 一律算失败（rc=1），交付门禁用；`--auto` 同理。
 
-写不进去时**不要复制副本**——Zotero 拖拽/导入时会自己把文件复制进 `storage/`，中间副本纯冗余。脚本改为在 `_zotero/` 下产出：
+写不进去时**不要复制副本**——Zotero 拖拽/导入时会自己把文件复制进 `storage/`，中间副本纯冗余。Zotero 没启动、本地 API 没开或版本太低时，脚本**不会中断**：每篇记 `pending`（rc=2），照常产出下面两样东西：
 
 - `pending.md`：一次交付一张汇总表（PDF 路径、父条目 key、标题、状态）；
 - `attach.js`：整段粘进 Zotero「工具 → 开发者 → 运行 JavaScript」，Run 一次挂完全部已锚定的：

@@ -90,5 +90,5 @@ done
 ## 5 与其他工具的边界
 
 - **PDF 提取**：`scripts/mineru_extract.py`，细节见 `references/mineru.md`。公式被拆成图片、表格塌成纯文本时，宁可换 `--model vlm` 重跑，也不要在残缺的提取稿上翻译。
-- **Word/PDF 交付**：本流程产出 Markdown。要 docx 走 `workbuddy-docx`；**要 PDF 走 `scripts/md2tex.py`**（译文 Markdown → XeLaTeX → PDF，版式贴着原文：编号右对齐、多行公式等号对齐、引文与符号表可跳、书签可用），细则见 `references/pdf-latex.md`。**不要在 Markdown 里为了排版加空行、加 `<br>`**——那会破坏结构对账。
+- **Word/PDF 交付**：本流程产出 Markdown。要 docx 用宿主的 docx 转换（或 pandoc）；**要 PDF 走 `scripts/md2tex.py`**（译文 Markdown → XeLaTeX → PDF，版式贴着原文：编号右对齐、多行公式等号对齐、引文与符号表可跳、书签可用），细则见 `references/pdf-latex.md`。**不要在 Markdown 里为了排版加空行、加 `<br>`**——那会破坏结构对账。
 - **纯 LaTeX 源码级的重建与编译校验**不在本 skill 范围内：这里译的是内容，不是排版工程。`md2tex.py` 只从**已定稿的中文 Markdown** 生成排版件，不回改原文结构。

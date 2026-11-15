@@ -9,8 +9,7 @@
 `_marx_ref` 目录里有 `engine.py`、`quotes.py`、`corpus/vol*_sent.jsonl`。**这是本 skill 唯一的外部依赖，而且可选**：没有它，其余六步照常跑，只是拿不到文集译文；`marx_quotes.py` 找不到目录会直接报错退出，不会静默跳过。路径用 `--marxref` 指定，或设环境变量：
 
 ```bash
-# 按本机实际位置改；下面是这台机器上的路径，仅作示例
-export MARX_REF="E:/临时文档及草案/译介工作/_marx_ref"
+# 指向你存放 _marx_ref 的目录（Windows 用 set MARX_REF=D://data//_marx_ref）/nexport MARX_REF="/path/to/_marx_ref"
 ```
 
 首次加载索引约 8 秒、占用数百 MB，一篇稿子只加载一次。

@@ -298,7 +298,7 @@ python scripts/figures.py audit <stem>_原文.md <stem>_zh.md --csv _work/图目
 确定三件事：源文件是什么、交付成什么、放哪里。
 
 - 源优先级：**出版版 PDF > 作者提供的 tex/docx > MinerU 提取的 Markdown**。三者冲突以 PDF 为准，提取结果只是工作草稿。
-- 交付默认是 Markdown（含开头的符号一览与 YAML front matter）。要 Word 再走 `workbuddy-docx`，本流程先出 Markdown。
+- 交付默认是 Markdown（含开头的符号一览与 YAML front matter）。要 Word 再用宿主的 docx 转换（或 pandoc），本流程先出 Markdown。
 - **PDF 是可选交付，不是自动步骤**：用户没说格式时只出 Markdown。第 0 步顺口问一句「要不要 PDF」比事后补做省事；要 PDF 走第 6 步的「可选：编译 PDF 版」。
 - 输出放源文件同目录，命名 `<stem>_zh.md`；中间产物放 `_work/`。
 
@@ -338,7 +338,7 @@ python scripts/footnote_recover.py ./_work/extract -o ./_work \
 
 **这一步不可少、不可跳过**：`fidelity_check.py --strict` 会硬查 `_work/脚注.csv` 是否存在、译文是否有 `## 脚注` 节，并**逐条核编号、页码、链接与中文是否齐备**。唯一豁免是**纯 Markdown 输入、没有 MinerU 结果包**时显式加 `--skip-footnote-check`，并在交付报告里写明理由。分类、交叉验证与对账规范见 [references/mineru.md](references/mineru.md)「页底脚注」一节；本 skill 与 `political-economy-translation` 的脚注流程完全一致。
 
-**有 docx** —— 用 `workbuddy-docx` 或 pandoc 转 Markdown，转换后同样检查公式与表格。
+**有 docx** —— 用 pandoc 或宿主的 docx 转换能力转 Markdown，转换后同样检查公式与表格。
 
 提取完**必须对照 PDF 抽查三页**：段落数、公式、表格、脚注。数学论文的提取错误集中在三处——多行公式被切碎、正体/斜体被抹平、参考文献的年份被并入正文。提取错了再译，等于把错误洗进译文。
 
@@ -625,7 +625,7 @@ python scripts/zotero_attach.py --batch . --strict                # 一次交付
 走 **Zotero 本地 API**（`127.0.0.1:23119`），不碰 `zotero.sqlite`，不需要 zotero.org 账号，也不需要 `pyzotero`：
 
 - **读**（锚定、判重）不需要任何授权；
-- **写**（建附件、传文件）第一次会弹窗，点 **Always Allow**，key 存 `~/.workbuddy/zotero.json`，以后零弹窗；
+- **写**（建附件、传文件）第一次会弹窗，点 **Always Allow**，key 存 `~/.workbuddy/zotero.json`（换位置用 `--config` 或 `ZOTERO_CONFIG`），以后零弹窗；
 - Zotero < 10 没有本地写入能力，脚本自动降到下面说的「一键挂」。
 
 锚定按可靠性从高到低：`--parent-key` → DOI／arXiv（front matter 的 `doi`／`arxiv`）→ front matter 的 `source_pdf` 与库里附件文件名精确匹配 → 英文标题相似度（≥0.85 且唯一）。**中文标题不参与匹配**——库里存的是英文原题，拿译文标题去搜只会命中噪声。
