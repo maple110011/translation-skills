@@ -37,7 +37,32 @@ ap.add_argument("--citekey", default=None)
 ap.add_argument("--footnotes", choices=["footnote", "endnote"], default="footnote",
                 help="footnote=正文 [^n] 渲染成 LaTeX 页底脚注（默认，保留脚注格式）；"
                      "endnote=旧行为，脚注文字集中排在文末 ## 脚注 节")
+ap.add_argument("--allow-orphan-notes", action="store_true",
+                help="允许「有 [^n]: 定义、正文却没有 [^n] 引用」的脚注降级成文末编号段落；"
+                     "默认这是硬错误——那正是 PDF 里脚注变成文末一节的原因")
+ap.add_argument("--fig-meta", default=None,
+                help="figure_layout.py 产出的 图片版式.csv：按原刊 bbox 占比给每张图定宽，"
+                     "附录里只占半栏的图就不会被拉满整栏")
 args = ap.parse_args()
+
+# 原刊里每张图占正文栏宽的比例。没有这一层时一律 0.93\linewidth，附录的小图
+# 会被放大一倍多；多联图也默认等分，和原刊的 41%/27%/27% 对不上。
+FIG_META = {}
+if args.fig_meta:
+    import csv as _csv
+    with open(args.fig_meta, encoding='utf-8-sig', newline='') as _fh:
+        for _r in _csv.DictReader(_fh):
+            try:
+                FIG_META[pathlib.PurePosixPath(
+                    str(_r.get('path', '')).replace('\\', '/')).name] = \
+                    min(1.0, max(0.12, float(_r.get('width_frac') or 0)))
+            except (TypeError, ValueError):
+                continue
+
+
+def fig_frac(path):
+    """图片在原文里的栏宽占比；查不到返回 None。"""
+    return FIG_META.get(pathlib.PurePosixPath(str(path).replace('\\', '/')).name)
 
 
 def _pdf_pages(path):
@@ -101,11 +126,44 @@ text = demote_front_tables(text)
 # 预扫脚注定义：正文里的 [^n] 要变成 \footnote{…}，而定义行在文末，
 # 必须先收集再排版，否则正文先走完时拿不到脚注文字。放在 front matter
 # 剥离之后，避免把 YAML 里的字段误当成脚注。
-FN_DEFS = {m.group(1): m.group(2).strip()
+def _clean_def(s):
+    """定义正文清洗：剥 HTML 注释（含待译标记）与历史稿的「第 N 页脚注 n：」前缀。
+
+    页面前缀是旧流程塞进来的，跟着 \footnote{} 排进页底会变成
+    「第 6 页脚注 1：……」这种读者看不懂的正文。
+    """
+    s = re.sub(r'<!--.*?-->', '', s or '', flags=re.S).strip()
+    s = re.sub(r'^\**\s*第\s*\d+\s*页[^：:\n]{0,24}[：:]\s*', '', s)
+    s = re.sub(r'^\**\s*(?:页底)?(?:脚注|注释|尾注|注)\s*\w{0,4}\s*\**\s*[：:]\s*', '', s)
+    return s.strip()
+
+
+FN_DEFS = {m.group(1): _clean_def(m.group(2))
            for m in re.finditer(r'(?m)^\[\^(\w+)\]:\s*(.*)$', text)}
-# 正文里真正出现的引用标记。历史稿常常只在文末补了 ## 脚注 节、没有硬猜正文
-# 引用位置；这些定义在页底模式下无处安放，必须降级成文末编号段落，不能静默丢掉。
-FN_USED = {m.group(1) for m in re.finditer(r'\[\^(\w+)\](?!:)', text)}
+# 正文里真正出现的引用标记。历史稿常常只在文末补了脚注节、没有硬猜正文
+# 引用位置；这些定义在页底模式下无处安放，必须降级成文末编号段落——但那是
+# 缺陷不是常态，默认报错，别让「脚注变文末一节」再静默发生一次。
+FN_USED = {m.group(1) for m in re.finditer(
+    r'\[\^(\w+)\](?!:)',
+    re.sub(r'(?m)^\[\^\w+\]:.*$', '',
+           re.sub(r'<!--.*?-->', '', text, flags=re.S)))}
+FN_ORPHAN = [n for n in FN_DEFS if n not in FN_USED]
+# 反过来：正文有标记、定义却没有——PDF 里会留一个光秃秃的上标编号，没注释。
+FN_UNBACKED = sorted(n for n in FN_USED if n not in FN_DEFS)
+if FN_UNBACKED:
+    sys.stderr.write("[WARN] 这些正文标记找不到脚注定义，PDF 里只有编号没有注释：%s\n"
+                     % "、".join(FN_UNBACKED[:20]))
+
+if FN_ORPHAN and args.footnotes == 'footnote' and not args.allow_orphan_notes:
+    sys.stderr.write(
+        "[FAIL] 这些脚注有定义、正文里却没有 `[^n]` 引用：%s\n"
+        "       它们只能降级成文末编号段落，PDF 里就会出现「单独一节」的脚注列表。\n"
+        "       先跑 `python scripts/footnote_recover.py … --apply --check` 把标记锚回正文"
+        "（判不出位置的看 _work/脚注_待锚.csv；--place 回灌）；\n"
+        "       确实要尾注形式或接受降级，再加 --footnotes endnote / --allow-orphan-notes。\n"
+        % "、".join(FN_ORPHAN[:20]) + ("（共 %d 条）\n" % len(FN_ORPHAN)
+                                      if len(FN_ORPHAN) > 20 else ""))
+    sys.exit(2)
 
 
 def pick(cli, *keys, default=''):
@@ -358,10 +416,15 @@ def flush():
         in_list = False
 
 
+CAP_NUM = [None, None]          # 最近一次图注自带的（图/表, 编号）
+
+
 def take_caption(j):
-    """图注两种写法都认：**图 N**　… 与 图 N. …（后者常见于 MinerU 提取稿）。
+    r"""图注两种写法都认：**图 N**　… 与 图 N. …（后者常见于 MinerU 提取稿）。
 
     第二种必须带 . ． 、 : ： 分隔符，否则「图 1 显示了……」这类正文句子会被误吃。
+    编号记在 CAP_NUM 里：译文正文按原刊编号引用（"如图 6 所示"），而 LaTeX 的
+    \caption 是按出现顺序自增的——浮动对象一旦被重定位，两边就对不上。
     """
     k = j
     while k < len(body_lines) and not body_lines[k].strip():
@@ -372,8 +435,17 @@ def take_caption(j):
         if not mm:
             mm = re.match(r'^(图|表)\s*(\d+)\s*[.．、:：][　\s]*(.+)$', line, re.S)
         if mm:
+            CAP_NUM[0], CAP_NUM[1] = mm.group(1), int(mm.group(2))
             return mm.group(3), k + 1
+    CAP_NUM[0], CAP_NUM[1] = None, None
     return None, j
+
+
+def fig_counter():
+    """让 PDF 里的图号与译文正文引用的图号一致（原刊编号，不按出现顺序重排）。"""
+    if CAP_NUM[0] == '图' and CAP_NUM[1]:
+        return r'\setcounter{figure}{%d}' % (CAP_NUM[1] - 1)
+    return None
 
 
 def find_imgs(blob):
@@ -615,17 +687,51 @@ while i < len(body_lines):
             flush()
             i += 1
             caption, i = take_caption(i)
+            sublabels = None
+            if caption is None and len(m_figs) > 1:
+                # 多联图底下常有一行子图标签（原刊的 "含类别特征 / 归一化 ROC AUC"），
+                # MinerU 把它抽成了独立段落，图注在它后面。别让这行把图注吃掉。
+                k = i
+                while k < len(body_lines) and not body_lines[k].strip():
+                    k += 1
+                if k < len(body_lines):
+                    ln = body_lines[k].strip()
+                    if (0 < len(ln) <= 80
+                            and not ln.startswith(('![', '**', '#', '|', '>', '<table'))):
+                        c2, i2 = take_caption(k + 1)
+                        if c2:
+                            sublabels, caption, i = ln, c2, i2
             out.append(r'\begin{figure}[H]\centering')
             if len(m_figs) == 1:
-                out.append(r'\includegraphics[width=0.93\linewidth]{%s}' % m_figs[0][1])
+                w = fig_frac(m_figs[0][1])
+                out.append(r'\includegraphics[width=%.2f\linewidth]{%s}'
+                           % (w if w else 0.93, m_figs[0][1]))
             else:
-                frac = 0.93 / len(m_figs)
+                # 一行多图 = 原刊里的一行多联图。有 图片版式.csv 就按原刊各栏
+                # 宽窄分配（41%/27%/27%），没有才等分。
+                fr = [fig_frac(p) for _a, p in m_figs]
+                if all(fr):
+                    scale = min(1.0, 0.97 / sum(fr))
+                    widths = [max(0.10, f * scale) for f in fr]
+                else:
+                    widths = [0.93 / len(m_figs)] * len(m_figs)
                 for k, (_alt, path) in enumerate(m_figs):
                     tail = r'\hfill' if k + 1 < len(m_figs) else r'\par\vspace{3pt}'
-                    out.append(r'\begin{minipage}[t]{%.2f\linewidth}\centering'
+                    # [b] 底对齐：多联图各栏的裁切高度常不同，按顶端对齐会让
+                    # 各栏的横轴错开一格；底对齐能把 x 轴拉回同一水平线。
+                    out.append(r'\begin{minipage}[b]{%.2f\linewidth}\centering'
                                r'\includegraphics[width=\linewidth]{%s}\end{minipage}'
-                               % (frac, path) + tail)
+                               % (widths[k], path) + tail)
+            if sublabels:
+                # 子图标签要分开过 inline()：整串丢进去，`\quad` 会被当普通文本
+                # 转义成字面 "quad"，页面上就成了「AquadB」。
+                parts = [inline(x, nolink=True) for x in sublabels.split('　') if x.strip()]
+                out.append(r'\par\vspace{2pt}{\small\centering '
+                           + r'\quad '.join(parts) + r'\par}')
             if caption:
+                fc = fig_counter()
+                if fc:
+                    out.append(fc)
                 out.append(r'\caption{%s}' % inline(caption, nolink=True))
             out.append(r'\end{figure}')
             continue
@@ -675,6 +781,9 @@ while i < len(body_lines):
             if cells:
                 out.append(r'\par{\small ' + r'\quad '.join(inline(c) for c in cells) + '}')
         if caption:
+            fc = fig_counter()
+            if fc:
+                out.append(fc)
             out.append(r'\caption{%s}' % inline(caption, nolink=True))
         out.append(r'\end{figure}')
         continue
@@ -812,12 +921,16 @@ while i < len(body_lines):
     # 文末脚注定义：页底脚注模式下，正文里真的有 [^n] 引用的，内容已经进了
     # \footnote{}，这里跳过；没有引用的（以及 endnote 模式）一律排成文末编号段落，
     # 保证脚注文字不会因为「正文标记缺失」而在 PDF 里整个消失。
+    # 文末脚注定义：页底脚注模式下，正文里真的有 [^n] 引用的，内容已经进了
+    # \footnote{}，这里跳过；没有引用的（以及 endnote 模式）一律排成文末编号段落。
+    # 这条路只会出现在 --footnotes endnote 或显式 --allow-orphan-notes 时，
+    # 默认情况下 FN_ORPHAN 已在开头硬拦。
     m_fn = re.match(r'^\[\^(\w+)\]:\s*(.*)$', s)
     if m_fn:
         flush()
         if args.footnotes == 'endnote' or m_fn.group(1) not in FN_USED:
             out.append(r'\noindent\textsuperscript{%s}\, %s\par' %
-                       (esc(m_fn.group(1)), inline(m_fn.group(2))))
+                       (esc(m_fn.group(1)), inline(_clean_def(m_fn.group(2)))))
         i += 1
         continue
 

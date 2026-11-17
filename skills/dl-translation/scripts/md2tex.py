@@ -37,7 +37,31 @@ ap.add_argument("--citekey", default=None)
 ap.add_argument("--footnotes", choices=["footnote", "endnote"], default="footnote",
                 help="footnote=正文 [^n] 渲染成 LaTeX 页底脚注（默认，保留脚注格式）；"
                      "endnote=旧行为，脚注文字集中排在文末 ## 脚注 节")
+ap.add_argument("--allow-orphan-notes", action="store_true",
+                help="允许「有 [^n]: 定义、正文却没有 [^n] 引用」的脚注降级成文末编号段落；"
+                     "默认这是硬错误——那正是 PDF 里脚注变成文末一节的原因")
+ap.add_argument("--fig-meta", default=None,
+                help="figure_layout.py 产出的 图片版式.csv：按原刊 bbox 占比给每张图定宽")
 args = ap.parse_args()
+
+# 原刊里每张图占正文栏宽的比例。没有这一层时一律 0.93\linewidth，附录的小图
+# 会被放大一倍多；多联图也默认等分，和原刊的 41%/27%/27% 对不上。
+FIG_META = {}
+if args.fig_meta:
+    import csv as _csv
+    with open(args.fig_meta, encoding='utf-8-sig', newline='') as _fh:
+        for _r in _csv.DictReader(_fh):
+            try:
+                FIG_META[pathlib.PurePosixPath(
+                    str(_r.get('path', '')).replace('\\', '/')).name] = \
+                    min(1.0, max(0.12, float(_r.get('width_frac') or 0)))
+            except (TypeError, ValueError):
+                continue
+
+
+def fig_frac(path):
+    """图片在原文里的栏宽占比；查不到返回 None。"""
+    return FIG_META.get(pathlib.PurePosixPath(str(path).replace('\\', '/')).name)
 
 
 def _pdf_pages(path):
@@ -101,11 +125,42 @@ text = demote_front_tables(text)
 # 预扫脚注定义：正文里的 [^n] 要变成 \footnote{…}，而定义行在文末，
 # 必须先收集再排版，否则正文先走完时拿不到脚注文字。放在 front matter
 # 剥离之后，避免把 YAML 里的字段误当成脚注。
-FN_DEFS = {m.group(1): m.group(2).strip()
+def _clean_def(s):
+    """定义正文清洗：剥 HTML 注释（含待译标记）与历史稿的「第 N 页脚注 n：」前缀。
+
+    页面前缀是旧流程塞进来的，跟着 \footnote{} 排进页底会变成
+    「第 6 页脚注 1：……」这种读者看不懂的正文。
+    """
+    s = re.sub(r'<!--.*?-->', '', s or '', flags=re.S).strip()
+    s = re.sub(r'^\**\s*第\s*\d+\s*页[^：:\n]{0,24}[：:]\s*', '', s)
+    s = re.sub(r'^\**\s*(?:页底)?(?:脚注|注释|尾注|注)\s*\w{0,4}\s*\**\s*[：:]\s*', '', s)
+    return s.strip()
+
+
+FN_DEFS = {m.group(1): _clean_def(m.group(2))
            for m in re.finditer(r'(?m)^\[\^(\w+)\]:\s*(.*)$', text)}
-# 正文里真正出现的引用标记。历史稿常常只在文末补了 ## 脚注 节、没有硬猜正文
-# 引用位置；这些定义在页底模式下无处安放，必须降级成文末编号段落，不能静默丢掉。
-FN_USED = {m.group(1) for m in re.finditer(r'\[\^(\w+)\](?!:)', text)}
+# 正文里真正出现的引用标记。历史稿常常只在文末补了脚注节、没有硬猜正文
+# 引用位置；这些定义在页底模式下无处安放，必须降级成文末编号段落——但那是
+# 缺陷不是常态，默认报错，别让「脚注变文末一节」再静默发生一次。
+FN_USED = {m.group(1) for m in re.finditer(
+    r'\[\^(\w+)\](?!:)',
+    re.sub(r'(?m)^\[\^\w+\]:.*$', '',
+           re.sub(r'<!--.*?-->', '', text, flags=re.S)))}
+FN_ORPHAN = [n for n in FN_DEFS if n not in FN_USED]
+FN_UNBACKED = sorted(n for n in FN_USED if n not in FN_DEFS)
+if FN_UNBACKED:
+    sys.stderr.write("[WARN] 这些正文标记找不到脚注定义，PDF 里只有编号没有注释：%s\n"
+                     % "、".join(FN_UNBACKED[:20]))
+if FN_ORPHAN and args.footnotes == 'footnote' and not args.allow_orphan_notes:
+    sys.stderr.write(
+        "[FAIL] 这些脚注有定义、正文里却没有 `[^n]` 引用：%s\n"
+        "       它们只能降级成文末编号段落，PDF 里就会出现「单独一节」的脚注列表。\n"
+        "       先跑 `python scripts/footnote_recover.py … --apply --check` 把标记锚回正文"
+        "（判不出位置的看 _work/脚注_待锚.csv；--place 回灌）；\n"
+        "       确实要尾注形式或接受降级，再加 --footnotes endnote / --allow-orphan-notes。\n"
+        % "、".join(FN_ORPHAN[:20]) + ("（共 %d 条）\n" % len(FN_ORPHAN)
+                                      if len(FN_ORPHAN) > 20 else ""))
+    sys.exit(2)
 
 
 def pick(cli, *keys, default=''):
@@ -302,8 +357,14 @@ def inline(s, nolink=False):
         s = URL_PAT.sub(_hide_url, s)
     store = []
     pieces = []
-    for part in re.split(r'(\$[^$]+\$|<sup>[^<]*</sup>|\[\^\w+\])', s):
+    for part in re.split(r'(\$[^$]+\$|<sup>[^<]*</sup>|\[\^\w+\]|`[^`\n]+`)', s):
         if not part:
+            continue
+        if part.startswith('`') and part.endswith('`') and len(part) > 2:
+            # 行内代码：必须排成等宽，且内容不参与数学/引文/强调解析。
+            # 旧版没有这一支，反引号原样进 PDF（`x` 排成 'x'），等宽也丢了。
+            store.append(r'\texttt{' + esc(part[1:-1]) + '}')
+            pieces.append('\x01M%d\x02' % (len(store) - 1))
             continue
         if re.fullmatch(r'\[\^\w+\]', part):
             n = part[2:-1]
@@ -344,6 +405,35 @@ def inline(s, nolink=False):
 
 
 
+def prewrap(line):
+    r"""按 `white-space: pre-wrap` 的语义排一行：连续空格变成真的空白。
+
+    TeX 会把 "3    foreach" 里的四个空格压成一个，伪代码的嵌套层级就此消失。
+    MinerU 的算法框把「第几步」和「属于哪一层」都写在这些空格里，所以要把
+    ≥2 个连续空格换成 \hspace*。先切出行内公式再处理空白：在 `$…$` 内部插
+    \hspace 会把公式切断、两半各自转义，公式就散了。
+    """
+    out, last = [], 0
+    for m in re.finditer(r'\$[^$]+\$', line):
+        out.append(_prewrap_text(line[last:m.start()]))
+        out.append(inline(m.group(0)))
+        last = m.end()
+    out.append(_prewrap_text(line[last:]))
+    return ''.join(out)
+
+
+def _prewrap_text(s):
+    res = []
+    for p in re.split(r'( {2,})', s):
+        if not p:
+            continue
+        if not p.strip():
+            res.append(r'\hspace*{%.2fem}' % (0.35 * min(len(p), 20)))
+        else:
+            res.append(inline(p))
+    return ''.join(res)
+
+
 out = []
 i = 0
 in_list = False
@@ -358,8 +448,11 @@ def flush():
         in_list = False
 
 
+CAP_NUM = [None, None]          # 最近一次图注自带的（图/表, 编号）
+
+
 def take_caption(j):
-    """图注两种写法都认：**图 N**　… 与 图 N. …（后者常见于 MinerU 提取稿）。
+    r"""图注两种写法都认：**图 N**　… 与 图 N. …（后者常见于 MinerU 提取稿）。
 
     第二种必须带 . ． 、 : ： 分隔符，否则「图 1 显示了……」这类正文句子会被误吃。
     """
@@ -372,8 +465,17 @@ def take_caption(j):
         if not mm:
             mm = re.match(r'^(图|表)\s*(\d+)\s*[.．、:：][　\s]*(.+)$', line, re.S)
         if mm:
+            CAP_NUM[0], CAP_NUM[1] = mm.group(1), int(mm.group(2))
             return mm.group(3), k + 1
+    CAP_NUM[0], CAP_NUM[1] = None, None
     return None, j
+
+
+def fig_counter():
+    """让 PDF 里的图号与译文正文引用的图号一致（原刊编号，不按出现顺序重排）。"""
+    if CAP_NUM[0] == '图' and CAP_NUM[1]:
+        return r'\setcounter{figure}{%d}' % (CAP_NUM[1] - 1)
+    return None
 
 
 def find_imgs(blob):
@@ -607,6 +709,80 @@ def emit_compact_bullets(blocks):
 while i < len(body_lines):
     s = body_lines[i].strip()
 
+    # 围栏代码块（```…``` / ~~~…~~~）：整块进 verbatim，一个字符都不改写。
+    # 旧版没有这一支：围栏行被当成正文排出来，块内每行还要过 inline()，
+    # 于是 \eta 变 \textbackslash{}eta、x_i 变 x\_i、缩进被压平、` 原样印在纸上——
+    # 伪代码在 PDF 里退化成一段转义过的散文，这是"代码块格式丢掉"的主因。
+    m_code = re.match(r'^(`{3,}|~{3,})[ \t]*([^`]*?)[ \t]*$', s)
+    if m_code:
+        flush()
+        fence = m_code.group(1)
+        close = re.compile(r'^' + re.escape(fence[0]) + '{%d,}\\s*$' % len(fence))
+        i += 1
+        code = []
+        while i < len(body_lines):
+            if close.match(body_lines[i].strip()):
+                i += 1
+                break
+            code.append(body_lines[i])
+            i += 1
+        # 去掉首尾空行（围栏内侧的空行没有意义，留着只会把块撑高）
+        while code and not code[0].strip():
+            code.pop(0)
+        while code and not code[-1].strip():
+            code.pop()
+        if code:
+            while out and out[-1] == '':
+                out.pop()
+            out.append(r'\par\vspace{4pt}')
+            out.append(r'\begin{codeblock}')
+            out.extend(code)
+            # \end{codeblock} 必须独占一行：fancyvrb 见到同行还有别的记号就报
+            # "Extraneous input"，虽然能编译完，但那是错误日志里的 `!`。
+            out.append(r'\end{codeblock}')
+            out.append(r'\par\vspace{3pt}')
+            out.append('')
+        continue
+
+    # MinerU 的算法框：<div class="mineru-algorithm" style="white-space: pre-wrap">
+    # 行结构与缩进都在 pre-wrap 里，但旧版没有这一支——三个 div 行被当正文排，
+    # 标签被转义成字面文本（PDF 里印出 `<div class=…>`）、行被并成一段、缩进全丢。
+    # 内容里混着 $…$ 行内公式，不能进 verbatim，所以逐行排：缩进换算成 \hspace，
+    # 每行前后加细竖线拼成左侧边框（\parskip=0，行盒相接，竖线连续）。
+    if re.match(r'^<div[^>]*\bmineru-algorithm\b', s):
+        flush()
+        i += 1
+        alg = []
+        while i < len(body_lines) and '</div>' not in body_lines[i]:
+            alg.append(body_lines[i])
+            i += 1
+        i += 1                      # 跳过 </div>
+        while alg and not alg[0].strip():
+            alg.pop(0)
+        while alg and not alg[-1].strip():
+            alg.pop()
+        if alg:
+            while out and out[-1] == '':
+                out.pop()
+            out.append(r'\par\vspace{2pt}')
+            # 上下两条细横线 + 整块左缩进 + 小一号字：竖框要跨页就得用盒子环境，
+            # 会让长算法整体挤到下一页；上下横线与原著算法框的观感也最接近。
+            # 逐行 \vrule 画左边框试过：行盒高度不一，边框一定断成一段段，别再用。
+            out.append(r'\hrule height 0.4pt\vspace{3pt}')
+            out.append(r'\begingroup\small\setlength{\parindent}{0pt}'
+                       r'\setlength{\parskip}{0pt}\setlength{\baselineskip}{1.15em}'
+                       r'\leftskip=1.1em\rightskip=0pt plus 1em')
+            for raw in alg:
+                line = raw.rstrip()
+                if not line.strip():
+                    out.append(r'\par\vspace{2pt}')
+                    continue
+                out.append(r'\noindent %s\par' % prewrap(line))
+            out.append(r'\endgroup')
+            out.append(r'\vspace{3pt}\hrule height 0.4pt\par\vspace{2pt}')
+            out.append('')
+        continue
+
     # 裸 Markdown 图片：![alt](path)。旧版会当普通文字排，PDF 里只剩一行路径，
     # 长路径还会造成 Overfull \hbox。
     if s.startswith('!['):
@@ -615,17 +791,51 @@ while i < len(body_lines):
             flush()
             i += 1
             caption, i = take_caption(i)
+            sublabels = None
+            if caption is None and len(m_figs) > 1:
+                # 多联图底下常有一行子图标签（原刊的 "含类别特征 / 归一化 ROC AUC"），
+                # MinerU 把它抽成了独立段落，图注在它后面。别让这行把图注吃掉。
+                k = i
+                while k < len(body_lines) and not body_lines[k].strip():
+                    k += 1
+                if k < len(body_lines):
+                    ln = body_lines[k].strip()
+                    if (0 < len(ln) <= 80
+                            and not ln.startswith(('![', '**', '#', '|', '>', '<table'))):
+                        c2, i2 = take_caption(k + 1)
+                        if c2:
+                            sublabels, caption, i = ln, c2, i2
             out.append(r'\begin{figure}[H]\centering')
             if len(m_figs) == 1:
-                out.append(r'\includegraphics[width=0.93\linewidth]{%s}' % m_figs[0][1])
+                w = fig_frac(m_figs[0][1])
+                out.append(r'\includegraphics[width=%.2f\linewidth]{%s}'
+                           % (w if w else 0.93, m_figs[0][1]))
             else:
-                frac = 0.93 / len(m_figs)
+                # 一行多图 = 原刊里的一行多联图。有 图片版式.csv 就按原刊各栏
+                # 宽窄分配（41%/27%/27%），没有才等分。
+                fr = [fig_frac(p) for _a, p in m_figs]
+                if all(fr):
+                    scale = min(1.0, 0.97 / sum(fr))
+                    widths = [max(0.10, f * scale) for f in fr]
+                else:
+                    widths = [0.93 / len(m_figs)] * len(m_figs)
                 for k, (_alt, path) in enumerate(m_figs):
                     tail = r'\hfill' if k + 1 < len(m_figs) else r'\par\vspace{3pt}'
-                    out.append(r'\begin{minipage}[t]{%.2f\linewidth}\centering'
+                    # [b] 底对齐：多联图各栏的裁切高度常不同，按顶端对齐会让
+                    # 各栏的横轴错开一格；底对齐能把 x 轴拉回同一水平线。
+                    out.append(r'\begin{minipage}[b]{%.2f\linewidth}\centering'
                                r'\includegraphics[width=\linewidth]{%s}\end{minipage}'
-                               % (frac, path) + tail)
+                               % (widths[k], path) + tail)
+            if sublabels:
+                # 子图标签要分开过 inline()：整串丢进去，`\quad` 会被当普通文本
+                # 转义成字面 "quad"，页面上就成了「AquadB」。
+                parts = [inline(x, nolink=True) for x in sublabels.split('　') if x.strip()]
+                out.append(r'\par\vspace{2pt}{\small\centering '
+                           + r'\quad '.join(parts) + r'\par}')
             if caption:
+                fc = fig_counter()
+                if fc:
+                    out.append(fc)
                 out.append(r'\caption{%s}' % inline(caption, nolink=True))
             out.append(r'\end{figure}')
             continue
@@ -675,6 +885,9 @@ while i < len(body_lines):
             if cells:
                 out.append(r'\par{\small ' + r'\quad '.join(inline(c) for c in cells) + '}')
         if caption:
+            fc = fig_counter()
+            if fc:
+                out.append(fc)
             out.append(r'\caption{%s}' % inline(caption, nolink=True))
         out.append(r'\end{figure}')
         continue
@@ -810,14 +1023,15 @@ while i < len(body_lines):
         continue
 
     # 文末脚注定义：页底脚注模式下，正文里真的有 [^n] 引用的，内容已经进了
-    # \footnote{}，这里跳过；没有引用的（以及 endnote 模式）一律排成文末编号段落，
-    # 保证脚注文字不会因为「正文标记缺失」而在 PDF 里整个消失。
+    # \footnote{}，这里跳过；没有引用的（以及 endnote 模式）一律排成文末编号段落。
+    # 这条路只会出现在 --footnotes endnote 或显式 --allow-orphan-notes 时，
+    # 默认情况下 FN_ORPHAN 已在开头硬拦。
     m_fn = re.match(r'^\[\^(\w+)\]:\s*(.*)$', s)
     if m_fn:
         flush()
         if args.footnotes == 'endnote' or m_fn.group(1) not in FN_USED:
             out.append(r'\noindent\textsuperscript{%s}\, %s\par' %
-                       (esc(m_fn.group(1)), inline(m_fn.group(2))))
+                       (esc(m_fn.group(1)), inline(_clean_def(m_fn.group(2)))))
         i += 1
         continue
 
@@ -875,11 +1089,46 @@ while i < len(body_lines):
     out.append(inline(s))
     i += 1
 
-body = re.sub(r'\n{3,}', '\n\n', '\n'.join(out))
-# MinerU 常把 \text{} 里的英文词间空格抽成 2–3 个，撑宽 display 行。
-# 只压 \text{} 内的字面空格，不动 \; \quad 等数学间距命令。
-body = re.sub(r'\\text\s*\{[^}]*\}',
-              lambda m: re.sub(r' {2,}', ' ', m.group(0)), body)
+def code_ranges(text):
+    """正文里 codeblock 环境的字符区间。
+
+    代码块内部一个字符都不许被后面的全局后处理碰到：空行压缩会吃掉伪代码里的
+    空行；符号锚点会在 $ 处插 \\hypertarget——插进 verbatim 里就是排版烂掉或
+    编译报错（R/Shell 里 $ 是普通字符，不是数学）。
+    """
+    spans, pos = [], 0
+    while True:
+        a = text.find(r'\begin{codeblock}', pos)
+        if a < 0:
+            break
+        b = text.find(r'\end{codeblock}', a)
+        b = len(text) if b < 0 else b + len(r'\end{codeblock}')
+        spans.append((a, b))
+        pos = b
+    return spans
+
+
+def map_outside_code(text, fn):
+    """只对代码块之外的片段应用 fn，代码块原样保留。"""
+    parts, pos = [], 0
+    for a, b in code_ranges(text):
+        parts.append(fn(text[pos:a]))
+        parts.append(text[a:b])
+        pos = b
+    parts.append(fn(text[pos:]))
+    return ''.join(parts)
+
+
+def squeeze_runs(s):
+    """压缩空白与连续空行；只在代码块之外调用。"""
+    s = re.sub(r'\n{3,}', '\n\n', s)
+    # MinerU 常把 \text{} 里的英文词间空格抽成 2–3 个，撑宽 display 行。
+    # 只压 \text{} 内的字面空格，不动 \; \quad 等数学间距命令。
+    return re.sub(r'\\text\s*\{[^}]*\}',
+                  lambda m: re.sub(r' {2,}', ' ', m.group(0)), s)
+
+
+body = map_outside_code('\n'.join(out), squeeze_runs)
 
 def caption_ranges(text):
     spans = []
@@ -909,9 +1158,15 @@ _lim = [p for p in (body.find(r'\section*{符号一览}'),
 anchor_to = min(_lim) if _lim else len(body)
 
 # 正文里所有 $...$ 数学片段（跳跃目标落在片段起点，避免在数学模式里插 \hypertarget）
+code_spans = code_ranges(body)
 mathspans = []
 _i = anchor_from
 while _i < anchor_to:
+    # 落进代码块就整块跳过：verbatim 里的 $ 不是数学，插锚点会把排版打断
+    hit = next((b for a, b in code_spans if a <= _i < b), None)
+    if hit is not None:
+        _i = hit
+        continue
     if body[_i] == '\\\\':
         _i += 2
         continue
@@ -924,7 +1179,8 @@ while _i < anchor_to:
             if body[_j] == '$':
                 break
             _j += 1
-        if _j < len(body) and not any(a <= _i < b for a, b in caps):
+        if _j < len(body) and not any(a <= _i < b for a, b in caps) \
+                and not any(a <= _i < b for a, b in code_spans):
             mathspans.append((_i, _j + 1, body[_i + 1:_j]))
         _i = _j + 1
     else:
@@ -1011,6 +1267,16 @@ preamble = r'''\documentclass[UTF8,11pt,a4paper,fontset=%(fontset)s]{ctexart}
 \usepackage[font=small,labelsep=quad]{caption}
 \usepackage{longtable,booktabs,array}
 \usepackage{enumitem}
+%% 代码块/伪代码：Verbatim 保留缩进、反斜杠与下划线，不改写一个字符；
+%% breakanywhere（fvextra）让带中文注释的长行也能折行，不撑出页宽。
+%% fvextra 属 TeX Live 的 latex-extra，缺它就退化成只在空格处折行，仍不丢格式。
+\usepackage{fancyvrb}
+\IfFileExists{fvextra.sty}{%%
+  \usepackage{fvextra}
+  \DefineVerbatimEnvironment{codeblock}{Verbatim}{breaklines=true,breakanywhere=true,fontsize=\small,frame=leftline,framesep=4pt,xleftmargin=0.8em,baselinestretch=1.0}%%
+}{%%
+  \DefineVerbatimEnvironment{codeblock}{Verbatim}{fontsize=\small,frame=leftline,framesep=4pt,xleftmargin=0.8em,baselinestretch=1.0}%%
+}
 \usepackage{xcolor}
 \usepackage{xurl}
 \usepackage{hyperref}
