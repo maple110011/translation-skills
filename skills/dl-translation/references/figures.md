@@ -228,3 +228,23 @@ python scripts/fidelity_check.py 原文.md 译文_zh.md \
 ```
 
 `audit` 报"图注数一致、图号无缺号、引用都能对上、全都就近"之后，剩下的只有一件事：**扫一眼宽图会不会被压小**。这个脚本判断不了，只能看图。
+
+## 9 图片尺寸与图号：按原刊 bbox 还原
+
+并排只是第一步。三栏图被拆成三张各占 0.93 栏宽的图、附录里只占半栏的图被拉满整栏、`\caption` 自增出来的图号与正文"在图 6 中"打架——这三件事都由同一个脚本解决。
+
+`figure_layout.py` 从 `content_list.json` 的 `bbox` 算出每张图占正文栏宽的比例，产 `_work/图片版式.csv`：
+
+```bash
+python scripts/figure_layout.py _work/extract -o _work --md 译文_zh.md          # 只出清单
+python scripts/figure_layout.py _work/extract -o _work --md 译文_zh.md --apply  # 顺带合成一行多图
+python scripts/md2tex.py 译文_zh.md _work/pdf/paper.tex --fig-meta _work/图片版式.csv --pdf
+```
+
+三条判据：
+
+- **栏宽取该页最宽文本块**，不取中位数。附录页只有标题和轴标签，中位数会把 27% 算成 68%，宽度反而更离谱（踩过）。
+- **`--apply` 与 `figures.py group` 二选一**：前者写成一行多图（`![](a) ![](b) ![](c)`），后者写成 `<table>` 块；同一份稿里两种写法混用，`fidelity_check.py` 会把同一张图数成两种形态。
+- **图号跟随原刊编号**：浮动对象重定位后出现顺序与编号不一致，`md2tex` 从 `**图 N**` 读出编号并 `\setcounter{figure}{N-1}`，PDF 才与正文引用一致。
+
+没有 `图片版式.csv` 时退回「单图 0.93、多图等分」，不会报错——但附录小图会继续偏大，所以有提取包就该跑一次。
