@@ -149,7 +149,7 @@ python scripts/footnote_recover.py ./_work/extract -o ./_work \
 
 1. **数段落。** 取 PDF 的某一页，数它有几个自然段，再到 `full.md` 里数对应位置。差一个就说明合并或漏掉了。
 2. **比公式。** 随机挑三个含公式的段落，把 PDF 上的式子和 Markdown 里的 LaTeX 并排看。重点看上下标和撇号。
-3. **查脚注。** 挑一页有脚注的，确认脚注数量一致、内容对得上；但**抽查之外还要跑一次 `footnotes.py --strict`**——整批丢失是抽查抓不到的，见上节。
+3. **查脚注。** 挑一页有脚注的，确认脚注数量一致、内容对得上；但**抽查之外还要跑一次 `footnote_recover.py --check`**——整批丢失是抽查抓不到的，见上节。
 
 发现系统性缺陷（比如整篇双栏串行、脚注整批丢失），不要硬译——换 `--model` 重提，或用 `--pages` 分段重提，或改用别的工具。**在错误的底稿上翻译，后面所有校验都失去意义。**
 
@@ -168,7 +168,7 @@ python scripts/footnote_recover.py ./_work/extract -o ./_work \
 | 状态 `failed` | 解析失败 | 看 `err_msg`；多为加密 PDF 或损坏文件 |
 | 图片全断 | Markdown 与 `images/` 分离 | 一起移动 |
 | 中文乱码 | 编码问题 | `full.md` 是 UTF-8，读取时不要用 GBK |
-| 正文有 `<sup>n</sup>` 但一条脚注正文都没有 | vlm 把页底脚注整批丢了 | 跑 `footnotes.py --strict`，用 `--patch` 补回；不要手工翻页找 |
+| 正文有 `<sup>n</sup>` 但一条脚注正文都没有 | vlm 把页底脚注整批丢了 | 跑 `footnote_recover.py --apply --check` 补回；不要手工翻页找 |
 
 ---
 
@@ -179,3 +179,26 @@ python scripts/footnote_recover.py ./_work/extract -o ./_work \
 - **纯数学教材**：走 `mathtranslations`，它按 LaTeX 项目重建，比 Markdown 路线更合适。
 
 提取只是入口。真正决定译文质量的是术语、对账和通读，工具在这三件事上帮不了多少。
+
+---
+
+## 七、参考文献先切出去（与 MinerU 无关，但同属"取得正文"）
+
+书目整条保持英文原样（硬规则 4），让模型读它没有任何收益，代价却实在：一篇论文的书目常占 15–20% 的篇幅，一百条英文著录过一遍，总有一条被"顺手"译掉书名、调换姓序，或把破折号改成短横。
+
+```bash
+python scripts/split_refs.py paper_原文.md --check        # 只看切点，不写文件
+python scripts/split_refs.py paper_原文.md -o _work/      # 切分
+```
+
+切分后翻译只读 `_work/paper_原文_正文.md`，**不要打开 `_work/paper_原文_参考文献.md`**。书目区被换成一行标记：
+
+```
+<!-- REFS-ORIGINAL lines=74 -->
+```
+
+这一行就是原书目的位置，译文里必须原样留着（见 SKILL 第 3 步）。**附录、作者简介、致谢若排在书目之后，不动**——它们留在翻译用稿里照常译，这正是不能"一刀切到文末"的原因。
+
+脚本只在三件事都成立时才切：找到书目标题、切出的区块像书目（四分之一以上的行含四位年份）、拼接能逐行还原原文。任一条不成立就报原因、不写文件——**宁可留着书目，也不切错位置**。`--check` 先看一眼切点，值这十秒钟。
+
+**没有书目、或判定不切时，跳过这一步**，后面各步直接用原文和 `<stem>_zh.md`，不要为了走流程而造一个空切分。拼回见 [delivery.md](delivery.md) 第一节。

@@ -13,7 +13,10 @@
 | `semantic-review.md` | 语义审读怎么读、查什么、举证格式、怎么防自我确认 | 需要人读一遍语义时 |
 | `workflow.md` | 长文断点续译、原文更新、批量多文件、只译一部分 | 正文超约 1.5 万词或一次多篇时 |
 | `footnotes.md` | 脚注从 `content_list.json` 恢复到 md 与 PDF 的完整链路与判定规则 | 第 1 步；脚注 `--check` 不 PASS 时 |
-| `mineru.md` | MinerU token、调用参数、五类会骗人的提取缺陷、抽查与排障 | 第 1 步提取 |
+| `mineru.md` | MinerU token、调用参数、五类会骗人的提取缺陷、抽查与排障；参考文献切分（`split_refs.py`） | 第 1 步提取 |
+| `figures.md` | 图表按"首次提及"归位、多联图并排与按原刊 bbox 定宽、发布口径基准 | 处理图表时 |
+| `delivery.md` | 交付：书目拼回、产物清单、YAML 元信息四组字段、发布稿删节口径、归档与回复 | 第 6 步 |
+| `wechat.md` | 公众号版：五条发布口径、白名单六条、637px 版心、两道自检与粘贴方法 | 出公众号版时 |
 | `pdf-latex.md` | 译文 md → PDF：首页版式、公式分组、间距、跳转、图表（与 dl 共用） | 用户要 PDF 时 |
 | `zotero.md` | 译文 PDF 回挂 Zotero 父条目：锚定、判重、附件命名、降级（与 dl 共用） | 第 7 步 |
 | `marx-ref.md` | 马恩引文核对：接入 `_marx_ref`、按卷收窄、可信度、段落定位 | 文中有马恩引文时 |

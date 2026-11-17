@@ -39,7 +39,7 @@
 
 ## 三、官方包更新
 
-本 skill 的基线是 `political-economy-translation_skill_2026-11-07.zip`，当前本地版 `2026-11-07.2`（见 `SKILL.md` front matter 与 `<versioning>` 节）。版本管理文件（`version.json` / `CHANGELOG.md` / `scripts/skill_version.py`）已移到工作区 `_skill_版本管理_精简前备份/`，现在靠 Git 管理；`SKILL.md` 的版本号可能滞后于实际改动，以提交历史为准。
+本 skill 的基线是 `political-economy-translation_skill_2026-11-07.zip`，当前本地版 `2026-11-17.1`（见 `SKILL.md` front matter 与 `<versioning>` 节）。版本管理文件（`version.json` / `CHANGELOG.md` / `scripts/skill_version.py`）已移到工作区 `_skill_版本管理_精简前备份/`，现在靠 Git 管理；`SKILL.md` 的版本号可能滞后于实际改动，以提交历史为准。
 
 拿到新官方包时**不要整份覆盖**：解压到临时目录，用
 `git diff --no-index <解压目录> skills/political-economy-translation/` 看差异；两边都改过的文件要人工逐段合并，本地新增文件一律保留。更彻底的做法是另开 `upstream` 分支只存官方原版，`git merge upstream` 让 Git 直接报冲突。
@@ -52,6 +52,15 @@ git tag dl/v1
 ```
 
 单 skill 历史用 `git log --oneline -- skills/<name>/` 看。
+
+### 相对官方基线的本地改动（合并 upstream 时重点看这几处）
+
+- 新增 `scripts/footnotes.py`、`references/footnotes.md`；
+- 改写 `SKILL.md`、`references/mineru.md`、`references/review-checklist.md`；
+- 重写 `scripts/build_wechat.py` 的脚注层：`[^n]` / `<sup>n</sup>` / `## 脚注` 节统一归一，新增 `audit_notes()` 硬校验，配 `scripts/_test_footnotes.py` 回归测试。旧版只认 `<sup>`，`footnotes.py --patch` 过的稿子会静默丢光脚注；
+- **脚注改「就地锚定」**（2026-11-16）：`footnote_recover.py --apply` 不再插 `## 脚注` 节，改为把 `[^n]` 锚进正文、定义 `[^n]: …` 落文末且不带「第 N 页脚注 n：」前缀；旧稿自动迁移，判不出位置的进 `脚注_待锚.csv`（`--place` 回灌，`--anchor-bare` / `--anchor-math` 自动锚定）；`--check` 与两个 skill 的 `fidelity_check.py` 改为硬查「定义 + 正文引用」双向齐全、编号升序；`md2tex.py` 对「有定义没引用」默认 `exit 2`（`--allow-orphan-notes` 才降级）——之前正是这条静默降级把脚注排成了文末一节；
+- **图片版式**（2026-11-17）：新增 `scripts/figure_layout.py`（按 `content_list.json` 的 bbox 合并多联图、按原刊栏宽占比定宽、图号跟随原刊编号），`md2tex --fig-meta` 消费它产出的 `图片版式.csv`；公众号分支补裸图渲染（`figures` 块，px 宽度，`inline-block` 并排）；
+- **SKILL.md 精简**（2026-11-17）：流程细节下沉到 `references/`（`figures.md`、`delivery.md`、`wechat.md` 为本次新增），SKILL 只留流程、硬门槛与指向。
 
 ---
 

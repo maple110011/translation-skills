@@ -149,8 +149,10 @@ python scripts/extract_terms.py paper_原文.md -o _work/ \
 
 ```bash
 python scripts/filter_terms.py _work/paper_原文_候选术语.csv -o _work/filtered \
-    --names references/glossary/verified_names.csv
+    --names references/glossary/verified_names.csv --min-docs 1
 ```
+
+**单篇翻译必须加 `--min-docs 1`**：`extract_terms.py` 的候选表只有一篇文献，默认 `--min-docs 3` 会把整张表判成"证据不足"塞进待核区。只有挖矿表（`mine_terms_from_pairs.py` 的产物，带 `dst` 列、跨十几篇文献）才用默认值——篇数在那里才有区分度。
 
 判定原则只有一条：**换一种译法会不会改变论证，或让读者误解成另一个概念。**
 
