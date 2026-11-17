@@ -85,6 +85,10 @@ TABLE_LINE = re.compile(r"^\s*\|")
 # Markdown 表格的分隔行；用来把「| a | ≤ | b |」这种被抽取成竖线开头的
 # 数学公式排除在浮动表格之外。
 TABLE_SEP = re.compile(r"^\s*\|(?:\s*:?-+:?\s*\|){1,}\s*$")
+# 围栏代码块。代码里的 | 对齐行、字符串 "Table 2"、注释 "# 图 3" 都不是表格
+# 或图注，识别浮动对象前先整块换成占位符（行数不变，下标仍对得上原文件）。
+FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
+CODE_MASK = "\x00code"
 
 # YAML front matter 里常写 title/keywords，可能含 "Figure 1" 之类的字样。
 # 那不是正文引用；找锚点时要把这些行排除，否则 relocate 会把图搬到文件开头。
@@ -94,6 +98,23 @@ FRONT_MATTER = re.compile(r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*\r?\n", re.S)
 def frontmatter_line_count(text):
     m = FRONT_MATTER.match(text)
     return len(m.group(0).splitlines()) if m else 0
+
+
+def mask_code(lines):
+    """Replace fenced code blocks (fences included) with a placeholder line.
+
+    Length is preserved, so line indices still address the original file. The
+    placeholder is non-blank on purpose: a blanked block would let a caption
+    lookahead jump over the code and attach a caption from the far side.
+    """
+    out, in_fence = [], False
+    for line in lines:
+        if FENCE.match(line):
+            in_fence = not in_fence
+            out.append(CODE_MASK)
+            continue
+        out.append(CODE_MASK if in_fence else line)
+    return out
 
 
 def read(path):
@@ -122,7 +143,7 @@ def lone_image(line):
 def scan(text):
     """Walk the body and return figures, captions and their line numbers."""
     entries, in_block, block_start = [], False, 0
-    for i, line in enumerate(text.split("\n"), 1):
+    for i, line in enumerate(mask_code(text.split("\n")), 1):
         if FIGURE_START.search(line):
             in_block, block_start = True, i
             continue
@@ -167,7 +188,12 @@ def detect_floats(lines):
 
     Returns dicts with kind ('fig'/'tab'), num, start/end line indices
     (inclusive) and whether the block already carries our marker.
+
+    围栏代码块先整块换成占位符再找：伪代码里常有以 | 开头的对齐行、字符串
+    `Table 2`、`# 图 3` 注释，不抹掉就会被当成表格/图注搬走，代码块就此搬散。
+    占位符与原文行数一一对应，所以返回的下标对原始 lines 仍然有效。
     """
+    lines = mask_code(lines)
     floats, i, n = [], 0, len(lines)
     while i < n:
         line = lines[i]
@@ -245,7 +271,7 @@ def body_ref_lines(lines, floats, num, kind, skip_before=0):
     rx_a = REF_ZH if kind == "fig" else REF_TAB_ZH
     rx_b = REF_EN if kind == "fig" else REF_TAB_EN
     out = []
-    for i, line in enumerate(lines):
+    for i, line in enumerate(mask_code(lines)):
         if i < skip_before or i in inside:
             continue
         if (CAP_ZH.match(line) or CAP_EN.match(line)

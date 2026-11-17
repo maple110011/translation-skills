@@ -25,6 +25,57 @@ import sys
 
 LIGATURES = "\ufb00\ufb01\ufb02\ufb03\ufb04"
 CJK = re.compile(r"[\u4e00-\u9fff]")
+FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})[ \t]*([^`]*?)[ \t]*$")
+
+
+def fenced_blocks(md):
+    """[(lang, [body lines])] for every fenced block in the Markdown.
+
+    伪代码/代码块曾经整块丢在 Markdown 里没进 PDF（``md2tex.py`` 不认围栏），
+    而编译 0 错误、页数照常——只有对着原文才发现算法不见了。这里数出来核。
+    """
+    out, i, lines = [], 0, md.split("\n")
+    while i < len(lines):
+        m = FENCE.match(lines[i])
+        if not m:
+            i += 1
+            continue
+        fence = m.group(1)
+        close = re.compile(r"^ {0,3}" + re.escape(fence[0]) + "{%d,}\\s*$" % len(fence))
+        body = []
+        i += 1
+        while i < len(lines):
+            if close.match(lines[i]):
+                i += 1
+                break
+            body.append(lines[i])
+            i += 1
+        out.append((m.group(2), body))
+    return out
+
+
+def algo_boxes(md):
+    """MinerU 的算法框：[[body lines]]。
+
+    `<div class="mineru-algorithm" style="white-space: pre-wrap">` 是 MinerU 对
+    算法框的表示。旧版 md2tex 不认它，标签会被转义成字面文本排进 PDF——所以这里
+    既数块，也在文本层查字面 `<div`。
+    """
+    out, lines, i = [], md.split("\n"), 0
+    while i < len(lines):
+        if "mineru-algorithm" not in lines[i] or "<div" not in lines[i]:
+            i += 1
+            continue
+        body = []
+        i += 1
+        while i < len(lines):
+            if "</div>" in lines[i]:
+                i += 1
+                break
+            body.append(lines[i])
+            i += 1
+        out.append(body)
+    return out
 
 
 def run(cmd):
@@ -47,6 +98,7 @@ def main(argv=None):
     tex = pathlib.Path(args.tex) if args.tex else pdf.with_suffix(".tex")
     log = pdf.with_suffix(".log")
     problems, info = [], []
+    blocks = []
 
     if not pdf.is_file() or pdf.stat().st_size == 0:
         print("[FAIL] PDF 不存在或 0 字节：%s" % pdf)
@@ -93,6 +145,17 @@ def main(argv=None):
             if want and n_img < want:
                 problems.append("TeX 只有 %d 个 \\includegraphics，译文有 %d 处图片引用："
                                 "编译 0 错误也可能一张图都没有" % (n_img, want))
+            blocks = fenced_blocks(md)
+            boxes = algo_boxes(md)
+            n_code = tex_text.count(r"\begin{codeblock}")
+            if boxes:
+                info.append("译文 MinerU 算法框 %d 个" % len(boxes))
+            if blocks:
+                info.append("译文代码块 %d 块 / TeX codeblock %d 块" % (len(blocks), n_code))
+                if n_code < len(blocks):
+                    problems.append("TeX 只有 %d 个 codeblock，译文有 %d 个围栏代码块："
+                                    "伪代码会被当成正文排出来，缩进与等宽全丢"
+                                    % (n_code, len(blocks)))
     else:
         info.append("（没有 .tex，跳过书签/图片/脚注命令检查）")
 
@@ -112,6 +175,37 @@ def main(argv=None):
         for tag in ("[^1]", "<sup>"):
             if tag in raw:
                 problems.append("PDF 文本层残留字面 %s：脚注没被正确渲染" % tag)
+        # 代码块逐块抽查：取每块第一行有实质内容的代码，去掉空白后在文本层找。
+        # verbatim 会按 breakanywhere 折行，去空白比对才不会被误判成缺失。
+        miss_code = []
+        for k, (_lang, body) in enumerate(blocks, 1):
+            probe = next((b.strip() for b in body if len(b.strip()) >= 8), None)
+            if not probe:
+                continue
+            if re.sub(r"\s+", "", probe) not in big:
+                miss_code.append("代码块 %d：%s…" % (k, probe[:40]))
+        if blocks:
+            info.append("代码块内容进 PDF 文本层 %d/%d 块"
+                        % (len(blocks) - len(miss_code), len(blocks)))
+            if miss_code:
+                problems.append("PDF 文本层找不到 %d 个代码块的首行：%s"
+                                % (len(miss_code), "；".join(miss_code[:3])))
+        if "<div" in raw or "mineru-algorithm" in raw:
+            problems.append("PDF 文本层出现字面 `<div` / `mineru-algorithm`："
+                            "算法框被当正文排了，标签进了版面")
+        miss_box = []
+        for k, body in enumerate(boxes, 1):
+            probe = next((b.strip() for b in body if len(b.strip()) >= 8), None)
+            if not probe:
+                continue
+            if re.sub(r"\s+", "", re.sub(r"<[^>]+>", "", probe)) not in big:
+                miss_box.append("算法框 %d：%s…" % (k, probe[:40]))
+        if boxes:
+            info.append("算法框首行进 PDF 文本层 %d/%d 个"
+                        % (len(boxes) - len(miss_box), len(boxes)))
+            if miss_box:
+                problems.append("PDF 文本层找不到 %d 个算法框的首行：%s"
+                                % (len(miss_box), "；".join(miss_box[:3])))
         if args.footnotes:
             fp = pathlib.Path(args.footnotes)
             if not fp.is_file():

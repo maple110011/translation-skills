@@ -72,6 +72,9 @@ RE_CITE = re.compile(r"\\(?:cite|citep|citet|parencite|autocite|textcite)\*?\s*(
 RE_BIBITEM = re.compile(r"\\bibitem\s*(?:\[[^\]]*\])?\s*\{([^}]+)\}")
 RE_FOOTNOTE = re.compile(r"\\footnote\s*\{")
 RE_GRAPHIC_EXT = (".pdf", ".png", ".jpg", ".jpeg", ".eps", ".ps")
+# 伪代码/代码环境。这些环境里的内容必须**原样**搬进译文的围栏代码块：
+# 步号、缩进、\State/\For 的层级就是伪代码的全部信息，压成正文段落就没了。
+RE_CODE_ENV = re.compile(r"\\begin\s*\{(algorithm\*?|algorithmic|algorithmicx|algpseudocode|algorithm2e|listing|lstlisting|verbatim|Verbatim|minted)\}")
 
 
 class SourceUnavailable(RuntimeError):
@@ -353,6 +356,7 @@ def structure(tex):
         "bibitems": RE_BIBITEM.findall(tex),
         "footnotes": _count(RE_FOOTNOTE, tex),
         "footnote_texts": extract_footnotes(tex),
+        "code_envs": _count(RE_CODE_ENV, tex),
         "appendix": bool(re.search(r"\\appendix\b", tex)),
     }
     return st
@@ -399,6 +403,8 @@ def report_md(aid, main, st, figs, missing, renamed, tex_len, bib_n=0, alt_mains
          "| `\\cite` 键（去重） | %d |" % len(st["cites"]),
          "| 参考文献 | %s |" % _ref_desc(st, bib_n),
          "| `\\footnote` | %d |" % st["footnotes"],
+         "| 算法/代码环境（`algorithm`/`algorithmic`/`lstlisting`/`verbatim`） | %d |"
+         % st.get("code_envs", 0),
          "| 附录 | %s |" % ("有" if st["appendix"] else "无"),
          "", "## 章节树", ""]
     for level, title in st["section_tree"]:
