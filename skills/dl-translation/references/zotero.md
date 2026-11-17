@@ -8,7 +8,7 @@
 
 ## 一、在流程里的位置
 
-第 7 步，`verify_pdf.py` 通过之后。挂的是**已验收的** PDF，不是中间产物；公众号版、Markdown 译文与 PDF 是三份独立产物，只有 PDF 进 Zotero。
+第 7 步，`verify_pdf.py` 通过之后。挂的是**已验收的** PDF，不是中间产物；Markdown 译文与 PDF 是两份独立产物，只有 PDF 进 Zotero。
 
 ```bash
 python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md   # 单篇
