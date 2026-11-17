@@ -110,6 +110,13 @@ def paragraphs_of(body: str):
             out.append(("caption", line.strip().strip("*").strip()))
             i += 1
             continue
+        if line.lstrip().startswith("!["):
+            figs = re.findall(r"!\[([^\]]*)\]\(([^)]+)\)", line)
+            if figs:
+                flush()
+                out.append(("figures", figs))
+                i += 1
+                continue
         if line.lstrip().startswith("|"):
             flush()
             rows = []
@@ -563,6 +570,22 @@ def apa_plain(meta):
 
 
 # ---------------------------------------------------------------- 组装
+def render_figures(figs):
+    """一行一张或并排几张。并排图（原刊的多联图）靠 inline-block 横排，
+    不能指望 flex——公众号编辑器会把 display:flex 剥掉。"""
+    n = len(figs)
+    # 公众号编辑器会剥掉百分比宽度（self_check 也会拦），只能给 px。
+    # 正文栏约 637px，并排时留出 6px 间隙。
+    width = 620 if n == 1 else max(120, int((620 - 6 * (n - 1)) / n))
+    cells = []
+    for alt, src in figs:
+        style = (f"display:inline-block;vertical-align:top;width:{width}px;"
+                 f"height:auto;margin:0 {'3px' if n > 1 else 'auto'};")
+        cells.append(f'<img src="{html.escape(src)}" alt="{html.escape(alt)}" '
+                     f'style="{style}">')
+    return sec("".join(cells), "margin:18px 0 8px;text-align:center;line-height:0;")
+
+
 def build(meta, blocks, translator, editor):
     if translator and editor and translator == editor:
         by = f"翻译&amp;编辑：{html.escape(translator)}"
@@ -594,6 +617,8 @@ def build(meta, blocks, translator, editor):
             parts.append(sec("".join(
                 f'<section style="margin:0 0 6px;line-height:1.8;color:{INK};">'
                 f'· {inline(x)}</section>' for x in payload), "margin:0 0 18px;"))
+        elif kind == "figures":
+            parts.append(render_figures(payload))
         elif kind == "table":
             parts.append(render_table(payload))
 
@@ -662,6 +687,8 @@ def to_markdown(meta, blocks, translator, editor):
             out += [f"> **注 {n}**　{t}", ""]
         elif kind == "list":
             out += [f"- {x}" for x in payload] + [""]
+        elif kind == "figures":
+            out += [" ".join(f"![{a}]({p})" for a, p in payload), ""]
         elif kind == "table":
             out += payload + [""]
     return "\n".join(out)
