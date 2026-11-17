@@ -229,6 +229,16 @@ python scripts/figures.py group 译文_zh.md --apply
 
 `group` 只合并"连续、中间没有文字"的裸图，有图注隔开的两张图不会被误合。合并后图号不变（仍是一个"图 2"），正文引用不用改；合成完重跑 `fidelity_check.py`。
 
+**并排只是第一步，宽度和底对齐还得按原刊来。** 交付 PDF 常有三个毛病：三栏图被拆成三张各占 0.93 栏宽的图、附录里只占半栏的图被拉满整栏、`\caption` 自增出来的图号与正文"在图 6 中"打架。`scripts/figure_layout.py` 从 `content_list.json` 的 `bbox` 算出每张图占正文栏宽的比例，产 `_work/图片版式.csv`；`md2tex --fig-meta` 据此定宽（多联图按各栏真实比例分配，不是等分），并把图注里的 `**图 N**` 转成 `\setcounter{figure}`，让 PDF 图号与译文正文一致。
+
+```bash
+# 只出宽度清单，不改 md（分组仍交给 figures.py group，两条路线别混用）
+python scripts/figure_layout.py _work/extract -o _work --md 译文_zh.md
+python scripts/md2tex.py 译文_zh.md _work/pdf/paper.tex --fig-meta _work/图片版式.csv --pdf
+```
+
+`figure_layout.py --apply` 也能自己合并（写成一行多图，而不是 `<table>` 块），但**同一份稿里两种写法只能用一种**：已用 `<!-- figure:start -->` 块整理的，就只让它出 CSV。栏宽取该页最宽文本块——只有标题和轴标签的附录页会把中位数拉到几十磅，宽度就会算飞。
+
 **子图说明**：原文是文字（`Figure 2: (a) Input. (b) Encoder.`）就照译，保持 `(a)(b)(c)` 结构，不合并成散文；说明烧在位图里的**不补写**（补写就是"增"），在交付报告里注明"子图标注为位图，未转文字"。
 
 **宽图**：`width` 放大位图只会更糊。像素宽度不足约 1200px 的，回 PDF 用 `pdftoppm -r 300` 按图区域重裁。拆成"总图 + 逐面板放大"属于重排，不做。
@@ -237,6 +247,116 @@ python scripts/figures.py group 译文_zh.md --apply
 
 **Markdown 是工作稿，不是阅读版。** 要精排就导出 HTML 或 docx（`pandoc -s --embed-resources --css fig.css`），别在 Markdown 里堆 `<br>` 和空行——那会破坏结构对账。但"图放在引用段落旁边"是**阅读顺序**问题，不是精细排版，必须在 Markdown 里就做对。完整规范、HTML/CSS 模板、交付前逐条清单见 [references/figures.md](references/figures.md)。
 </figures>
+
+<code_blocks>
+## 代码块与伪代码
+
+伪代码的全部信息都在**缩进**和**行序**里。`for` 循环体没有缩进，读者就看不出哪几步在循环内；两步并作一行，"第 3 步算梯度"就查不到。所以代码块不是"一段特殊正文"，而是一个**版式对象**：围栏、语言标记、缩进层级、行序、行数，和公式的地位一样，少一样就不合格。
+
+**三条硬要求：**
+
+1. **一块一围栏。** 原文一个代码块，译文一个代码块；不许把两块合成一块，也不许把块内文字摊成正文段落。围栏必须闭合——漏一个关栏，其后所有正文都会被当成代码，结构对账静默失效。
+2. **缩进、行序、步号逐字保留。** 缩进用空格还是 tab 照原样，深度不变；一行步骤不许并进上一行，也不许拆成两行。多余的空行可以删（空行不是信息），非空行一行都不能少。
+3. **语言标记照抄。** 原文 ```` ```python ```` 就写 `python`，`r`、`matlab`、`text` 同理；原文没有标记就不加。丢了标记，编辑器里没有语法高亮。
+
+**两类文本待遇不同，别混：**
+
+| | 结构 | 注释 | 说明 |
+|---|---|---|---|
+| 伪代码（Algorithm 环境：`Require`/`for`/`end for`） | 一律不动 | **可译**（给人读的说明） | `Require`/`Ensure` 译"输入／输出"或"要求／保证"，一篇之内统一；`for`/`while`/`if`/`return` 等关键字保留英文 |
+| 真代码块（```` ``` ````：Python、R、Shell） | 一律不动 | **也不动** | 代码就是代码，译了就跑不起来；含变量名、路径、命令输出 |
+
+**代码块与算法框不是浮动对象**：它们的位置跟着正文段落走，不参与「就近首次引用」的重定位；`figures.py relocate` 也不会搬它们（识别浮动对象前先把代码块整块屏蔽掉）。
+
+**行内代码同样算代码**：`` `np.random.seed(0)` ``、`` `--model vlm` ``、`` `attention_head` `` 保持反引号、内容不译、不参与断句。它和 `keep` 术语的区别是：行内代码是可执行的串，`keep` 是术语。
+
+### MinerU 的算法框是 `<div class="mineru-algorithm">`，不是围栏
+
+这个语料里，MinerU 对算法框的表示不是三反引号，而是一个带 `white-space: pre-wrap` 的 div：
+
+```html
+<div class="mineru-algorithm" style="white-space: pre-wrap; font-family:monospace;">
+算法 10.4: 坐标上升变分推断 (CAVI)。
+
+1 初始化  $q_{j}(z_{j})$  for j = 1 : J
+2 foreach t = 1 : T do
+3    foreach j = 1 : J do
+4    计算  $g_{j}(z_{j}) = \mathbb{E}_{z_{\mathrm{mb}_{i}}} [\log \tilde{p}(z_{i}, z_{\mathrm{mb}_{i}})]$
+5 收敛后返回 $q$
+</div>
+```
+
+行结构与缩进都在 `pre-wrap` 里（`3` 后面那四个空格就是嵌套层级）。所以：
+
+- **保留 div 外壳、`class` 与 `style`**——`md2tex.py` 靠 `mineru-algorithm` 认它，删了就只能当正文排；
+- 只译里面的文字，**步号、行序、缩进空格、`$…$` 一律不动**（`$…$` 里的内容按规则 1，一个字符都不改）；
+- 不许把 div 拆成普通段落，也不许把两行并成一行；
+- `md2tex.py` 把它排成**上下两条细横线 + 整块左缩进**的算法块，逐行排版，连续空格换算成 `\hspace*`（所以嵌套层级在 PDF 里仍然看得见），行内公式照常渲染；
+- `fidelity_check.py` 把它当**算法框**单独核：块数、非空行数不一致是硬性失败，步号序列与缩进变化是建议性发现。
+
+**div 与围栏代码块不是二选一，而是按来源分**：MinerU 抽出来的保留 div；从 tex 源码或 PDF 里看到算法框、又拿不到 div 的，写成围栏代码块（`text`）。两种形式都会被 `md2tex.py` 排好、被 `fidelity_check.py` 核对。
+
+### 提取器把伪代码压成散文时，要恢复成代码块
+
+MinerU 常把算法框按阅读顺序拆成散文：`Algorithm 10.4 (…). The continuous-discrete MAP path can be computed …`，步号、缩进、边框全没了。这时**下游无论怎么译都保不住格式**——源文自己就没有。处理办法是**恢复版式**（不是重排）：
+
+1. 回 PDF 看那一块原来的样子：几步、哪些行在循环体内、有没有 `Require`/`Ensure`、编号怎么排。
+2. 按原样写成围栏代码块，语言标记用 `text`：一步一行、缩进照 PDF 的层级、编号（`1:` `2:`）照抄。
+3. 函数名、变量名、超参数、`for`/`while`/`if` 一律不动；只有注释和 `Require`/`Ensure` 按上表处理。
+4. 在交付报告里写一句「第 X 节算法框被提取为散文，已按原文版式恢复为代码块（未改内容）」。
+
+`fidelity_check.py` 会把**行首就是 `Algorithm N` / `算法 N` 却没有围栏**的位置一处处列出来，这就是"还没恢复"的清单：
+
+```bash
+python scripts/fidelity_check.py <stem>_原文.md <stem>_zh.md \
+    --glossary _work/<stem>_术语.csv --float-reflow --strict
+```
+
+要看到的三行：
+
+```
+✓ 代码块/算法框：围栏闭合，块数与行数逐块一致（3 块围栏代码块、2 个 MinerU 算法框）
+! 源文有 1 处行首「Algorithm N」/「算法 N」但没有围栏代码块：第 495 行 Algorithm 1: Meta-Training of a PF…。伪代码已被提取器压成散文，先按原文版式恢复成代码块（一步一行、缩进照原样）再译，否则格式无从保留
+! 代码块 2（源第 41 行起）：1 行代码或缩进不同（注释差异已忽略；除注释与 Require/Ensure 外应逐字一致）
+    第 6 行：源 '3:     g_t = \nabla_\theta L(\theta_{t-1})' → 译 '3: g_t = \nabla_\theta L(\theta_{t-1})'
+    第 6 行缩进：源 4 列 → 译 0 列
+```
+
+- **块数、行数不一致 → 硬性失败**（`--strict` 返回 1）：说明整块丢了，或两步并成了一行。围栏代码块与 MinerU 算法框分别核，两种都要对上。
+- **缩进/代码记号不同 → 建议性发现**：注释差异已经被忽略，剩下的多半是真改动；`--strict-soft` 可升级为失败。
+- **"没有围栏代码块"提示 → 先恢复版式再译**，不要直接开始翻。
+
+### 代码块进 PDF
+
+`md2tex.py` 把围栏块排成 `codeblock`（`fancyvrb` 的 `Verbatim`，带左侧竖线、等宽、`breakanywhere` 折行），缩进与反斜杠原样保留、不做任何转义；行内代码排成 `\texttt{}`。`verify_pdf.py` 再逐块核首行是否进了 PDF 文本层：
+
+```bash
+python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex \
+    --fig-meta _work/图片版式.csv --pdf
+python scripts/verify_pdf.py _work/pdf/paper.pdf --tex _work/pdf/paper.tex --md <stem>_zh.md
+```
+
+`fvextra` 缺失时自动退化成只在空格处折行（中文长注释可能稍宽），格式不丢。旧版不认围栏：```` ``` ```` 会原样印在纸上、块内每行过一遍行内排版（`\eta`→`\textbackslash{}eta`、`x_i`→`x\_i`、缩进压平），伪代码在 PDF 里退化成一段转义过的散文——这是"格式丢掉"最常见的来源，2026-11-15 已修。
+
+**反例（不许出现）**：
+
+```markdown
+算法 1 训练循环。Require: 数据集 D，学习率 η，Ensure: 参数 θ。1: 初始化 θ0；2: for t = 1 to T do…；3: 计算梯度；4: 更新参数。
+```
+
+一整块伪代码被压成一句散文，步号变成分号分隔，缩进、层次、可复现性全没了。正确写法是原样保留围栏与缩进：
+
+````markdown
+```text
+Algorithm 1 Training loop
+Require: dataset D = {(x_i, y_i)}_{i=1}^{n}, learning rate \eta
+1: initialize \theta_0 ~ N(0, I)
+2: for t = 1 to T do
+3:     g_t = \nabla_\theta L(\theta_{t-1})   # 梯度
+4: end for
+```
+````
+</code_blocks>
 
 <floats_reflow>
 ## 浮动对象就近重定位
@@ -315,7 +435,7 @@ python scripts/arxiv_src.py 2207.01848 -o ./_work/arxiv
 python scripts/arxiv_src.py https://arxiv.org/abs/2112.10510v2 -o ./_work/arxiv
 ```
 
-产出 `main.flat.tex`（已展开 `\input`、剥掉注释）、`figures/`、`结构清单.md`、`脚注.csv`。真公式、真定理环境、真 `\cite`/`\bibitem` 都在源码里——省下的不是提取时间，是逐条核对公式的时间。
+产出 `main.flat.tex`（已展开 `\input`、剥掉注释）、`figures/`、`结构清单.md`、`脚注.csv`。结构清单里有一行**「算法/代码环境」**：那就是译文里该有的围栏代码块数量，`\begin{algorithm}` / `algorithmic` 里的 `\State`/`\For` 要按 [references/arxiv-source.md](references/arxiv-source.md) 的对照表**一行一步转成代码块**，别当正文译。真公式、真定理环境、真 `\cite`/`\bibitem` 都在源码里——省下的不是提取时间，是逐条核对公式的时间。
 
 **先确认版本**：一个包里常有好几个可编译主文件（`main.tex`、`main_neurips_*.tex`…），`main.tex` 未必是手上那篇 PDF 的版本。用章节数、附录范围、图表数与 PDF 比对，对不上就 `--main` 指定。arXiv 版常常比会议版多附录、多脚注，**以哪一版为准要问用户**，别默默挑大的那个。详见 [references/arxiv-source.md](references/arxiv-source.md)。
 
@@ -329,14 +449,14 @@ python scripts/mineru_extract.py paper.pdf -o ./_work/extract --model vlm
 
 **脚注必须一条不落，但两条路线来源不同。**
 
-**走 tex 路线时**：脚注不在 `content_list.json` 里，`footnote_recover.py` 那条链路走不通。脚本已产出 `_work/脚注.csv`（`page` 为空、`text` 是源码原文），填 `zh` 列后回填译文；译文照常写 `## 脚注` 节，条数必须与 `结构清单.md` 的「脚注明细」相等；`fidelity_check.py` 加 `--skip-footnote-check`，完整性改由**条数相等**保证。tex 里没有页码概念，这一层校验换成了序号对账，见 [references/arxiv-source.md](references/arxiv-source.md) 第三节。
+**走 tex 路线时**：脚注不在 `content_list.json` 里，`footnote_recover.py` 那条链路走不通。脚本已产出 `_work/脚注.csv`（`page` 为空、`text` 是源码原文），填 `zh` 列后回填译文；译文照常写成正文 `[^n]` 引用 + 文末 `[^n]:` 定义（同样**不另起 `## 脚注` 节**），条数必须与 `结构清单.md` 的「脚注明细」相等；`fidelity_check.py` 加 `--skip-footnote-check`，完整性改由**条数相等**保证。tex 里没有页码概念，这一层校验换成了序号对账，见 [references/arxiv-source.md](references/arxiv-source.md) 第三节。
 
 **走 PDF 路线时**——提取完立刻恢复脚注（硬性，动笔之前）：MinerU 的版面识别**认得出**页底脚注（`content_list.json` 里 `type=page_footnote`，与 `content_list_v2.json`、`layout.json` 条数一致），但服务端生成 `full.md` 时按类型白名单输出，**`page_footnote` 被整类过滤**：正文常常只剩一个 `<sup>n</sup>` 引用标记，脚注正文 100% 丢失。脚注里常有条件、假设、复现链接，漏掉等于改条件。
 
-两个 skill 共用同一份 `footnote_recover.py`，一条链走完「恢复 → 两侧补回 → 中文回填 → 交付与 PDF 验收」：
+两个 skill 共用同一份 `footnote_recover.py`，一条链走完「恢复 → 把标记锚回正文 → 中文回填 → 交付与 PDF 验收」：
 
 ```bash
-# 1) 恢复并自动补回原文与译文两侧（--pdf 可选，做文字层交叉验证）
+# 1) 恢复并把标记锚回正文、定义落到文末（--pdf 可选，做文字层交叉验证）
 python scripts/footnote_recover.py ./_work/extract -o ./_work \
     --source <stem>_原文.md --target <stem>_zh.md --apply --check --pdf paper.pdf
 
@@ -344,14 +464,20 @@ python scripts/footnote_recover.py ./_work/extract -o ./_work \
 python scripts/footnote_recover.py ./_work/extract -o ./_work \
     --translations _work/脚注_待译.csv --target <stem>_zh.md --apply --check
 
+# 2b) 脚本判不出位置的脚注：填好 _work/脚注_待锚.csv 的 anchor 列后回灌
+python scripts/footnote_recover.py ./_work/extract -o ./_work \
+    --target <stem>_zh.md --apply --place _work/脚注_待锚.csv --check
+
 # 3) 出 PDF 后连文本层一起验
 python scripts/footnote_recover.py ./_work/extract -o ./_work \
     --source <stem>_原文.md --target <stem>_zh.md --check --pdf-out <stem>_zh.pdf
 ```
 
-`--apply` 把正文 `<sup>n</sup>` 归一成 `[^n]`、在 REFERENCES 之前给**原文与译文同步**插入 `## 脚注` 节、逐条写 `[^n]: 第 N 页脚注 n：…`，写回前留 `.bak_footnotes` 备份且可重复运行。译文侧未填中文时会留 `<!-- 待译 -->`，**`--check` 因此返回 1**，直到回填完成。作者机构／版权注常与正文脚注同号（都叫 1），不占 `[^n]` 编号，作为引用块说明保留英文；`noise`（如 `40<sup>th</sup>`）不补。
+**脚注不是文末一节，是真正的脚注**：`--apply` 把正文 `<sup>n</sup>` 归一成 `[^n]`、把每条标记**锚进正文对应句子**、把 `[^n]: 脚注正文` 定义放在文末，**不写 `## 脚注` 标题、不写「第 N 页脚注 n：」页面前缀**（页码只留在 `_work/脚注.csv`）。写回前留 `.bak_footnotes` 备份且可重复运行；译文侧未填中文时定义行留 `<!-- 待译 -->`，**`--check` 因此返回 1**。旧稿里那种「文末补一节」的写法会被自动迁移（删标题、剥前缀，有「（对应「……处」）」提示语的按提示语把标记插回正文）。作者机构／版权注常与正文脚注同号（都叫 1），不占 `[^n]` 编号，单列到 `_work/脚注_原刊信息.md`，不进交付稿；`noise`（如 `40<sup>th</sup>`）不补。
 
-**这一步不可少、不可跳过**：`fidelity_check.py --strict` 会硬查 `_work/脚注.csv` 是否存在、译文是否有 `## 脚注` 节，并**逐条核编号、页码、链接与中文是否齐备**。豁免只有两种：纯 Markdown 输入、没有 MinerU 结果包；或走 arXiv 源码路线（脚注基准来自源码的 `\footnote`，没有页码）。两种情况都要显式加 `--skip-footnote-check`，并在交付报告里写明理由与替代判据。分类、交叉验证与对账规范见 [references/mineru.md](references/mineru.md)「页底脚注」一节；本 skill 与 `political-economy-translation` 的脚注流程完全一致。
+**标记必须落进正文**：脚本只确定性地处理 `<sup>n</sup>`；句末裸数字、塞进行内公式的 `^{7}`、提示语对不上的，会进 `_work/脚注_待锚.csv` 并让 `--check` 返回 1。确认是裸编号/公式残留可加 `--anchor-bare` / `--anchor-math`；否则人读 PDF 填 `anchor` 列（正文里紧邻标记前的一句原话），`--place` 回灌。宁可阻塞，也不要为过门禁把标记塞到段末——脚注落错句子比缺一条更坏。
+
+**这一步不可少、不可跳过**：`fidelity_check.py --strict` 会硬查 `_work/脚注.csv` 是否存在，并**逐条核每条脚注是否既有 `[^n]:` 定义、又有正文 `[^n]` 引用**（悬空定义、孤儿标记、编号乱序都拦）、无 `## 脚注` 节残留、链接与中文齐备。豁免只有两种：纯 Markdown 输入、没有 MinerU 结果包；或走 arXiv 源码路线（脚注基准来自源码的 `\footnote`，没有页码）。两种情况都要显式加 `--skip-footnote-check`，并在交付报告里写明理由与替代判据。分类、交叉验证与对账规范见 [references/mineru.md](references/mineru.md)「页底脚注」一节；本 skill 与 `political-economy-translation` 的脚注流程完全一致。
 
 **有 docx** —— 用 pandoc 或宿主的 docx 转换能力转 Markdown，转换后同样检查公式与表格。
 
@@ -423,11 +549,11 @@ python scripts/notation.py extract 原文.md -o _work/符号候选.csv   # 通�
 - **行间公式整块不动。** 一个字符都不改；公式后紧跟的 `(3)`、`\tag{3}` 原样。
 - **行内公式不改行间。** 原文行内的不要提出来单独成行——会破坏段落结构与行文节奏，也会让公式编号错位。
 - **定理环境照标签译。** `**Theorem 2.1.**` → `**定理 2.1.**`，编号不变；环境后的斜体说明（`*Proof.*`）保留标记，内容照译。
-- **伪代码：结构不动，注释可译。** 步号、`for`/`while`/`if`、缩进、函数名、超参数取值都不动；`Require`/`Ensure` 一篇之内统一译法。
-- **代码块整块不动**，包括注释。
+- **伪代码：结构不动，注释可译。** 步号、`for`/`while`/`if`、缩进、函数名、超参数取值都不动；`Require`/`Ensure` 一篇之内统一译法。**必须放在围栏代码块里**：缩进是伪代码的语义，摊成正文段落就没了（见 `<code_blocks>`）。原文算法框被提取器压成散文的，先按原文版式恢复成代码块再译，恢复处记进交付报告。
+- **代码块整块不动**，包括注释；围栏与语言标记（```` ```python ````）一并照抄，块内不做任何转义或重排。行内代码 `` `…` `` 同样不译、不拆句。
 - **表格：表头译，数据不动。** 数字、单位、`±`、星号显著性、括号里的标准误原样；表注照译。
 - **图片：`alt` 译（写成「图 N + 一句描述」），路径一字不改。** 多面板图被抽散时按 `<figures>` 节的并排图块处理，图注紧跟图块、留在块外。
-- **脚注：内容照译，引用标记用 `[^n]`；`<sup>` 是提取产物，不是内容。** 脚注里常有条件（"此处假设 $X$ 与 $Y$ 独立"）与复现链接，漏译等于改条件。第 1 步的 `footnote_recover.py --apply` 已从 `content_list.json` 恢复脚注并**自动**给原文与译文两侧补好 `## 脚注` 节（放在 REFERENCES 之前），条目形如 `[^n]: 第 N 页脚注 n：…`；这里只需把 `_work/脚注_待译.csv` 的 `zh` 列填成中文，再用 `--translations` 回填。页码、编号、链接一字不改。
+- **脚注：内容照译，引用标记用 `[^n]`；`<sup>` 是提取产物，不是内容。** 脚注里常有条件（"此处假设 $X$ 与 $Y$ 独立"）与复现链接，漏译等于改条件。第 1 步的 `footnote_recover.py --apply` 已从 `content_list.json` 恢复脚注并**把 `[^n]` 锚进正文**、把 `[^n]: …` 定义落到文末（**不另起 `## 脚注` 节，不带「第 N 页脚注 n：」前缀**）；这里只需把 `_work/脚注_待译.csv` 的 `zh` 列填成中文，再用 `--translations` 回填（也可直接在 md 里改定义行）。编号、链接一字不改。
   ① 正文引用标记统一写 `[^n]`，**不要写 `<sup>n</sup>`**；交付稿与 PDF 里都不许出现字面 `<sup>`（`fidelity_check.py` 硬校验）。
   ② 作者/机构角标、版权与会议声明不占 `[^n]` 编号：它们常与正文脚注同号，脚本会作为引用块说明保留英文；版面误标（如标题里的 `40<sup>th</sup>`）直接忽略。
   ③ `noise` 不补；断词（如 `classifica tion`）、URL 被插入的空格，按第 1 步「以 PDF 为准修正提取缺陷」处理并记账，不要静默改。
@@ -490,7 +616,7 @@ python scripts/figures.py audit <stem>_原文.md <stem>_zh.md --csv _work/图目
 
 **`fidelity_check.py` 的边界**：块级结构能发现"整段没了"，发现不了段内的增删——那由段落长度启发式兜底，而启发式会误报（表格段、公式密集段天生比例异常），每条都要回原文确认。定理环境条数不一致时，回去找是哪一条被改了标签（Proposition 译成定理是最常见的一种）。它也不能判断译文对不对、术语准不准——那只能靠人读。
 
-**口径要分清**：块结构、引用、公式、正文卫生、脚注门禁是真硬校验（`--strict` 返回 1）；疑似未译段、段长异常、术语一致、`notation check` / `figures audit` 是**建议性发现**，只打印不拦，因为误报多。要零容忍时给 `fidelity_check.py` 加 `--strict-soft`（或给 `notation.py` / `figures.py` 加各自的 `--strict`）。`review_apply.py` 回填后重跑的结构对账已带 `--strict`，失败直接影响退出码。
+**口径要分清**：块结构、引用、公式、**代码块（围栏未闭合／块数／行数）**、正文卫生、脚注门禁是真硬校验（`--strict` 返回 1）；代码块内**缩进或代码记号**的差异、语言标记丢失、「行首 Algorithm N 但没有围栏」是建议性发现；疑似未译段、段长异常、术语一致、`notation check` / `figures audit` 是**建议性发现**，只打印不拦，因为误报多。要零容忍时给 `fidelity_check.py` 加 `--strict-soft`（或给 `notation.py` / `figures.py` 加各自的 `--strict`）。`review_apply.py` 回填后重跑的结构对账已带 `--strict`，失败直接影响退出码。
 
 **脚本判不了的事情，人工过一遍**，清单见 [references/review-checklist.md](references/review-checklist.md)：公式里每个符号指的事对不对、定理条件有没有少、数值与表格有没有被"简化"、中文能不能读通。
 
@@ -563,7 +689,7 @@ python scripts/review_apply.py --target <stem>_zh.md --glossary _work/<stem>_术
 
 | 文件 | 内容 |
 |---|---|
-| `<stem>_zh.md` | 译文，开头带 YAML front matter、符号一览、保留英文术语一览；**含 `## 脚注` 节**（在 REFERENCES 之前，与原文侧同步）；浮动对象已就近重定位；`normalize_math.py`、`math_fidelity.py`、`fidelity_check.py --float-reflow --strict` 全通过 |
+| `<stem>_zh.md` | 译文，开头带 YAML front matter、符号一览、保留英文术语一览；**脚注是正文内联 `[^n]` + 文末 `[^n]:` 定义**（没有 `## 脚注` 节，与原文侧同步）；浮动对象已就近重定位；`normalize_math.py`、`math_fidelity.py`、`fidelity_check.py --float-reflow --strict` 全通过 |
 | `_work/<stem>_术语.csv` | 本项目定下的术语、专名与 `kind=keep` 的保留英文条目 |
 | `_work/图表重定位.csv` | 每个浮动对象的原行号、锚段落、动作与说明 |
 | `_work/符号候选.csv` | 符号抽取结果（含含义列） |
@@ -604,6 +730,8 @@ python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex --source-pdf 原文.pd
 - 图片：`<img>` 属性顺序任意（MinerU 常写 `src="…" width="32%" alt="…"`），也认裸 Markdown 图 `![alt](path)` 与块内的 `![](path)`；图注两种写法都认（`**图 N**　…` 与 `图 N. …`）。解析不到图片时不排「只有 caption、没有图」的空 `figure`。
 - 表格：Markdown 表格按 `|` 切列时保护 `$…$` 内的 `\|` / `\vert` / `\Vert`；HTML `<table>` 转出的 `tabular` 超页宽时自动缩放；`&#x27;` 这类数字实体自动解码。
 - 公式：`\tag` 留在 `\resizebox` 外；`\tag{□}` 这类非数字编号的组整组降一号字，免得末行撑出页宽；`\text{}` 里被抽取器放大的词间空格自动压回一个。
+- MinerU 算法框：`<div class="mineru-algorithm" style="white-space: pre-wrap">` 逐行排，上下两条细横线 + 左缩进 + `\small`，行首与行内连续空格换算成 `\hspace*` 还原缩进层级，块内 `$…$` 照常渲染（不能进 verbatim）。
+- 代码块：围栏块排成 `codeblock`（`fancyvrb` 的 `Verbatim`，左竖线 + 等宽 + `breakanywhere` 折行；`fvextra` 缺失时退化为只在空格处折行），缩进、反斜杠、`#`、`$` 一律原样，不做转义；块内不参与公式/引文/符号锚点解析。行内代码排成 `\texttt{}`。`\end{codeblock}` 必须独占一行，否则 fancyvrb 报 `Extraneous input`（能编译完，但日志里有 `!`）。
 - 编译：`--pdf` 用跨进程锁串行化 xelatex。**两个 xelatex 并行会让其中一个在第 2 页附近静默中断，留下 0 字节 PDF 而日志里一个 `!` 错误都没有**；批量出多篇直接各自调用即可，锁会排队。
 
 七条不能违反的约定（摘要，细则见 reference）：
@@ -616,7 +744,7 @@ python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex --source-pdf 原文.pd
 6. 引文/符号表的锚点不能落进 `\caption`；
 7. **不开 `\XeTeXgenerateactualtext`**（每个词一个 `/ActualText`，阅读器按它的宽度算高亮框，结果是"能复制、框选只亮几个字母"），改用 `Ligatures={TeX,NoCommon}` 保证 `ffi` 不被压成一个连字符。
 
-**默认 `--footnotes footnote`**：正文 `[^n]` 渲染成页底 `\footnote{}`，**脚注格式保留在 PDF 里**；要尾注形式用 `--footnotes endnote`，文字集中排在文末 `## 脚注` 节。URL 走 `\url{}`（已加载 `xurl`），否则长链接在页底脚注里必然撑出 `Overfull \hbox`。
+**默认 `--footnotes footnote`**：正文 `[^n]` 渲染成页底 `\footnote{}`，**脚注格式保留在 PDF 里**；要尾注形式用 `--footnotes endnote`，文字集中排在文末。**默认还会拦「有定义没引用」的悬空脚注**（`exit 2`）——它们只能退化成文末一节编号列表；确认要降级才加 `--allow-orphan-notes`。URL 走 `\url{}`（已加载 `xurl`），否则长链接在页底脚注里必然撑出 `Overfull \hbox`。
 
 验收先跑脚本，有问题返回 1：
 
@@ -670,18 +798,19 @@ python scripts/zotero_attach.py --batch . --strict                # 一次交付
 |---|---|---|
 | `scripts/arxiv_src.py` | 取 arXiv e-print 源码：解包、找主文件、展开 `\input`、收图、出结构清单与脚注清单 | `<id|url>`、`-o`、`--from`、`--main`、`--md`、`--no-flat`、`--refresh` |
 | `scripts/mineru_extract.py` | PDF/图片/Office → Markdown，token 只需设置一次；**没有 arXiv 源码时才用** | `--set-token`、`--token-status`、`--pages`、`--ocr`、`--model` |
-| `scripts/footnote_recover.py` | 从 `content_list.json` 恢复 `page_footnote`；`--apply` 两侧同步补 `## 脚注` 节、中文回填、PDF 文字层交叉验证、`--check` 内容级门禁（与 `political-economy-translation` 同一实现） | `-o`、`--source`、`--target`、`--apply`、`--translations`、`--check`、`--pdf`、`--pdf-out`、`--skip-footnote-check` |
+| `scripts/footnote_recover.py` | 从 `content_list.json` 恢复 `page_footnote`；`--apply` 把 `[^n]` **锚进正文**、定义落到文末（不再插 `## 脚注` 节）、迁移旧稿、中文回填、PDF 文字层交叉验证、`--check` 内容级门禁；判不出位置的进 `脚注_待锚.csv`（与 `political-economy-translation` 同一实现） | `-o`、`--source`、`--target`、`--apply`、`--place`、`--anchor-bare`、`--anchor-math`、`--translations`、`--check`、`--pdf`、`--pdf-out`、`--skip-footnote-check` |
 | `scripts/mathscan.py` | 内部模块：定位全部公式片段（行间/行内），供其余脚本共用 | 不作为命令调用 |
 | `scripts/normalize_math.py` | 统一 `\[…\]`→`$$…$$`、`\(…\)`→`$…$`，跳过代码块与 `\\[2pt]` | `--inplace`、`-o`、`--check` |
 | `scripts/math_fidelity.py` | 公式逐条比对：数量、逐字一致、`\tag`、`\label`、`$` 成对 | `--csv`、`--max`、`--near`、`--allow-text-only`、`--strict` |
 | `scripts/notation.py` | `extract` 抽符号生成骨架（默认略去通用记号）；`check` 核对符号表与正文；`prune` 删掉只含通用记号的行 | `extract -o --keep-common`｜`check --csv --strict`｜`prune --apply` |
-| `scripts/fidelity_check.py` | 结构对账：正文块、标题、列表、引用块、浮动对象集合、图片路径、引用原样、定理环境、未译段、术语一致性（含 `keep` 反向检查）；**硬校验**：正文卫生（`<sup>` 残留、术语简述回填）、**脚注逐条核对**（清单存在、`## 脚注` 节、编号/页码/链接/中文齐备） | `--glossary`、`--strict`、`--strict-soft`、`--float-reflow`、`--allow-block-drift`、`--skip-footnote-check` |
-| `scripts/figures.py` | `audit` 核对图注数/图号/图注位置/就近性/正文引用/文件/alt；`group` 合成并排图块；`relocate` 把浮动对象移到首次引用段落之后 | `audit --csv --strict --tol`｜`group --apply`｜`relocate --apply --csv --tol` |
+| `scripts/fidelity_check.py` | 结构对账：正文块、标题、列表、引用块、浮动对象集合、图片路径、引用原样、定理环境、**代码块（围栏闭合、块数、行数、缩进逐块核）**、未译段、术语一致性（含 `keep` 反向检查）；**硬校验**：正文卫生（`<sup>` 残留、术语简述回填）、**脚注逐条核对**（清单存在、每条既有 `[^n]:` 定义又有正文 `[^n]` 引用、无悬空/孤儿/编号乱序、链接与中文齐备、无 `## 脚注` 节残留）；另报「行首 Algorithm N 但无围栏」的未恢复伪代码 | `--glossary`、`--strict`、`--strict-soft`、`--float-reflow`、`--allow-block-drift`、`--skip-footnote-check` |
+| `scripts/figures.py` | `audit` 核对图注数/图号/图注位置/就近性/正文引用/文件/alt；`group` 合成并排图块；`relocate` 把浮动对象移到首次引用段落之后；识别前先屏蔽围栏代码块（代码里以 `\|` 开头的行、`图 3` 注释不会被当成表格/图注搬走） | `audit --csv --strict --tol`｜`group --apply`｜`relocate --apply --csv --tol` |
 | `scripts/extract_terms.py` | 从原文挖候选术语，标注已收录/新增，并用 `keep_default` 标出默认保留英文的候选 | `--glossary`、`--min-count`、`--top`、`--write-project` |
 | `scripts/lookup_term.py` | 按词查项目术语表与种子表；`dst=@keep` 显示「保留英文原文（不译）」 | `--glossary`、`--exact`、`--max` |
 | `scripts/review_queue.py` | 生成审校清单：要你定的、公式差异、符号表、术语不一致、候选术语 | `--manual`、`--init-manual`、`--math`、`--notation`、`--resolved` |
-| `scripts/md2tex.py` | 译文 Markdown → XeLaTeX（`--pdf` 顺带编译两遍出 PDF）：`[^n]` 默认排成页底 `\footnote{}`、URL 走 `\url{}`、公式分组对齐、编号右对齐、引文跳转、符号表锚点、书签与元信息；内置图片/裸图适配、数学竖线保护、超宽表格自适应、跨进程编译锁 | `--source-pdf`、`--pdf`、`--footnotes`、`--title-en`、`--authors`、`--venue`、`--doi`、`--arxiv`、`--citekey` |
-| `scripts/verify_pdf.py` | PDF 验收：编译 `!` 错误、`Overfull \vbox`/`\hbox`、`includegraphics` 数、书签重复、文本层汉字与连字、**逐条核脚注是否进 PDF 文本层** | `<PDF>`、`--tex`、`--md`、`--footnotes` |
+| `scripts/figure_layout.py` | 从 `content_list.json` 的 bbox 算每张图占正文栏宽的比例，产 `_work/图片版式.csv`；可选把同页同排的图合成 md 一行多图（与 `figures.py group` 二选一） | `<extract>`、`--md`、`-o`、`--apply` |
+| `scripts/md2tex.py` | 译文 Markdown → XeLaTeX（`--pdf` 顺带编译两遍出 PDF）：`[^n]` 默认排成页底 `\footnote{}`、URL 走 `\url{}`、公式分组对齐、编号右对齐、引文跳转、符号表锚点、书签与元信息；内置图片/裸图适配、**围栏代码块 → `codeblock`（verbatim，缩进与反斜杠原样，`fvextra` 可选折行）、MinerU 算法 div → 逐行算法块、行内代码 → `\texttt`**、数学竖线保护、超宽表格自适应、图宽按 `--fig-meta` 还原原刊比例、图号按原刊编号、跨进程编译锁 | `--source-pdf`、`--pdf`、`--footnotes`、`--fig-meta`、`--title-en`、`--authors`、`--venue`、`--doi`、`--arxiv`、`--citekey` |
+| `scripts/verify_pdf.py` | PDF 验收：编译 `!` 错误、`Overfull \vbox`/`\hbox`、`includegraphics` 数、书签重复、文本层汉字与连字、**逐条核脚注是否进 PDF 文本层**、**代码块数与首行是否进 PDF** | `<PDF>`、`--tex`、`--md`、`--footnotes` |
 | `scripts/review_apply.py` | 执行人的意见：改术语表与译文、重跑四步校验（结构对账带 `--strict`，失败影响退出码）、登记已决、重生成清单 | `--decisions`、`--resolved`、`--manifest`、`--math`、`--notation` |
 | `scripts/zotero_attach.py` | 把已验收的译文 PDF 挂回 Zotero 父条目（本地 API 读写，Zotero 10+ 可自动上传；filename+md5 判重，改稿原地覆盖；不碰 sqlite） | `<PDF>`、`--md`、`--batch`、`--strict`、`--parent-key`、`--title`、`--doi`、`--attach-title`、`--prepare-only`、`--dry-run`、`--stage` |
 | `scripts/paper_meta.py` | 生成、写入、检查译文顶部的 YAML 元信息 | `--init`、`--inject`、`--check` |

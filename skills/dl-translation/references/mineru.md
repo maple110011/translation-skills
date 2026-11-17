@@ -111,7 +111,7 @@ _work/extract/<文件名>/
 
 ---
 
-## 三、提取质量：五类会骗人的地方
+## 三、提取质量：六类会骗人的地方
 
 ### 1. 上下标被压平
 
@@ -141,7 +141,7 @@ python scripts/footnote_recover.py ./_work/extract -o ./_work \
     --source <stem>_原文.md --target <stem>_zh.md --apply --check --pdf paper.pdf
 ```
 
-`--apply` 会把正文 `<sup>n</sup>` 归一成 `[^n]`，并给**原文与译文同步**插入 `## 脚注` 节（放在 REFERENCES 之前），写回前留 `.bak_footnotes` 备份、可重复运行。脚本产出 `脚注.csv`、`脚注_原文.md`、`脚注_待译.csv`、`脚注_交叉验证.md`，并分类：
+`--apply` 会把正文 `<sup>n</sup>` 归一成 `[^n]`、把标记**锚进正文对应句子**、把 `[^n]: …` 定义写到文末（**不插 `## 脚注` 节、不写「第 N 页脚注 n：」前缀**），写回前留 `.bak_footnotes` 备份、可重复运行。脚本产出 `脚注.csv`、`脚注_原文.md`、`脚注_待译.csv`、`脚注_交叉验证.md`、`脚注_待锚.csv`（判不出位置的，含区间提示）、`脚注_原刊信息.md`（机构／版权注，不进交付稿），并分类：
 
 | 类别 | 判据 | 要不要补 |
 |---|---|---|
@@ -154,7 +154,28 @@ python scripts/footnote_recover.py ./_work/extract -o ./_work \
 
 两条不推荐的替代路径：`pdftotext -layout` 按页底抓——双栏论文的脚注在**栏底**而不是页底（Nagler 2023 就是），长脚注与 URL 还常被断行，召回不全；装 PyMuPDF/pdfplumber 按字号 + 坐标聚类——本机均未安装，引入外部依赖也违背本 skill「只用 Python 标准库」的约定。
 
-### 5. 公式编号被吞
+### 5. 算法框：抽成 div，不是围栏代码块
+
+算法框（Algorithm 环境）在 `full.md` 里是一个 HTML div，**不是**三反引号代码块：
+
+```html
+<div class="mineru-algorithm" style="white-space: pre-wrap; font-family:monospace;">
+算法 10.4: 坐标上升变分推断 (CAVI)。
+
+1 初始化  $q_{j}(z_{j})$  for j = 1 : J
+2 foreach t = 1 : T do
+3    foreach j = 1 : J do
+</div>
+```
+
+行结构与缩进靠 `white-space: pre-wrap` 保留（`3` 后面那四个空格就是嵌套层级），内容里混着 `$…$` 行内公式。
+
+**处理**：
+- 保留 div 与 `class`/`style`，只译文字；步号、行序、缩进空格不动，`$…$` 不动。`md2tex.py` 靠 `mineru-algorithm` 认出它并排成带上下细横线的算法块；删掉外壳就只能当正文排，标签还会印到纸上。
+- 也有算法框在 `full.md` 里被压成散文（`Algorithm 10.4 (…). The … can be computed …`），那种没有 div 也没有缩进，只能回 PDF 按原版式恢复成围栏代码块（见 SKILL.md `<code_blocks>`）。
+- `fidelity_check.py` 把 div 当「算法框」单独核：块数、行数不一致是硬性失败，步号序列与缩进变化是建议性发现；`verify_pdf.py` 再核一遍「算法框首行是否进了 PDF 文本层」。
+
+### 6. 公式编号被吞
 
 `(3)` 编号可能被并入公式内部或直接丢失。
 **处理**：正文里若有"由式(3)可得"，必须确保式(3)还在且编号一致。

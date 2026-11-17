@@ -2,7 +2,7 @@
 name: political-economy-translation
 description: 将英文政治经济学文献（马克思主义价值理论、斯拉法/剩余方法、劳动过程理论、金融化、全球价值链、平台劳动等）翻译为中文 Markdown，并做机械对账。输入可为 PDF、已提取的 Markdown、docx；输出段落与源文一一对应、Markdown 结构不变、引用原样、公式统一为 $$…$$ 与 $…$ 的译文。This skill should be used when translating political-economy papers, book chapters, review essays, or lecture notes into Chinese under strict fidelity constraints, when a MinerU extraction step is needed first, and when a batch of accumulated glossary CSVs has to be consolidated before translating.
 agent_created: true
-version: 2026-11-07.2
+version: 2026-11-16.1
 ---
 
 # 政治经济学文献翻译
@@ -79,7 +79,7 @@ MinerU 的版面识别**认得出**页底脚注（`content_list.json` 里 `type=
 两个翻译 skill 现在共用同一套脚本，以 MinerU 提取包为主源，PDF 文字层只作交叉验证：
 
 ```bash
-# 1) 恢复并自动补回原文与译文两侧（--pdf 可选，做文字层交叉验证）
+# 1) 恢复并把标记锚回正文、定义落到文末（--pdf 可选，做文字层交叉验证）
 python scripts/footnote_recover.py ./_work/extract -o ./_work \
     --source <stem>_原文.md --target <stem>_zh.md --apply --check --pdf paper.pdf
 
@@ -87,14 +87,22 @@ python scripts/footnote_recover.py ./_work/extract -o ./_work \
 python scripts/footnote_recover.py ./_work/extract -o ./_work \
     --translations _work/脚注_待译.csv --target <stem>_zh.md --apply --check
 
+# 2b) 脚本判不出位置的脚注：填好 _work/脚注_待锚.csv 的 anchor 列后回灌
+python scripts/footnote_recover.py ./_work/extract -o ./_work \
+    --target <stem>_zh.md --apply --place _work/脚注_待锚.csv --check
+
 # 3) 出 PDF 后连文本层一起验
 python scripts/footnote_recover.py ./_work/extract -o ./_work \
     --source <stem>_原文.md --target <stem>_zh.md --check --pdf-out <stem>_zh.pdf
 ```
 
-`--apply` 做三件事：把正文 `<sup>n</sup>` 归一成 `[^n]`、在 REFERENCES 之前给**原文与译文同步**插入 `## 脚注` 节、逐条写 `[^n]: 第 N 页脚注 n：…`；写回前自动留 `.bak_footnotes` 备份，重复运行幂等。译文侧先放英文原文加 `<!-- 待译 -->` 标记，**`--check` 会因此返回 1**，直到填入中文并重跑。作者机构／版权注常与正文脚注同号（都叫 1），不占 `[^n]` 编号，作为引用块说明保留英文；版面噪声（`40<sup>th</sup>`）不补。
+**脚注不是文末一节，是真正的脚注。** `--apply` 只做三件事：把正文 `<sup>n</sup>` 归一成 `[^n]`、把每条标记**锚进正文对应句子**（跟在被注内容之后）、把 `[^n]: 脚注正文` 定义放在文末。**不写 `## 脚注` 标题，不写「第 N 页脚注 n：」页面前缀**——页码和分类只留在 `_work/脚注.csv`。写回前自动留 `.bak_footnotes` 备份，重复运行幂等。
 
-**`[^n]` 是唯一交付形态**：公众号版 `build_wechat.py` 认它（内部归一成 `<sup>` 渲染），PDF 版 `md2tex.py` 默认把它排成页底 `\footnote{}`。不许在交付稿里留字面 `<sup>n</sup>`；`fidelity_check.py --strict`、`build_wechat.py` 的 `audit_notes()`、`verify_pdf.py` 三层都会拦。
+历史稿那种「文末补一节」的写法会被自动迁移：删掉 `## 脚注` 标题、剥掉页面前缀，若旧条目里写了「（对应「……处」）」，就按这句话把标记插回正文。作者机构／版权注常与正文脚注同号（都叫 1），不占 `[^n]` 编号，也不写进交付稿，单列到 `_work/脚注_原刊信息.md`；版面噪声（`40<sup>th</sup>`）不补。
+
+**标记必须落进正文，这是门禁而不是建议。** 脚本只能确定性地处理 `<sup>n</sup>`；判不出位置的（句末裸数字、塞进行内公式的 `^{7}`、提示语对不上的）会进 `_work/脚注_待锚.csv`，`--check` 因此返回 1。宁可阻塞，也不要把标记塞到段末了事——脚注落错句子比缺一条更坏。确认是裸编号/公式残留时可以 `--anchor-bare` / `--anchor-math` 让脚本自动锚定；否则人读 PDF 填 `anchor` 列（正文里紧邻标记前的一句原话），`--place` 回灌。
+
+**`[^n]` 是唯一交付形态**：公众号版 `build_wechat.py` 认它（内部归一成 `<sup>` 渲染并挂到所注段落之后），PDF 版 `md2tex.py` 默认把它排成页底 `\footnote{}`。不许在交付稿里留字面 `<sup>n</sup>`；`footnote_recover.py --check`、`fidelity_check.py --strict`、`build_wechat.py` 的 `audit_notes()`、`md2tex.py` 的开头门禁、`verify_pdf.py` 都会拦。
 
 `--pdf` 的交叉验证只用来发现提取包被污染或跨页续文被截断：**双栏期刊的脚注在栏底不在页底**，`pdftotext -layout` 的缩进特征会失效，未确认不等于提取包有错，详见 `_work/脚注_交叉验证.md`。判据、编号规则与真实案例见 [references/footnotes.md](references/footnotes.md)；旧命令 `scripts/footnotes.py` 保留为兼容入口，不再作为主流程。
 
@@ -131,6 +139,24 @@ python scripts/split_refs.py paper_原文.md -o _work/         # 切分
 4. **一处也不能丢，顺序不能乱。** 搬完重跑 `fidelity_check.py`：表格行数必须不变，块序列必须仍然对得上（对不上说明搬的时候连正文段落一起动了）。
 
 **改了位置，对账基准也要改。** `fidelity_check.py` 比的是块序列，源文件里表在 A 处、译文里表在 B 处，必然报"块级结构不一致"。做法：生成一份**按发布版式重排过的源文基准**（`_work/<stem>_原文_发布口径.md`），在这份副本里把图表挪到与译文相同的位置，然后用它做基准。基准只服务于校验，不改原文文件本身——原文是证据，不能为了"过校验"去动它。
+
+### 多联图与图片尺寸：按原刊版式还原
+
+MinerU 把原刊的"一行三栏图"识别成三个独立 `image` 块，`full.md` 里就是三条各自独立的 `![…](…)`。照着渲染，PDF 里就是三张各占 0.93 栏宽、上下堆叠的图——**一页塞一张，图注还被拆散**；附录里只占半栏的图同样被拉满整栏。这两件事一次解决：
+
+```bash
+# 1) 按 content_list 的 bbox 分组 + 量宽，并把同组多图合成 md 里的一行
+python scripts/figure_layout.py _work/extract -o _work --md <stem>_zh.md --apply
+
+# 2) 出 PDF 时把版式清单交给 md2tex
+python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex --fig-meta _work/图片版式.csv --pdf
+```
+
+`figure_layout.py` 只做两件事：**同页同排的图并成一行**（竖直重叠过半即判同排），**按 `bbox宽 / 该页最宽文本块` 给出每张图的原刊占比**。它产 `_work/图片版式.csv`，并顺手把夹在图之间的子图标签（"含类别特征""归一化 ROC AUC"）收成一行小字放在图与图注之间——**别手工删那些标签**，它们是 MinerU 从图里切出去的文字，图片本身没有。已经是 `<table><td>` 写法的多联图会被跳过，两种写法不要混用。
+
+`md2tex --fig-meta` 用这份占比定 `width=N\linewidth`；多联图按各栏真实比例分配（实测 41%/27%/27%），不是等分。没有这份清单时退回旧的「单图 0.93、多图等分」，附录的小图就会继续偏大。
+
+图号也在这条链上：浮动对象重定位后，出现顺序与原刊编号不一致，`\caption` 自增出来的号会和正文"在图 6 中"打架。`md2tex` 从 `**图 N**` 里读出原刊编号并 `\setcounter{figure}`，PDF 图号跟着译文走。
 
 ### 人名表缺失时：补进权威层，不要只在正文里音译
 
@@ -254,7 +280,7 @@ cp references/style/default.md _work/<stem>_风格.md
 - **列表项一进一出。** 源文三个 `-`，译文必须三个 `-`；嵌套层级不变。
 - **表格：表头译，数据不动。** 数字、单位、显著性星号、括号里的标准误一律原样；表注照译。
 - **图片：`alt` 译，路径一字不改。** 路径改了图就断了。
-- **脚注：标记不动，内容照译。** 正文引用标记统一写 `[^n]`（不许写 `<sup>n</sup>`），脚注文字写在 REFERENCES 之前的 `## 脚注` 节里，条目形如 `[^n]: 第 N 页脚注 n：…`；原文侧英文、译文侧中文，两侧同步增删才能保持块级对账。第 1 步的 `footnote_recover.py --apply` 已把结构与英文原文补好，这里只需把 `脚注_待译.csv` 的 `zh` 列填成中文再回填。页码、编号、链接一字不改。
+- **脚注：标记就地，内容照译。** 正文引用标记统一写 `[^n]`（不许写 `<sup>n</sup>`），位置是**被注内容之后、句读之前**（原刊怎么标就怎么标，通常紧贴被注词句右上角）；脚注文字写成文末的 `[^n]: …` 定义，**不另起 `## 脚注` 节，不写「第 N 页脚注 n：」页面前缀**。原文侧英文、译文侧中文，两侧同步增删才能保持块级对账。第 1 步的 `footnote_recover.py --apply` 已把标记锚进正文、把英文原文落到文末，这里只需把 `脚注_待译.csv` 的 `zh` 列填成中文再回填（也可直接在 md 里改定义行，`--apply` 不会覆盖已有中文）。编号、链接一字不改。
 - **引用块 `>`：层级保留，内容译。** 编者按、长引文都用这个。
 - **代码块与公式块：整块不动。** 一个字符都不改。
 - **参考文献标记：一行不动。** `<!-- REFS-ORIGINAL … -->` 原样留在原位置——不译、不删、不挪、不缩进、不在它前后添加空行。它不是正文，是"此处原样嵌入书目"的指令，交付前由脚本替换。改写它，`fidelity_check.py` 会报结构块数不一致，`split_refs.py --restore` 也会直接拒绝拼回。
@@ -426,7 +452,10 @@ python scripts/split_refs.py --restore _work/<stem>_正文_zh.md -o <stem>_zh.md
 | `_work/<stem>_引文采用.csv` | 马恩引文的裁定结果：哪几句用文集译文、为什么（有引文时才有） |
 | `_work/<stem>_待校对.md` | 审校清单：机械发现 + 人工判断项（含马恩引文核对） |
 | `_work/<stem>_数字核对.md` | 数值比对结果（脚本产出，通常 0 处） |
-| `_work/脚注.csv` / `脚注_原文.md` / `脚注_待译.csv` | 第 1 步从 `content_list.json` 恢复的脚注清单、英文原文与中文待译表；证明脚注没有被整批丢掉 |
+| `_work/脚注.csv` / `脚注_原文.md` / `脚注_待译.csv` | 第 1 步从 `content_list.json` 恢复的脚注清单、英文原文与中文待译表；证明脚注没有被整批丢掉。**页码只在这里，别写进译稿的定义行** |
+| `_work/脚注_待锚.csv` | 脚本判不出正文位置的脚注清单（含区间提示）；填 `anchor` 列后 `--apply --place` 回灌 |
+| `_work/脚注_原刊信息.md` | 作者机构／版权注（与正文脚注同号但不占 `[^n]`），只备查，不进交付稿 |
+| `_work/图片版式.csv` | 每张图的原刊栏宽占比与所属图组（`figure_layout.py` 产出）；`md2tex --fig-meta` 用它还原图片尺寸 |
 | `_work/脚注_交叉验证.md` | PDF 文字层交叉验证结果（给 `--pdf` 时产出） |
 | `<stem>_校对报告.txt` | `fidelity_check.py` 的原始输出 |
 | `_work/<stem>_原文_发布口径.md` | 按发布版式重排过的源文基准（图表归位、元信息剔除后），供校验用；**不改原文文件** |
@@ -509,7 +538,8 @@ python scripts/merge_glossary.py _work/<stem>_术语.csv -o _work/merge
 用户要 PDF 时走这一条，不要手搓模板；`md2tex.py` 与 `dl-translation` 是同一份实现，踩过的坑都写在 [references/pdf-latex.md](references/pdf-latex.md)。
 
 ```bash
-python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex --source-pdf paper.pdf --pdf
+python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex \
+    --source-pdf paper.pdf --fig-meta _work/图片版式.csv --pdf
 python scripts/verify_pdf.py _work/pdf/paper.pdf --tex _work/pdf/paper.tex \
     --md <stem>_zh.md --footnotes _work/脚注.csv
 ```
@@ -522,6 +552,8 @@ python scripts/verify_pdf.py _work/pdf/paper.pdf --tex _work/pdf/paper.tex \
 python scripts/build_wechat.py <stem>_zh.md <输出目录>
 ```
 
+图片：裸 Markdown 图（`![alt](path)`）与**一行多图**都会排成 `<img>`，并排图用 `inline-block` 横排（不能靠 flex，公众号编辑器会剥掉 `display:flex`）；宽度必须给 **px**，写百分比会被 `self_check()` 拦下来——公众号不吃百分比宽度。旧版只认 HTML 表格里的 `<img>`，裸图整行会被当普通文字留在版面上，等于整篇没图。
+
 产出两份：
 
 | 文件 | 用途 |
@@ -533,7 +565,7 @@ python scripts/build_wechat.py <stem>_zh.md <输出目录>
 
 1. **去掉标题**——H1 与 front matter 里的 title 都不上版面。
 2. **去掉参考文献整节**——公众号里放一百条英文著录没有意义，读者需要的是原文 DOI。
-3. **脚注改就地引用框，正文保留上标**——文末的脚注节拆开，每条按编号**放回它所注的那一段之后**，用左侧竖线的框呈现；同时**正文里的上标标记要留着**（转成带色的 `span`）。只做框不做标记，读者不知道这句话有注；只做标记不做框，注释得跳到文末再跳回来，等于没注。**本流程上游统一交 `[^n]` + `## 脚注` 节**（第 1 步 `footnote_recover.py --apply` 的产物）；脚本仍兼容历史稿：正文 `<sup>n</sup>`、`## 脚注` / `## 注释` / `## Notes` 节下的 `1.`、`(1)`、`-`、`注 1`、`<sup>1</sup>` 条目、折行与无空行连排、`<!-- FOOTNOTES-RECOVERED -->` 标记都认。
+3. **脚注改就地引用框，正文保留上标**——每条按编号**挂到它所注的那一段之后**，用左侧竖线的框呈现；同时**正文里的上标标记要留着**（转成带色的 `span`）。只做框不做标记，读者不知道这句话有注；只做标记不做框，注释得跳到文末再跳回来，等于没注。**本流程上游统一交正文内联 `[^n]` + 文末 `[^n]:` 定义**（第 1 步 `footnote_recover.py --apply` 的产物），脚本靠正文里的 `[^n]` 定位段落；**没有正文标记的定义只能堆到文末**，`audit_notes()` 会把它报成「定义未进版面」。脚本仍兼容历史稿：正文 `<sup>n</sup>`、`## 脚注` / `## 注释` / `## Notes` 节下的 `1.`、`(1)`、`-`、`注 1`、`<sup>1</sup>` 条目、折行与无空行连排、`<!-- FOOTNOTES-RECOVERED -->` 标记都认。
 4. **开头两行信息**——`翻译&编辑：X`（同一人时合并写，不同人时写"翻译：X　编辑：Y"），换行接 `文献来源：` 后跟 APA 7 条目（`作者 (年份). 题名. 刊名, 页码.`）。用浅灰小字压在正文之上，与正文之间留一条细线。**题名只给原文，不加中译方括号、不挂 DOI**——公众号读者要看的是这篇东西是谁写的、发在哪，中译题名与 DOI 属于参考文献体例，两者混在一行会读成半中半英。
 5. **表格压进 637px，不做横滑**——微信里 `overflow` 无效，横向滑动做不出来。四列表格只能按 px 分配：首列 88px 放"控制概念"这类标签，其余三等分各 183px，字号降到 13px。
 
@@ -605,10 +637,11 @@ python scripts/zotero_attach.py --batch . --strict                # 一次交付
 |---|---|---|
 | `scripts/mineru_extract.py` | PDF/图片/Office → Markdown，token 只需设置一次 | `--set-token`、`--token-status`、`--pages`、`--ocr`、`--model` |
 | `scripts/split_refs.py` | 把参考文献区换成一行标记（不进上下文），交付前原样拼回 | `--check`、`-o`、`--restore`、`--heading` |
-| `scripts/footnote_recover.py` | 从 `content_list.json` 恢复页底脚注；两侧自动补 `## 脚注` 节、中文回填、PDF 文字层交叉验证与内容级门禁（与 `dl-translation` 同一实现） | `-o`、`--source`、`--target`、`--apply`、`--translations`、`--check`、`--pdf`、`--pdf-out`、`--skip-footnote-check` |
+| `scripts/footnote_recover.py` | 从 `content_list.json` 恢复页底脚注；`--apply` 把 `[^n]` **锚进正文**、定义落到文末（不再插 `## 脚注` 节）、迁移旧稿、中文回填、PDF 文字层交叉验证与内容级门禁；判不出位置的进 `脚注_待锚.csv`（与 `dl-translation` 同一实现） | `-o`、`--source`、`--target`、`--apply`、`--place`、`--anchor-bare`、`--anchor-math`、`--translations`、`--check`、`--pdf`、`--pdf-out`、`--skip-footnote-check` |
 | `scripts/footnotes.py` | 兼容入口：把旧的 `--md/--strict/--patch` 命令转发到 `footnote_recover.py`；不再作为主流程 | 旧参数 |
 | `scripts/build_wechat.py` | 译稿 → 公众号排版稿；脚注归一、挂到所注段落后、硬校验不许静默丢失 | `<译稿.md>` `<输出目录>` |
-| `scripts/md2tex.py` | 译稿 → XeLaTeX／PDF；`[^n]` 默认排成页底真脚注，URL 走 `\url{}`，xelatex 跨进程锁 | `--pdf`、`--footnotes`、`--source-pdf`、`--title-en` 等 |
+| `scripts/figure_layout.py` | 多联图合并成一行（按 `content_list.json` 的 bbox 判同页同排）、按原刊占比定图片宽度、子图标签归并；产 `_work/图片版式.csv`（与 `dl-translation` 同一实现） | `<extract>`、`--md`、`-o`、`--apply` |
+| `scripts/md2tex.py` | 译稿 → XeLaTeX／PDF；`[^n]` 默认排成页底真脚注，URL 走 `\url{}`，图宽按 `--fig-meta` 还原原刊比例，图号按原刊编号，xelatex 跨进程锁 | `--pdf`、`--footnotes`、`--fig-meta`、`--source-pdf`、`--title-en` 等 |
 | `scripts/verify_pdf.py` | PDF 验收：编译错误、`Overfull \vbox`、图片数、书签、文本层、逐条核脚注是否进 PDF | `<PDF>`、`--tex`、`--md`、`--footnotes` |
 | `scripts/_test_footnotes.py` | `build_wechat.py` 的脚注形态回归测试（13 种写法 + 1 条必须报警的失败用例） | 无 |
 | `scripts/extract_terms.py` | 从英文原文挖候选术语，标注已收录/新增，可生成项目表模板 | `--glossary`、`--min-count`、`--top`、`--write-project` |
@@ -625,7 +658,7 @@ python scripts/zotero_attach.py --batch . --strict                # 一次交付
 | `scripts/paper_meta.py` | 生成、写入、检查译文顶部的 YAML 元信息 | `--init`、`--inject`、`--check` |
 | `scripts/zotero_attach.py` | 把已验收的译文 PDF 挂回 Zotero 父条目（本地 API 读写，Zotero 10+ 可自动上传；filename+md5 判重，改稿原地覆盖；不碰 sqlite） | `<PDF>`、`--md`、`--batch`、`--strict`、`--parent-key`、`--title`、`--doi`、`--attach-title`、`--prepare-only`、`--dry-run`、`--stage` |
 | `scripts/normalize_math.py` | 统一 `\[…\]`→`$$…$$`、`\(…\)`→`$…$`，跳过代码块与 `\\[2pt]` | `--inplace`、`-o`、`--check` |
-| `scripts/fidelity_check.py` | 与原文对账：结构、引用、公式、未译段、术语一致性；硬查脚注清单与译文 `## 脚注` 节；`--strict-soft` 可把建议项升级为硬失败 | `--glossary`、`--strict`、`--strict-soft`、`--skip-footnote-check` |
+| `scripts/fidelity_check.py` | 与原文对账：结构、引用、公式、未译段、术语一致性；硬查脚注清单是否逐条落成「正文 `[^n]` 引用 + 文末 `[^n]:` 定义」（悬空定义、孤儿标记、编号乱序都拦）、无 `## 脚注` 节残留；`--strict-soft` 可把建议项升级为硬失败 | `--glossary`、`--strict`、`--strict-soft`、`--skip-footnote-check` |
 | `scripts/merge_glossary.py` | 合并多份术语表，做姓名规范化与权威译名裁决，输出四态分流 | `-o`、`--verified`、`--no-normalize` |
 | `scripts/prune_glossary.py` | 按跨文献频次裁剪术语表，低频条目移入档案 | `--min-files`、`--keep-verified` |
 
@@ -706,6 +739,7 @@ git log --oneline -- SKILL.md                 # 单文件历史
 - 新增 `scripts/footnotes.py`、`references/footnotes.md`
 - 改写 `SKILL.md`、`references/mineru.md`、`references/review-checklist.md`
 - 重写 `scripts/build_wechat.py` 的脚注层：`[^n]` / `<sup>n</sup>` / `## 脚注` 节统一归一，新增 `audit_notes()` 硬校验；配 `scripts/_test_footnotes.py` 回归测试。旧版只认 `<sup>`，`footnotes.py --patch` 过的稿子会静默丢光脚注
+- **脚注改「就地锚定」**（2026-11-16）：`footnote_recover.py --apply` 不再插 `## 脚注` 节，改为把 `[^n]` 锚进正文、定义 `[^n]: …` 落文末且不带「第 N 页脚注 n：」前缀；旧稿自动迁移（按「对应「…处」」提示语把标记插回正文），判不出位置的进 `脚注_待锚.csv`（`--place` 回灌，`--anchor-bare` / `--anchor-math` 自动锚定）；`--check` 与两个 skill 的 `fidelity_check.py` 改为硬查「定义 + 正文引用」双向齐全、编号升序；`md2tex.py` 对「有定义没引用」默认 `exit 2`（`--allow-orphan-notes` 才降级）——之前正是这条静默降级把脚注排成了文末一节
 
 若仓库采用「多个 skill 各占一个子目录」的结构，可在宿主的 skills 目录建目录联接（Windows junction / Unix symlink）指向仓库子目录：编辑即生效，无需双向同步。
 </versioning>

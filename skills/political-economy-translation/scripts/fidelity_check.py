@@ -408,11 +408,13 @@ def length_outliers(src, tgt):
 
 
 def check_footnotes(tgt_full, work_dir, skip=False):
-    """交付门禁：脚注清单 ↔ 译文 `## 脚注` 节逐条核对。
+    """交付门禁：脚注清单 ↔ 译文「正文引用 + 文末定义」逐条核对。
 
     MinerU 的 full.md 整类过滤 page_footnote，块级对账查不出来；统一脚本
-    footnote_recover.py 负责恢复与补回，这里在交付前再验一次编号、页码、
-    链接与是否还有英文待译。两个 skill 用同一实现。
+    footnote_recover.py 负责恢复与就地锚定，这里在交付前再验一次：
+    每条脚注既要有 `[^n]:` 定义，也要有正文里的 `[^n]` 引用——只补定义不补
+    引用，PDF 里就会掉成文末一节编号列表，那正是要杜绝的形态。
+    两个 skill 用同一实现。
     """
     if skip:
         print("  （已显式跳过脚注核对）")
@@ -430,33 +432,53 @@ def check_footnotes(tgt_full, work_dir, skip=False):
     if not needed:
         print("✓ 脚注核对：清单 0 条需补")
         return []
-    m = re.search(r"(?m)^##\s*脚注\s*$(.*?)(?=^##\s|\Z)", tgt_full, re.S)
-    if not m:
-        return ["译文缺 `## 脚注` 节：清单有 %d 条页底脚注要补，"
-                "原文与译文必须同步补回" % len(needed)]
-    defs = {mm.group(1): mm.group(2)
-            for mm in re.finditer(r"(?m)^\[\^(\w+)\]:\s*(.*)$", m.group(1))}
     out = []
+    if re.search(r"(?m)^#{2,6}[ \t]*(?:页底)?(?:脚注|尾注|Footnotes?|Endnotes?)[ \t]*$",
+                 tgt_full, re.I):
+        out.append("译文仍有 `## 脚注` 节：脚注要落成正文内联 `[^n]` + 文末定义，"
+                   "不能再是单独一节（跑 footnote_recover.py --apply 迁移）")
+    no_cmt = re.sub(r"<!--.*?-->", "", tgt_full, flags=re.S)
+    defs = {mm.group(1): mm.group(2)
+            for mm in re.finditer(r"(?m)^\[\^(\w+)\]:\s*(.*)$", no_cmt)}
+    body = re.sub(r"(?m)^\[\^\w+\]:.*$", "", no_cmt)
+    used = {mm.group(1) for mm in re.finditer(r"\[\^(\w+)\](?!:)", body)}
     for r in needed:
         n = r["marker"]
         page = str(r.get("page", ""))
-        if n not in defs:
-            out.append("译文脚注节缺 `[^%s]:` 定义（第 %s 页）" % (n, page))
-            continue
-        line = defs[n]
-        if page not in line:
-            out.append("译文 `[^%s]` 页码不符：应为第 %s 页" % (n, page))
-        for u in re.findall(r"https?://[^\s<>'，。；]+", r.get("plain", "")):
-            if u not in line:
-                out.append("译文 `[^%s]` 丢了链接 %s" % (n, u[:60]))
-        if "<!-- 待译" in line or "TODO" in line:
-            out.append("译文 `[^%s]` 还是英文待译：填 _work/脚注_待译.csv 的 zh 列后重跑 --apply" % n)
+        line = defs.get(n)
+        if line is None:
+            out.append("译文缺 `[^%s]:` 定义（第 %s 页脚注 %s）" % (n, page, n))
+        else:
+            if re.match(r"^\**\s*第\s*\d+\s*页", line) \
+                    or re.search(r"第\s*\d+\s*页\s*脚注", line[:30]):
+                out.append("译文 `[^%s]` 定义里还留着「第 N 页脚注 n：」页面前缀，"
+                           "脚注正文只能是正文本身" % n)
+            for u in re.findall(r"https?://[^\s<>'，。；]+", r.get("plain", "")):
+                if u not in line:
+                    out.append("译文 `[^%s]` 丢了链接 %s" % (n, u[:60]))
+            if "<!-- 待译" in line or "TODO" in line:
+                out.append("译文 `[^%s]` 还是英文待译：填 _work/脚注_待译.csv 的 zh 列"
+                           "（或直接在 md 里写中文）后重跑 --apply" % n)
+        if n not in used:
+            out.append("译文正文没有 `[^%s]` 引用（第 %s 页脚注 %s）：标记没锚进正文，"
+                       "PDF／公众号版会掉成文末列表" % (n, page, n))
+    orphan = sorted(used - set(defs))
+    if orphan:
+        out.append("译文正文有 `[^%s]` 却没有 `[^n]:` 定义（孤儿标记）"
+                   % "、".join(orphan))
+    seq = []
+    for mm in re.finditer(r"\[\^(\w+)\](?!:)", body):
+        if mm.group(1).isdigit() and int(mm.group(1)) not in seq:
+            seq.append(int(mm.group(1)))
+    if len(seq) > 1 and seq != sorted(seq):
+        out.append("译文 `[^n]` 首次出现顺序不是升序（%s）：锚点插错了位置"
+                   % "→".join(str(x) for x in seq))
     if re.search(r"<sup>\s*\d", tgt_full):
         out.append("译文仍有字面 `<sup>n</sup>`：交付形态只能是 `[^n]`")
     if out:
         return out
-    print("✓ 脚注核对：清单 %d 条需补，译文脚注节 %d 条编号定义；"
-          "逐条页码/链接/中文齐备" % (len(needed), len(defs)))
+    print("✓ 脚注核对：清单 %d 条，译文 %d 条定义 + %d 条正文引用；逐条链接/中文齐备"
+          % (len(needed), len(defs), len([x for x in used if x.isdigit()])))
     return []
 
 

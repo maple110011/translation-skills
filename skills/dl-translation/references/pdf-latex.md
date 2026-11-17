@@ -67,11 +67,25 @@ pdftoppm -r 150 -f 5 -l 5 -gray -png paper.pdf page
 
 ## 五、图与表
 
-- 并排图用 `<table><td>` → `minipage` + `\includegraphics[width=\linewidth]`，宽度由脚本按图片张数分配（1 张 0.93、2 张 0.48、3 张 0.33）。**不要在 md 里依赖 `<img width="32%">` 控制宽度**（百分比相对所在 `<td>` 会塌成 0 宽）；写了也不影响解析。
+- **多联图必须是"一张图"，不是三张图。** 原刊的三栏并排图会被 MinerU 拆成三个 `image` 块，`full.md` 里就是三条独立 `![…](…)`；逐条渲染就成了三张各占 0.93 栏宽、上下堆叠的图，图注也被拆散。正确形态是让它们落在**同一行**（`![](a) ![](b) ![](c)`），`md2tex` 排成一行 minipage。归一交给 `scripts/figure_layout.py`：按 `content_list.json` 的 `bbox` 判同页同排（竖直重叠过半）并合并，同时把夹在图之间的子图标签收成一行小字——那些标签是 MinerU 从图里切出去的文字，别手工删。
+- **图片宽度按原刊 bbox 走**：`figure_layout.py` 产 `_work/图片版式.csv`（`bbox宽 / 该页最宽文本块`），`md2tex --fig-meta` 据此定 `width=N\linewidth`；多联图按各栏真实比例分配（实测 41%/27%/27%），不是等分。没有清单时退回「单图 0.93、多图等分」，附录里只占半栏的图会被放大一倍多。栏宽取该页**最宽**文本块，中位数会被只有标题的附录页带偏。
+- **图号按原刊编号**：浮动对象重定位后出现顺序与编号不一致，`\caption` 自增会与正文"在图 6 中"打架。`md2tex` 从 `**图 N**` 读出编号并 `\setcounter{figure}{N-1}`。
+- 并排图也可以用 `<table><td>` 写（`minipage` + `\includegraphics[width=\linewidth]`，宽度按张数分配）。**不要在 md 里依赖 `<img width="32%">` 控制宽度**（百分比相对所在 `<td>` 会塌成 0 宽）；写了也不影响解析。两种写法二选一，`figure_layout.py` 见到 `<table>` 会跳过。
+- 多联图各栏裁切高度常不同，`minipage` 用 `[b]` 底对齐，否则各栏横轴错开一格。MinerU 的裁切框偶尔切进子图标题（图片顶端留半截英文字母），那是像素本身的问题，版式改不了。
 - `<img>` 属性顺序任意（`src` / `width` / `alt` 怎么排都行），裸 Markdown 图 `![alt](path)` 与块内 `![](path)` 同样识别。图注认 `**图 N**　…` 和 `图 N. …` 两种写法。解析不到图片时脚本宁可只留图注文字，也不排「只有 caption、没有图」的空 `figure`。
 - 宽矩阵、宽公式一律走 `\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{$\displaystyle …$}`，比按源码长度猜阈值可靠。
 - `align*` 里不能对整行 `\resizebox`（会破坏对齐）；实测在 align 单元里 `\sbox{0}{...}` 量宽度会踩坏 amsmath 的盒子寄存器，报几百 pt 的 overfull——要么整组退 `gather*`，要么别对齐。
 - **长表必须分块**：`table[H] + tabular` 不能跨页，几十行的附录表会被整块截断，而编译仍是 0 个 `!` 错误，日志里只留一句 `Overfull \vbox`。脚本按 **45 行**自动拆成多个各自可落页的 `table`，续块重复表头、只第一块挂 `\caption`（其余用 `\caption*{（续表）}`）。`longtable` 不是万能替代：多列宽表格改等宽 `p{}` 列会把方法名压在数字上。验收时**必须同时查 `\vbox`**，只数 `\hbox` 会漏掉整块数据丢失。
+
+## 五之二、代码块与伪代码
+
+- 围栏块（三反引号 / 三波浪线）由脚本排成 `codeblock` 环境：`fancyvrb` 的 `Verbatim` + `frame=leftline` + `xleftmargin`，等宽、带左侧竖线。块内**一个字符都不做转义**——反斜杠、`#`、`$`、`_`、`|`、花括号原样进 PDF，因为伪代码里的 `\eta`、`x_i` 是代码不是 LaTeX。
+- 折行靠 `fvextra` 的 `breakanywhere`（TeX Live 的 latex-extra 里有）。没有这个包时脚本自动退化成只在空格处折行，中文注释可能略宽，但格式不丢、内容不丢。
+- **`\end{codeblock}` 必须独占一行**：fancyvrb 看到同一行还有 `\par\vspace{…}` 就报 `FancyVerb Error: Extraneous input`。虽然仍能编译出 PDF，但日志里会多一个 `!`，验收直接失败——这是最容易自己手搓排版副本时踩的一脚。
+- 代码块不参与公式扫描：块内的 `$` 不是数学，符号锚点（`\hypertarget`）也不会插进去；插进去 verbatim 就烂了。空行压缩同样跳过块内（否则伪代码的分段空行会被吃掉）。
+- 行内代码排成 `\texttt{}`，内容走同一套转义；不要用 `\verb`（中文与 `%` 在 `\verb` 里会出事）。
+- **MinerU 的算法框**（`<div class="mineru-algorithm" style="white-space: pre-wrap">`）不能进 verbatim——里面有 `$…$` 行内公式。脚本逐行排：上下各一条 `\hrule height 0.4pt`，整块 `\leftskip=1.1em` + `\small`，行首与行内连续空格换成 `\hspace*`（每个空格 0.35em，上限 20 格），所以「第几步、属于哪一层」在 PDF 里仍然看得见。**别用逐行 `\vrule` 画左边框**：行盒高度不一，边框一定断成一段段。
+- 验收：`verify_pdf.py --md` 会数译文围栏块数与 `\begin{codeblock}` 数是否一致，并把每块第一行有实质内容的代码去空白后在 PDF 文本层里找——找不到就是"编译成功但算法没进 PDF"。
 
 ## 六、验收清单
 
@@ -98,16 +112,17 @@ PY
 6. 抽页面对照原文：公式块是否等号对齐、编号是否右对齐、图是否并排、附录链条是否左对齐紧排。
 7. 页码：`pdfinfo` 看页数是否合理（一般比原文多 15–30%，中文行宽不同）。
 8. **图片数**：`grep -c includegraphics paper.tex` 应对得上译文里 `![` 与 `<img src=` 的总数。早期版本的典型故障是「编译 0 错误、PDF 有页数，但一张图都没有，只剩路径文字与 caption」——只看 `!` 错误发现不了，必须数一遍。
-9. **脚注**：逐条核 `_work/脚注.csv` 的中文/英文关键串是否进了 PDF 文本层，TeX 里 `\footnote{}` 数不少于清单内容脚注数，文本层无字面 `[^n]` / `<sup>`。脚注在 Markdown 里是 `[^n]` + `## 脚注` 节，编译后必须变成页底真脚注，不能只剩一个上标数字。
+9. **代码块**：数 `\begin{codeblock}` 是否等于译文围栏块数；抽一页看缩进是否保留、等宽是否生效、左侧竖线是否在；块内反斜杠有没有被印成 `\textbackslash{}`。
+10. **脚注**：逐条核 `_work/脚注.csv` 的中文/英文关键串是否进了 PDF 文本层，TeX 里 `\footnote{}` 数不少于清单内容脚注数，文本层无字面 `[^n]` / `<sup>`。脚注在 Markdown 里是正文 `[^n]` 引用 + 文末 `[^n]:` 定义，编译后必须变成页底真脚注，不能只剩一个上标数字。
 
-1–2、8、9 已脚本化，编译后直接跑（有问题返回 1）：
+1–2、8–10 已脚本化，编译后直接跑（有问题返回 1）：
 
 ```bash
 python scripts/verify_pdf.py _work/pdf/paper.pdf \
     --tex _work/pdf/paper.tex --md <stem>_zh.md --footnotes _work/脚注.csv
 ```
 
-`md2tex.py` 默认 `--footnotes footnote`（页底真脚注）；若稿件要求尾注形式，用 `--footnotes endnote`，脚注文字集中排在文末 `## 脚注` 节。两种模式都由 `verify_pdf.py` 验收。URL 走 `\url{}`（已加载 `xurl`），否则长链接在页底脚注里必然撑出 `Overfull \hbox`。
+`md2tex.py` 默认 `--footnotes footnote`（页底真脚注）；若稿件要求尾注形式，用 `--footnotes endnote`，脚注文字集中排在文末。两种模式都由 `verify_pdf.py` 验收。**页底模式下，有定义却找不到正文引用的脚注会让脚本 `exit 2`**——它们只能退化成文末一节编号列表；确认要降级才加 `--allow-orphan-notes`。URL 走 `\url{}`（已加载 `xurl`），否则长链接在页底脚注里必然撑出 `Overfull \hbox`。
 
 ## 七、脚本解决不了的部分（交付时要说明）
 
@@ -134,6 +149,6 @@ python scripts/verify_pdf.py _work/pdf/paper.pdf \
 
 同理，正文里若出现「术语一览中文简述」的括注（如 `…(PFNs)（一种在模拟数据上预训练…）`），属于规则 6 的「增」：`fidelity_check.py` 会拿简述列去正文反查 `（简述）` 形态并硬失败。简述只属于表，不属于正文。
 
-**脚注渲染**：译文用 Markdown 脚注语法——正文写 `[^n]` 引用，文末 `## 脚注` 节写 `[^n]: 第 N 页脚注 n：…` 定义。`md2tex.py` 把 `[^n]` 转成 `\textsuperscript{n}`，定义行排成 `\noindent\textsuperscript{n}\, …\par`。不要写 `<sup>n</sup>`：那是 MinerU 的 HTML 提取产物，`inline()` 虽有兜底转换，`fidelity_check.py` 的正文卫生硬校验仍会拦。脚注文字本身由 `footnote_recover.py` 从 `content_list.json` 恢复，见 [mineru.md](mineru.md) 第三节第 4 条。
+**脚注渲染**：译文用 Markdown 脚注语法——正文写 `[^n]` 引用（紧跟被注词句、句读之前），文末写 `[^n]: …` 定义，**没有 `## 脚注` 标题，也不带「第 N 页脚注 n：」页面前缀**。`md2tex.py` 把带引用的 `[^n]` 转成页底 `\footnote{…}`；只有 `--footnotes endnote` 或显式 `--allow-orphan-notes` 时才退成 `\noindent\textsuperscript{n}\, …\par` 的文末段落。不要写 `<sup>n</sup>`：那是 MinerU 的 HTML 提取产物，`inline()` 虽有兜底转换，`fidelity_check.py` 的正文卫生硬校验仍会拦。脚注文字本身由 `footnote_recover.py` 从 `content_list.json` 恢复，见 [mineru.md](mineru.md) 第三节第 4 条。
 
 **仍要人工判断的**：图片本身是位图、图内英文标注不可检索；原文自己的公式/表格缺陷照原样保留；语义与润色不在脚本范围内。

@@ -134,7 +134,7 @@ python scripts/footnote_recover.py ./_work/extract -o ./_work \
     --translations _work/脚注_待译.csv --target <stem>_zh.md --apply --check
 ```
 
-`--apply` 归一 `<sup>n</sup>` → `[^n]`、在 REFERENCES 之前给两侧同步插 `## 脚注` 节、逐条写 `[^n]: 第 N 页脚注 n：…`，写回前留备份且幂等；`--check` 逐条核编号、页码、链接与中文，未填中文直接返回 1。`--pdf` 只作 PDF 文字层交叉验证（双栏期刊脚注在栏底，未确认不等于提取包有错）。作者机构／版权注与正文脚注同号时不占编号，作引用块说明保留英文。判据、编号规则与四层门禁见 [footnotes.md](footnotes.md)；旧 `scripts/footnotes.py` 只是兼容入口。
+`--apply` 归一 `<sup>n</sup>` → `[^n]`、把标记**锚进正文对应句子**、把 `[^n]: …` 定义写到文末（**不插 `## 脚注` 节、不写「第 N 页脚注 n：」前缀**），写回前留备份且幂等；判不出位置的脚注进 `脚注_待锚.csv`，`--check` 逐条核「定义 + 正文引用」双向齐全、链接与中文，未落位或未填中文直接返回 1。`--pdf` 只作 PDF 文字层交叉验证（双栏期刊脚注在栏底，未确认不等于提取包有错）。作者机构／版权注与正文脚注同号时不占编号，单列到 `脚注_原刊信息.md`，不进交付稿。判据、编号规则与四层门禁见 [footnotes.md](footnotes.md)；旧 `scripts/footnotes.py` 只是兼容入口。
 
 ### 5. 公式编号被吞
 

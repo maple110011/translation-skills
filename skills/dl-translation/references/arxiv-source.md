@@ -20,7 +20,7 @@ python scripts/arxiv_src.py --from <stem>_zh.md -o ./_work/arxiv   # 从 front m
 | `main.tex` | 主文件原样，`\input` 保留 | 对照作者结构，看注释 |
 | `main.flat.tex` | 展开 `\input` 并剥掉注释后的全文 | **翻译基准**，模型直接读这份 |
 | `figures/` | 正文实际引用到的图，路径已改写成 `figures/…` | 译稿里的图片引用按它写 |
-| `结构清单.md` | 章节树、公式、定理、图、表、引用、脚注、自定义宏 | 定稿后逐项对账 |
+| `结构清单.md` | 章节树、公式、定理、**算法/代码环境**、图、表、引用、脚注、自定义宏 | 定稿后逐项对账 |
 | `脚注.csv` | `\footnote` 按顺序抽出（列与 `footnote_recover.py` 兼容，页码留空） | 填 `zh` 列后回填译文 |
 | `原文.md` | 可选，`--md` 且有 pandoc 时转出的 Markdown | 只想块级对账时用 |
 
@@ -42,7 +42,7 @@ arXiv 版常常比会议版全——附录更长、脚注更多、图更全。**
 
 1. 脚本已生成 `_work/脚注.csv`（`page` 为空，`text` 是源码原文）；
 2. 填 `zh` 列；
-3. 译文照常写 `## 脚注` 节，条数必须与 `结构清单.md` 的「脚注明细」一致；
+3. 译文照常写成正文 `[^n]` 引用 + 文末 `[^n]:` 定义（**不另起 `## 脚注` 节**，也不写页面前缀），条数必须与 `结构清单.md` 的「脚注明细」一致；
 4. `fidelity_check.py` 用 `--skip-footnote-check`，脚注完整性改由**条数相等**保证。
 
 页码对不上是正常的——tex 里没有页码概念，这一层校验在 tex 路线下换成序号对账。
@@ -50,6 +50,35 @@ arXiv 版常常比会议版全——附录更长、脚注更多、图更全。**
 **宏**。源码里到处是 `\methodname{}`、`\E`、`\dataset` 这类自定义命令，直接读会当成正文。脚本从 preamble 抽出定义表，附在 `结构清单.md` 末尾。翻译时照表还原：`\E` 是 `\mathbb{E}`，`\dataset` 是 `\mathbf{D}`，`\methodname` 是论文自己的方法名。
 
 遇到表里没有的宏，去 `src/` 里搜 `\newcommand`，别猜。
+
+**伪代码**。源码里的算法框是 `\begin{algorithm}` + `\begin{algorithmic}`（或 `algorithm2e`、`lstlisting`、`verbatim`）。`结构清单.md` 里有一行「算法/代码环境」，它就是你应当产出的围栏代码块数量——**两者必须相等**。
+
+翻译时的转换规则：
+
+| tex 源 | 译文 |
+|---|---|
+| `\begin{algorithm}\caption{Meta-training}` | 围栏代码块开头一行 `Algorithm 1: Meta-training` |
+| `\Require` / `\Ensure`（或 `\KwIn`/`\KwOut`） | `Require:` / `Ensure:`，可译"输入／输出"，一篇之内统一 |
+| `\State`、`\For{…}`、`\EndFor`、`\If`、`\Else` | 各占一行；`for … do` / `end for` 的**缩进层级照原结构**，不许拉平 |
+| `\Return` | `return` |
+| `\Comment{…}`、行内 `%` | 注释，可译 |
+| `$…$` | 照抄，不译不改写 |
+
+````markdown
+```text
+Algorithm 1: Meta-Training of a PFN
+Require: prior distribution p(D), number of samples K
+Ensure: model q_	heta approximating the PPD
+1: initialize q_	heta
+2: for j = 1 to K do
+3:     Sample D ∪ {(x_i, y_i)}_{i=1}^m ~ p(D)
+4:     Compute l_bar_	heta = sum_i -log q_	heta(y_i | x_i, D)
+5:     Update 	heta by SGD on grad l_bar_	heta
+6: end for
+```
+````
+
+**`--md` 转出的 Markdown 不能直接当基准**：pandoc 不认 `algorithmic`，`\State` 那几行会被摊成散文，伪代码的缩进就此消失。块级对账可以用它，**翻译基准仍以 `main.flat.tex` 为准**，算法框按上表手转。
 
 ---
 

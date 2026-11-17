@@ -55,6 +55,9 @@ except Exception:
     pass
 
 FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
+# 围栏行 + 语言标记。`{3,}` 开、同字符且不短于开栏才算关：伪代码里的 ```` ``` ````
+# 出现在 C 注释里时不会被误判成关栏。
+FENCE_OPEN = re.compile(r"^( {0,3})(`{3,}|~{3,})[ \t]*([^`]*?)[ \t]*$")
 HEADING = re.compile(r"^(#{1,6})\s+(.*)$")
 LIST_ITEM = re.compile(r"^(\s*)([-*+]|\d+[.)])\s+")
 QUOTE = re.compile(r"^(\s*)>\s?")
@@ -187,6 +190,24 @@ def blocks(text):
     lines = text.split("\n")
     i, in_fence, in_math, in_bracket = 0, False, False, False
     para = []
+    # 围栏开、关、块内三种位置先标出来：一块只算一个 "code" 块。旧版在开栏与
+    # 关栏各 append 一次，一块算两块；若某侧漏了关栏，其后的全部正文都被吞进
+    # 同一个代码块，正文结构对账会静默失效。
+    fmap = {}
+    for cb in code_blocks(text):
+        fmap[cb["open_i"]] = "code"
+        for k in range(1, len(cb["body"]) + 1):
+            fmap[cb["open_i"] + k] = "inner"
+        if cb["closed"]:
+            fmap[cb["open_i"] + len(cb["body"]) + 1] = "close"
+    # MinerU 的算法框（<div class="mineru-algorithm">）同样是版式对象：整块算一块，
+    # 内部的行不参与正文段落比对（否则算法里的每行都成了一个段落）。
+    for ab in algo_divs(text):
+        fmap[ab["open_i"]] = "algo"
+        for k in range(1, len(ab["body"]) + 1):
+            fmap[ab["open_i"] + k] = "inner"
+        if ab["closed"]:
+            fmap[ab["open_i"] + len(ab["body"]) + 1] = "close"
 
     def flush():
         nonlocal para
@@ -198,13 +219,18 @@ def blocks(text):
 
     while i < len(lines):
         line = lines[i]
-        if FENCE.match(line):
+        fence_pos = fmap.get(i)
+        if fence_pos == "algo":
             flush()
-            in_fence = not in_fence
+            result.append(("algo", ""))
+            i += 1
+            continue
+        if fence_pos == "code":
+            flush()
             result.append(("code", ""))
             i += 1
             continue
-        if in_fence:
+        if fence_pos in ("inner", "close"):
             i += 1
             continue
         if in_bracket:
@@ -273,9 +299,223 @@ def blocks(text):
     return result
 
 
+# --------------------------------------------------------------------------
+# 代码块 / 伪代码
+#
+# 代码块是整块搬运的对象：围栏、语言标记、缩进层级、行序、行数都算格式，
+# 少一样读者就没法照着复现。旧版只把围栏当成一个 "code" 块的开关，而开关
+# 在开、关两行各 append 一次（一块算两块），且从不比对块内内容——"整块不动"
+# 这条规则其实没人执行。下面把解析与核对分开做。
+# --------------------------------------------------------------------------
+# 注释起点：行首或空白之后的 # / // / --。Code 里的 `x#y` 不算注释。
+COMMENT_TAIL = re.compile(r"(?:^|(?<=\s))(?:#|//|--).*$")
+# 伪代码标题行：`Algorithm 2`、`**算法 1** (`、`Algorithm A.1:` 这类。
+# MinerU 把算法框抽成 `<div class="mineru-algorithm" style="white-space: pre-wrap">`，
+# 行结构与缩进靠 pre-wrap 保留。它不是围栏代码块，但同样是「整块版式对象」，
+# 必须与其他块分开核：少了它，伪代码在译文里就只能是散文。
+ALGO_DIV = re.compile(r"^\s*<div[^>]*\bmineru-algorithm\b", re.I)
+ALGO_DIV_END = re.compile(r"</div>", re.I)
+ALGO_HEAD = re.compile(r"^\s*(?:\*\*)?(?:Algorithm|算法)\s*(?:\d+(?:\.\d+)*|[A-H]\.\d+)\s*(?:[(:：]|\*\*)",
+                       re.I)
+
+
+def code_blocks(text):
+    """Parse fenced code blocks: [{open_i, lang, body, closed}].
+
+    ``open_i`` is the 0-based index of the opening fence line. A block is closed
+    only by a fence of the same character and at least the same length, which is
+    what CommonMark requires and what keeps a ```` ``` ```` inside a C comment
+    from ending the block early.
+    """
+    lines = text.split("\n")
+    out, i = [], 0
+    while i < len(lines):
+        m = FENCE_OPEN.match(lines[i])
+        if not m:
+            i += 1
+            continue
+        fence = m.group(2)
+        close = re.compile(r"^ {0,3}" + re.escape(fence[0]) + "{%d,}\\s*$" % len(fence))
+        open_i, body, closed = i, [], False
+        i += 1
+        while i < len(lines):
+            if close.match(lines[i]):
+                closed = True
+                i += 1
+                break
+            body.append(lines[i])
+            i += 1
+        out.append({"open_i": open_i, "lang": m.group(3), "body": body,
+                    "closed": closed})
+    return out
+
+
+def algo_divs(text):
+    """MinerU 算法框：[{open_i, body, closed}]（open_i 为 0 基行号）。"""
+    lines = text.split("\n")
+    out, i = [], 0
+    while i < len(lines):
+        if not ALGO_DIV.match(lines[i]):
+            i += 1
+            continue
+        open_i, body, closed = i, [], False
+        i += 1
+        while i < len(lines):
+            if ALGO_DIV_END.search(lines[i]):
+                closed = True
+                i += 1
+                break
+            body.append(lines[i])
+            i += 1
+        out.append({"open_i": open_i, "body": body, "closed": closed})
+    return out
+
+
+def div_signature(body):
+    """算法框的结构签名：(缩进, 步号, 步号后的空白宽度)，不看正文。
+
+    算法框里的文字是要译的，所以不能按字符串比；但**步号序列**与**嵌套深度**
+    是结构——`3` 后面缩进四格表示它嵌在 `2 foreach` 里，被拉平就还原不出层级。
+    """
+    sig = []
+    for raw in body:
+        line = raw.expandtabs(4)
+        if not line.strip():
+            continue
+        ind = len(line) - len(line.lstrip())
+        m = re.match(r"\s*(\d+)(\s*)", line)
+        sig.append((ind, m.group(1) if m else "", len(m.group(2)) if m else 0))
+    return sig
+
+
+def code_signature(body):
+    """(缩进宽度, 去掉注释后的代码) 序列，空行不计。
+
+    缩进是伪代码的语义（循环体、分支体全靠它），必须比；注释是给人读的、
+    可以译，所以比对前剥掉。行数按非空行算，多一个空行不算改结构。
+    """
+    sig = []
+    for raw in body:
+        line = raw.expandtabs(4)
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip())
+        sig.append((indent, COMMENT_TAIL.sub("", line).strip(" \t")))
+    return sig
+
+
+def check_code_blocks(src_text, tgt_text):
+    """核对代码块：围栏闭合、块数、每块的缩进与行序。
+
+    Returns ``(hard, soft)``; hard 进退出码，soft 只提示。
+    内容差异按 soft 处理，因为伪代码的 `Require:`／注释是允许译的；
+    但行数、缩进层级、代码记号的变化都会逐条报出来，让人对着原文看一眼。
+    """
+    hard, soft = [], []
+    cs, ct = code_blocks(src_text), code_blocks(tgt_text)
+    for side, blocks_ in (("源", cs), ("译", ct)):
+        for k, cb in enumerate(blocks_, 1):
+            if not cb["closed"]:
+                hard.append(
+                    "代码块围栏未闭合：%s第 %d 行起的围栏没有对应关栏，"
+                    "其后的正文会被整块当成代码——结构对账因此失效，先补关栏"
+                    % (side, cb["open_i"] + 1))
+    if len(cs) != len(ct):
+        hard.append("代码块：源 %d 块、译 %d 块；"
+                    "代码块必须整块保留（源行号 %s / 译行号 %s）"
+                    % (len(cs), len(ct),
+                       [b["open_i"] + 1 for b in cs] or "无",
+                       [b["open_i"] + 1 for b in ct] or "无"))
+        return hard, soft
+
+    for k, (a, b) in enumerate(zip(cs, ct), 1):
+        where = "代码块 %d（源第 %d 行起）" % (k, a["open_i"] + 1)
+        if not (a["closed"] and b["closed"]):
+            continue                    # 围栏本身有问题，已在上面报过，别叠加噪音
+        if a["lang"] != b["lang"]:
+            soft.append("%s：语言标记 源 %r → 译 %r%s"
+                        % (where, a["lang"], b["lang"],
+                           "；标记丢了，编辑器里就没有语法高亮" if a["lang"] else ""))
+        sa, sb = code_signature(a["body"]), code_signature(b["body"])
+        if len(sa) != len(sb):
+            hard.append("%s：源 %d 行、译 %d 行——伪代码的步号/循环体被合并或拆开，"
+                        "缩进就失去意义" % (where, len(sa), len(sb)))
+            continue
+        diffs = [j for j in range(len(sa)) if sa[j] != sb[j]]
+        if not diffs:
+            continue
+        shown = []
+        for j in diffs[:3]:
+            shown.append("    第 %d 行：源 %r → 译 %r"
+                         % (j + 1, sa[j][1][:60] or "（空）", sb[j][1][:60] or "（空）"))
+            if sa[j][0] != sb[j][0]:
+                shown.append("    第 %d 行缩进：源 %d 列 → 译 %d 列"
+                             % (j + 1, sa[j][0], sb[j][0]))
+        soft.append("%s：%d 行代码或缩进不同（注释差异已忽略；"
+                    "除注释与 Require/Ensure 外应逐字一致）\n%s"
+                    % (where, len(diffs), "\n".join(shown)))
+    # MinerU 算法框：块数、行数、步号序列与嵌套深度
+    ds, dt = algo_divs(src_text), algo_divs(tgt_text)
+    for side, divs in (("源", ds), ("译", dt)):
+        for k, d in enumerate(divs, 1):
+            if not d["closed"]:
+                hard.append("算法框未闭合：%s第 %d 行的 <div class=\"mineru-algorithm\"> "
+                            "没有对应 </div>，其后的正文会被吞进这个框"
+                            % (side, d["open_i"] + 1))
+    if len(ds) != len(dt):
+        hard.append("算法框（MinerU `<div class=\"mineru-algorithm\">`）：源 %d 个、译 %d 个；"
+                    "整块被删或被摊成正文段落了（源行号 %s / 译行号 %s）"
+                    % (len(ds), len(dt),
+                       [d["open_i"] + 1 for d in ds] or "无",
+                       [d["open_i"] + 1 for d in dt] or "无"))
+        return hard, soft
+    for k, (a, b) in enumerate(zip(ds, dt), 1):
+        where = "算法框 %d（源第 %d 行起）" % (k, a["open_i"] + 1)
+        if not (a["closed"] and b["closed"]):
+            continue
+        sa, sb = div_signature(a["body"]), div_signature(b["body"])
+        if len(sa) != len(sb):
+            hard.append("%s：源 %d 行、译 %d 行——伪代码的步号或循环体被合并/拆开，"
+                        "缩进层级随之失效" % (where, len(sa), len(sb)))
+            continue
+        diffs = [j for j in range(len(sa)) if sa[j] != sb[j]]
+        if diffs:
+            shown = ["    第 %d 行：源 缩进 %d/步号 %r/后随空格 %d → 译 缩进 %d/步号 %r/后随空格 %d"
+                     % (j + 1, sa[j][0], sa[j][1], sa[j][2], sb[j][0], sb[j][1], sb[j][2])
+                     for j in diffs[:3]]
+            soft.append("%s：%d 行的步号或缩进与原文不同（正文差异不在此列）\n%s"
+                        % (where, len(diffs), "\n".join(shown)))
+    return hard, soft
+
+
+def unfenced_algorithms(text):
+    """行首就是 `Algorithm N(` 的段落：伪代码已被提取器压成散文。
+
+    这类文本没有围栏，源文自己就没有格式可保；能做的只有一件事：按原文版式
+    恢复成代码块（步号一行一步、缩进照原样），否则译文无论怎么排都是散文。
+    返回 ``[(行号, 该行前 40 字)]``，行号以传入的全文为准。
+    """
+    hits, in_fence, in_algo = [], False, False
+    for n, line in enumerate(text.split("\n"), 1):
+        if FENCE_OPEN.match(line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if ALGO_DIV.match(line):
+            in_algo = True
+            continue
+        if in_algo:
+            if ALGO_DIV_END.search(line):
+                in_algo = False
+            continue
+        if ALGO_HEAD.match(line):
+            hits.append((n, line.strip()[:40]))
+    return hits
+
+
 def images(text):
     """Image targets in either syntax, minus the 并排图块 sentinel.
-
     A target may carry its figures as `<img>` inside a marked figure block
     (that is how multi-panel figures are laid out side by side); both syntaxes
     count, and the block itself is counted separately so that one logical
@@ -461,11 +701,13 @@ def check_body_hygiene(full_text):
 
 
 def check_footnotes(tgt_full, work_dir, skip=False):
-    """交付门禁：脚注清单 ↔ 译文 `## 脚注` 节逐条核对。
+    """交付门禁：脚注清单 ↔ 译文「正文引用 + 文末定义」逐条核对。
 
     MinerU 的 full.md 整类过滤 page_footnote，块级对账查不出来；统一脚本
-    footnote_recover.py 负责恢复与补回，这里在交付前再验一次编号、页码、
-    链接与是否还有英文待译。两个 skill 用同一实现。
+    footnote_recover.py 负责恢复与就地锚定，这里在交付前再验一次：
+    每条脚注既要有 `[^n]:` 定义，也要有正文里的 `[^n]` 引用——只补定义不补
+    引用，PDF 里就会掉成文末一节编号列表，那正是要杜绝的形态。
+    两个 skill 用同一实现。
     """
     if skip:
         print("  （已显式跳过脚注核对）")
@@ -483,33 +725,53 @@ def check_footnotes(tgt_full, work_dir, skip=False):
     if not needed:
         print("✓ 脚注核对：清单 0 条需补")
         return []
-    m = re.search(r"(?m)^##\s*脚注\s*$(.*?)(?=^##\s|\Z)", tgt_full, re.S)
-    if not m:
-        return ["译文缺 `## 脚注` 节：清单有 %d 条页底脚注要补，"
-                "原文与译文必须同步补回" % len(needed)]
-    defs = {mm.group(1): mm.group(2)
-            for mm in re.finditer(r"(?m)^\[\^(\w+)\]:\s*(.*)$", m.group(1))}
     out = []
+    if re.search(r"(?m)^#{2,6}[ \t]*(?:页底)?(?:脚注|尾注|Footnotes?|Endnotes?)[ \t]*$",
+                 tgt_full, re.I):
+        out.append("译文仍有 `## 脚注` 节：脚注要落成正文内联 `[^n]` + 文末定义，"
+                   "不能再是单独一节（跑 footnote_recover.py --apply 迁移）")
+    no_cmt = re.sub(r"<!--.*?-->", "", tgt_full, flags=re.S)
+    defs = {mm.group(1): mm.group(2)
+            for mm in re.finditer(r"(?m)^\[\^(\w+)\]:\s*(.*)$", no_cmt)}
+    body = re.sub(r"(?m)^\[\^\w+\]:.*$", "", no_cmt)
+    used = {mm.group(1) for mm in re.finditer(r"\[\^(\w+)\](?!:)", body)}
     for r in needed:
         n = r["marker"]
         page = str(r.get("page", ""))
-        if n not in defs:
-            out.append("译文脚注节缺 `[^%s]:` 定义（第 %s 页）" % (n, page))
-            continue
-        line = defs[n]
-        if page not in line:
-            out.append("译文 `[^%s]` 页码不符：应为第 %s 页" % (n, page))
-        for u in re.findall(r"https?://[^\s<>'，。；]+", r.get("plain", "")):
-            if u not in line:
-                out.append("译文 `[^%s]` 丢了链接 %s" % (n, u[:60]))
-        if "<!-- 待译" in line or "TODO" in line:
-            out.append("译文 `[^%s]` 还是英文待译：填 _work/脚注_待译.csv 的 zh 列后重跑 --apply" % n)
+        line = defs.get(n)
+        if line is None:
+            out.append("译文缺 `[^%s]:` 定义（第 %s 页脚注 %s）" % (n, page, n))
+        else:
+            if re.match(r"^\**\s*第\s*\d+\s*页", line) \
+                    or re.search(r"第\s*\d+\s*页\s*脚注", line[:30]):
+                out.append("译文 `[^%s]` 定义里还留着「第 N 页脚注 n：」页面前缀，"
+                           "脚注正文只能是正文本身" % n)
+            for u in re.findall(r"https?://[^\s<>'，。；]+", r.get("plain", "")):
+                if u not in line:
+                    out.append("译文 `[^%s]` 丢了链接 %s" % (n, u[:60]))
+            if "<!-- 待译" in line or "TODO" in line:
+                out.append("译文 `[^%s]` 还是英文待译：填 _work/脚注_待译.csv 的 zh 列"
+                           "（或直接在 md 里写中文）后重跑 --apply" % n)
+        if n not in used:
+            out.append("译文正文没有 `[^%s]` 引用（第 %s 页脚注 %s）：标记没锚进正文，"
+                       "PDF 里会掉成文末列表" % (n, page, n))
+    orphan = sorted(used - set(defs))
+    if orphan:
+        out.append("译文正文有 `[^%s]` 却没有 `[^n]:` 定义（孤儿标记）"
+                   % "、".join(orphan))
+    seq = []
+    for mm in re.finditer(r"\[\^(\w+)\](?!:)", body):
+        if mm.group(1).isdigit() and int(mm.group(1)) not in seq:
+            seq.append(int(mm.group(1)))
+    if len(seq) > 1 and seq != sorted(seq):
+        out.append("译文 `[^n]` 首次出现顺序不是升序（%s）：锚点插错了位置"
+                   % "→".join(str(x) for x in seq))
     if re.search(r"<sup>\s*\d", tgt_full):
         out.append("译文仍有字面 `<sup>n</sup>`：交付形态只能是 `[^n]`")
     if out:
         return out
-    print("✓ 脚注核对：清单 %d 条需补，译文脚注节 %d 条编号定义；"
-          "逐条页码/链接/中文齐备" % (len(needed), len(defs)))
+    print("✓ 脚注核对：清单 %d 条，译文 %d 条定义 + %d 条正文引用；逐条链接/中文齐备"
+          % (len(needed), len(defs), len([x for x in used if x.isdigit()])))
     return []
 
 
@@ -589,6 +851,33 @@ ENV_NAMES = {
 _ENV_TAIL = r"\s*\.?\s*(?:\d+(?:\.\d+)*|[A-Z])(?![\w])"
 
 
+def blank_code_fences(text):
+    """Blank out fenced code, keeping line numbering.
+
+    定理类环境的计数按行首标签匹配，而代码块里的 ``Algorithm 1 Training loop``
+    是代码、不是一条定理陈述：它按规则 3 就该原样留在英文，译过来反而不对。
+    计数前先把它抹掉，否则每篇带伪代码的论文都会误报「算法 源 1 → 译 0」。
+    """
+    lines = text.split("\n")
+    out, in_fence, in_algo = [], False, False
+    for line in lines:
+        if FENCE_OPEN.match(line):
+            in_fence = not in_fence
+            out.append("")
+            continue
+        if ALGO_DIV.match(line):
+            in_algo = True
+            out.append("")
+            continue
+        if in_algo:
+            if ALGO_DIV_END.search(line):
+                in_algo = False
+            out.append("")
+            continue
+        out.append("" if in_fence else line)
+    return "\n".join(out)
+
+
 def theorem_counts(src, tgt):
     """Numbered theorem-like environments, counted per label.
 
@@ -596,17 +885,23 @@ def theorem_counts(src, tgt):
     the paper claims, and it leaves no trace in the block structure — the
     paragraph is still there, it is just labelled differently. Counting the
     labels is the cheapest way to catch it.
+
+    两侧都按「中英全标签」计数：译文里保留英文标签（`Theorem 2.1` 未译）也算
+    这一条还在，不能因为写法没统一就判成丢失。代码块先抹掉（见 blank_code_fences）。
     """
-    def count(text, labels):
+    alias = {}
+    for en, zh in ENV_NAMES.items():
+        alias[en] = zh
+        alias[zh] = zh
+
+    def count(text):
         c = Counter()
-        pat = re.compile(r"(?m)^[\s>#*+\-]*(" + "|".join(labels) + r")" + _ENV_TAIL)
-        for m in pat.finditer(text):
-            c[labels[m.group(1)]] += 1
+        pat = re.compile(r"(?m)^[\s>#*+\-]*(?:\*\*)?(" + "|".join(alias) + r")" + _ENV_TAIL)
+        for m in pat.finditer(blank_code_fences(text)):
+            c[alias[m.group(1)]] += 1
         return c
 
-    en = {k: k for k in ENV_NAMES}
-    zh = {v: v for v in ENV_NAMES.values()}
-    return count(src, en), count(tgt, zh)
+    return count(src), count(tgt)
 
 
 
@@ -680,7 +975,11 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     with open(args.source, "r", encoding="utf-8") as fh:
-        raw_src = strip_frontmatter(fh.read())
+        # 保留未规整的原文：代码块核对要报「第 N 行」，行号必须与编辑器里打开
+        # 的那个文件一致。collapse_figures / strip_notation 会增删行，用它算出来的
+        # 行号对不上，报出来等于没报。
+        src_all = fh.read()
+        raw_src = strip_frontmatter(src_all)
         # 源文也可能含并排图块：抽取器把一张图拆成多个面板时，或按
         # <figures> 规范与译文同步整理时。两侧都必须折叠成「一个逻辑图」，
         # 否则源文按面板物理张数计、译文按图块计，图片数会恒差 1。
@@ -744,6 +1043,38 @@ def main(argv=None):
         print(("✓ " if ok else "✗ ") + msg)
         if not ok:
             hard_fail.append(msg)
+
+    # 代码块 / 伪代码：块数、行数、缩进逐块核；内容差异（注释可译）走 soft
+    # 用未规整的全文，行号才与文件一致（见上面 src_all 的说明）。
+    cb_hard, cb_soft = check_code_blocks(src_all, tgt_full)
+    for m in cb_hard:
+        print("✗ " + m)
+        hard_fail.append(m)
+    if not cb_hard:
+        n_cb, n_al = len(code_blocks(src_all)), len(algo_divs(src_all))
+        found = []
+        if n_cb:
+            found.append(f"{n_cb} 块围栏代码块")
+        if n_al:
+            found.append(f"{n_al} 个 MinerU 算法框")
+        if found:
+            print("✓ 代码块/算法框：围栏闭合，块数与行数逐块一致（%s）" % "、".join(found))
+        else:
+            print("✓ 代码块/算法框：源文没有围栏代码块，也没有 MinerU 算法框")
+    for m in cb_soft:
+        print("! " + m)
+        soft.append(m)
+    for side, txt in (("源", src_all), ("译", tgt_full)):
+        hits = unfenced_algorithms(txt)
+        if hits:
+            m = (f"{side}文有 {len(hits)} 处行首「Algorithm N」/「算法 N」但没有围栏代码块："
+                 + "；".join(f"第 {n} 行 {t.rstrip('。.．')}" for n, t in hits[:3])
+                 + ("…" if len(hits) > 3 else "")
+                 + "。伪代码已被提取器压成散文，先按原文版式恢复"
+                   "（MinerU 的 `<div class=\"mineru-algorithm\">` 或围栏代码块，"
+                   "一步一行、缩进照原样）再译，否则格式无从保留")
+            print("! " + m)
+            soft.append(m)
 
     # table rows and images
     if args.float_reflow:
@@ -861,7 +1192,7 @@ def main(argv=None):
     # theorem-like environments: a relabelled result changes the claim
     ecs, ect = theorem_counts(src, tgt)
     if ecs or ect:
-        pairs = [(en, zh, ecs.get(en, 0), ect.get(zh, 0)) for en, zh in ENV_NAMES.items()]
+        pairs = [(en, zh, ecs.get(zh, 0), ect.get(zh, 0)) for en, zh in ENV_NAMES.items()]
         diff = [(zh, a, b) for en, zh, a, b in pairs if a != b]
         line_s = "、".join(f"{zh}{a}" for en, zh, a, b in pairs if a)
         line_t = "、".join(f"{zh}{b}" for en, zh, a, b in pairs if b)
