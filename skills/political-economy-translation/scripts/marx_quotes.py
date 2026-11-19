@@ -44,6 +44,13 @@ DEFAULT_MAP = {"1976": "5", "1978": "6", "1981": "7"}
 # 是 MEGA 某卷的出版年，对《文集》卷次毫无意义；能定卷的是方括号里的首版年。
 ORIG_MAP = {"1867": "5", "1872": "5", "1885": "6", "1894": "7"}
 
+# 未入库的卷。1973 是 Penguin《大纲》（Grundrisse），中文在《文集》第 8 卷
+# （《资本论》手稿选编）；那一卷是**摘选**，英中段落粒度差到 26:1，三条对齐
+# 路线都试过、都不成立，所以不入索引。这类引文没有中文索引，全库搜出来的
+# 只是巧合——必须压到「低」，不能让它看着像配上了。第 9 卷（《反杜林论》
+# 《自然辩证法》）同理，但年份与 MEGA 版撞车（1987），不做默认映射。
+MISSING_VOL = {"1973": "8"}
+
 # 引用串里的年份与页码。年份后可带字母（`1987a`），前面可缀方括号首版年
 # （`Marx [1867] 1976`），后面也可缀（`1987a [1872]`）——**冒号可能落在方括号
 # 之后，年份后面根本不接冒号**。按 `(\d{4})\s*:` 找年份，MEGA 体例下的引文
@@ -587,34 +594,43 @@ def main(argv=None):
               file=sys.stderr)
     matched = []
     for q in quotes:
-        expect = volume_for(q, vmap)
-        vols = [int(expect)] if (args.anchor == "vol" and expect) else None
+        expect = volume_for(q, vmap) or MISSING_VOL.get(q["year"], "")
+        # 卷没入库：照样把「应属卷」写出来给人看，但不拿它去约束搜索——
+        # 约束一个不存在的卷只会立刻落空再放宽，等于什么都没做。
+        missing = expect if (expect and int(expect) not in eng.volumes) else ""
+        anchor = [int(expect)] if (args.anchor == "vol" and expect and not missing) else None
         # 多要几个候选：跨句合并会把窗口重新打分，返回序不等于最终分数序
-        hits = eng.match(q["text"], topk=max(args.topk, 6), volumes=vols)
+        hits = eng.match(q["text"], topk=max(args.topk, 6), volumes=anchor)
         relaxed = False
-        if not hits and vols:
+        if not hits and anchor:
             # 卷约束下一无所获，放宽到全库重搜；但记下放宽过，别当成正常结果
             hits = eng.match(q["text"], topk=max(args.topk, 6))
             relaxed = True
         hits.sort(key=lambda h: -h["score"])
-        matched.append((q, expect, hits, relaxed))
+        matched.append((q, expect, hits, relaxed, missing))
 
     # 章群：同一篇里的引文多半集中在同一章，落单的那条值得人看一眼
     from collections import Counter
-    chapters = Counter(h[0]["chapter"] for _, _, h, _ in matched if h and h[0].get("chapter"))
+    chapters = Counter(h[0]["chapter"] for _, _, h, _, _ in matched if h and h[0].get("chapter"))
     majority = None
     if len(matched) >= 4 and chapters:
         name, n = chapters.most_common(1)[0]
         majority = (name, n / len(matched))
 
     rows = []
-    for q, expect, hits, relaxed in matched:
+    for q, expect, hits, relaxed, missing in matched:
         top = hits[0] if hits else None
         margin = (top["score"] - hits[1]["score"]) if len(hits) > 1 else 1.0
         para_hit = locate_paragraph(paras, top, top["vol"]) if (top and paras) else None
         para_note = suspect(top, para_hit, q["text"]) if top else ""
         level, why = grade(top, margin, expect, top["numeric"] if top else "",
                            majority, relaxed, para_note)
+        if missing:
+            # 没有这一卷的索引，全库结果只是巧合；分数再高也不给「中/高」
+            level = "低"
+            why = (f"《文集》第 {missing} 卷未入库，这一年的引文没有中文索引；"
+                   f"下列匹配是全库搜出来的，仅供定位参考，不可直接采用"
+                   + (f"；{why}" if why else ""))
         ours = ""
         if q["block"] is not None and q["block"] < len(tgt_blocks):
             para = re.sub(r"\s+", " ", tgt_blocks[q["block"]])
@@ -631,7 +647,9 @@ def main(argv=None):
             "原文": q["text"],
             "引用串": q["citation"],
             "引用年份": q["year"],
-            "锚定": "放宽" if relaxed else ("按卷" if (args.anchor == "vol" and expect) else "全库"),
+            "锚定": ("缺卷·全库" if missing else
+                     "放宽" if relaxed else
+                     "按卷" if (args.anchor == "vol" and expect) else "全库"),
             "应属卷": expect,
             "匹配卷": top["vol"] if top else "",
             "章": top["chapter"] if top else "",
