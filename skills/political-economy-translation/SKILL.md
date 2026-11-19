@@ -2,7 +2,7 @@
 name: political-economy-translation
 description: 将英文政治经济学文献（马克思主义价值理论、斯拉法/剩余方法、劳动过程理论、金融化、全球价值链、平台劳动等）翻译为中文 Markdown，并做机械对账。输入可为 PDF、已提取的 Markdown、docx；输出段落与源文一一对应、Markdown 结构不变、引用原样、公式统一为 $$…$$ 与 $…$ 的译文。This skill should be used when translating political-economy papers, book chapters, review essays, or lecture notes into Chinese under strict fidelity constraints, when a MinerU extraction step is needed first, and when a batch of accumulated glossary CSVs has to be consolidated before translating.
 agent_created: true
-version: 2026-11-17.1
+version: 2026-11-19.1
 ---
 
 # 政治经济学文献翻译
@@ -154,7 +154,7 @@ python scripts/semantic_audit.py <stem>_正文.md <stem>_正文_zh.md -o _work/<
 
 `fidelity_check.py` 查块级结构、标题层级、列表项、引用块、表格行、图片路径、引用是否原样、`\[` `\(` 是否清零、整段未译、段长异常、术语混用，以及**脚注门禁**（清单存在、每条既有定义又有正文引用、无悬空/孤儿/乱序）。
 
-**引文是不是马恩原话，交给 `_marx_ref` 对一遍**：`marx_quotes.py` 把英文引文对到《马克思恩格斯文集》中文译文，先按引用年份把范围收到对应那一卷（`--anchor vol`，默认）——全库搜时 `(1978: 351)` 会配到第 5 卷，收到第 6 卷才落对。它同时抓带引号的串与**没有引号、末尾只缀 `(1978: 357)` 的裸段落**（长引文在提取稿里的常态）。判据不是分数（作者引 Penguin 版、文集底本是 MECW，对得上也常只得 0.2–0.5），而是**卷次与引用年份是否相符、同篇引文章是否集中、前两名候选分不分得开、引文里的数字对不对**。
+**引文是不是马恩原话，交给 `_marx_ref` 对一遍**：`marx_quotes.py` 把英文引文对到《马克思恩格斯文集》中文译文，先按引用年份把范围收到对应那一卷（`--anchor vol`，默认）——全库搜时 `(1978: 351)` 会配到第 5 卷，收到第 6 卷才落对。它同时抓带引号的串与**没有引号、末尾只缀 `(1978: 357)` 的裸段落**（长引文在提取稿里的常态）。**引号体例与引用体例都要先看一眼**：Sage／T&F 的英式排版通篇单引号 `‘…’`（脚本自带扫描，引擎只认双引号），引用串则有 `(1978: 357)`、`(Marx [1867] 1976: 173)`、`(Marx, 1987a [1872]: 90)` 三种写法，最后一种年份后不接冒号、锚定靠方括号里的首版年——遇到 MEGA 体例记得把版刻年一并写进 `--years`。判据不是分数（作者引 Penguin 版、文集底本是 MECW，对得上也常只得 0.2–0.5），而是**卷次与引用年份是否相符、同篇引文章是否集中、前两名候选分不分得开、引文里的数字对不对**。
 
 **引擎给的译文要裁**：它会把命中句与前后句拼起来打分，返回的「文集译文」常比引文本身长得多。CSV 的 `裁句提示` 按字数比标出（英译中正常 1.6–2.0 倍，超 2.6 倍就是带了引文之外的上下文），但**哪几句才算引文范围脚本判不了**——要读英文引文与中文候选逐条裁定，写进采用表（`marx_adopt.py` 转成决定表）。**引文默认直接用文集译文**，不再另译。三种情况不要硬套：文集里没有这一句（多为作者转述）、文集中文本身残缺、文集译文在此语境读不通——都写进 `说明`。只产 CSV，**不要产双语对照 md，也不要用 annotate 回填**。详见 [references/marx-ref.md](references/marx-ref.md)。
 
@@ -241,6 +241,7 @@ python scripts/zotero_attach.py --batch . --strict                # 多篇
 | `scripts/verify_pdf.py` | PDF 验收：编译错误、`Overfull`、图片数、书签、文本层、逐条核脚注 | `<PDF>`、`--tex`、`--md`、`--footnotes` |
 | `scripts/build_wechat.py` | 译稿 → 公众号排版稿；脚注归一、挂到所注段落后、样式与内容双自检 | `<译稿.md>` `<输出目录>` |
 | `scripts/_test_footnotes.py` | 公众号脚注层的回归测试（13 种写法 + 1 条必须报警的失败用例） | 无 |
+| `scripts/_test_marx_quotes.py` | 引号体例与引用体例的回归测试（英式单引号、MEGA 式引用串、撇号、去重） | 无 |
 | `scripts/extract_terms.py` | 挖候选术语，标注已收录/新增，可生成项目表模板 | `--glossary`、`--min-count`、`--top`、`--write-project` |
 | `scripts/mine_terms_from_pairs.py` | 有平行译文时从「原文—译稿」句对反推实际用过的译法 | `--auto`、`--pairs`、`--min-count`、`--known` |
 | `scripts/lookup_term.py` | 按词查项目表与总表，避免整份读入 | `--glossary`、`--exact` |
@@ -248,7 +249,7 @@ python scripts/zotero_attach.py --batch . --strict                # 多篇
 | `scripts/zh_quotes.py` | ASCII 引号 → 中文引号，跳过 front matter／参考文献／公式／代码 | `--inplace`、`--check`、`--all` |
 | `scripts/style_check.py` | 扫口语化痕迹，按句列出可疑处，不自动改 | `-o`、`--max`、`--style` |
 | `scripts/semantic_audit.py` | 按段比对数值：年份、小数、百分比、千分位、页码区间 | `-o` |
-| `scripts/marx_quotes.py` | 把马恩引文对到《文集》译文，带卷次/章/页与可信度 | `--source`、`--target`、`--marxref`、`--years`、`--map`、`--anchor` |
+| `scripts/marx_quotes.py` | 把马恩引文对到《文集》译文，带卷次/章/页与可信度；认双/单引号两种引号体例与 MEGA 式引用串 | `--source`、`--target`、`--marxref`、`--years`、`--map`、`--anchor` |
 | `scripts/marx_adopt.py` | 把裁好的引文译文（采用表）转成 `review_apply.py` 的决定表 | `--quotes`、`--adopt`、`--target` |
 | `scripts/review_queue.py` | 生成待校对清单：术语不一致、候选、人工判断项、马恩引文 | `--glossary`、`--manual`、`--init-manual`、`--marx`、`--marx-note` |
 | `scripts/review_apply.py` | 执行人的意见：改术语表与译文、重跑校验、登记已决、重生成清单 | `--decisions`、`--resolved`、`--manifest`、`--suggest` |

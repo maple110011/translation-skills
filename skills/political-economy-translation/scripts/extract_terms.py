@@ -67,7 +67,7 @@ SUFFIX = re.compile(r"(ism|ization|isation|ation|ition|tion|ness|ity|ment|ship|h
 FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
 TOKEN = re.compile(r"[A-Za-z][A-Za-z\u00C0-\u024F'\u2019\-\u2010-\u2015]*")
 ITALIC = re.compile(r"(?<!\*)\*([^*\n]{3,60})\*(?!\*)")
-QUOTE = re.compile(r"[\"“]([^\"”\n]{3,60})[\"”]")
+QUOTE = re.compile(r"(?<![A-Za-z])[\"'‘]([^\"'”’\n]{3,60})[\"'’](?![A-Za-z])")
 THE_OF = re.compile(r"\bthe\s+([a-z][a-z\- ]{2,40}?)\s+of\b", re.I)
 CITE_PAREN = re.compile(r"\([A-Z][^()]{0,90}?\b(?:19|20)\d{2}[a-z]?\b[^()]{0,40}?\)")
 CITE_BRACKET = re.compile(r"\[\d+(?:\s*[,–\-]\s*\d+)*\]")
@@ -144,7 +144,10 @@ def signals_for(phrase, text):
     sig = []
     if re.search(rf"(?<!\*)\*\s*{re.escape(phrase)}\s*\*(?!\*)", text, re.I):
         sig.append("italic")
-    if re.search(rf"[\"“]\s*{re.escape(phrase)}\s*[\"”]", text, re.I):
+    # 带引号出现＝作者在把它当术语用。英式排版（Sage／T&F）通篇单引号，
+    # 只认双引号会让这类稿子一条信号都收不到；撇号靠前后两个断言挡掉。
+    if re.search(rf"(?<![A-Za-z])[\"'‘]\s*{re.escape(phrase)}\s*[\"'’](?![A-Za-z])",
+                 text, re.I):
         sig.append("quoted")
     if SUFFIX.search(phrase.split()[-1]):
         sig.append("suffix")

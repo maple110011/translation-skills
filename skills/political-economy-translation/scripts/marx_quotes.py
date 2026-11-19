@@ -7,6 +7,10 @@
 1. 从**英文原文**里找马恩引文。两种形态都要抓：带引号的串，以及
    无引号但段落末尾缀着 `(1978: 357)` 的整段——马克思的长引文在
    提取稿里往往就是这种裸段落，只抓引号会漏掉最要紧的几条。
+
+   引号有两种体例。引擎的行内规则只认双引号 `“…”`，而 Sage／T&F 的英式
+   排版通篇用单引号 `‘…’`（双引号只留给引文里的引文），这类稿子一条都
+   抓不到。所以本脚本自带一个英式单引号扫描，与引擎结果合并。
 2. 逐条匹配，拿到卷次、章名、页码、文集译文，以及引擎给的
    score / coverage / numeric。
 3. 判可信度。**分数低不一定是错配**：作者引的是 Penguin 版，
@@ -36,14 +40,195 @@ import sys
 # 作者—年份引用与卷次的对应关系。《资本论》在《文集》里是 5、6、7 卷，
 # 年份按通行英文版：1976=I、1978=II、1981=III。换成别的引用体例时用 --map 覆盖。
 DEFAULT_MAP = {"1976": "5", "1978": "6", "1981": "7"}
+# 首版年兜底。有一路引用写作 `Marx, 1987a [1872]: 90`（MEGA 版）：版刻年 1987
+# 是 MEGA 某卷的出版年，对《文集》卷次毫无意义；能定卷的是方括号里的首版年。
+ORIG_MAP = {"1867": "5", "1872": "5", "1885": "6", "1894": "7"}
 
-# 段末引用串。著者写法有两种：`(1976: 163)`，以及方括号式的
-# `(Marx [1867] 1990: 448, emphasis added)`——后者很常见，只认前一种会把整段
-# 引文整条漏掉（第 2 节那段「As the number of the co-operating workers…」就是这样丢的）。
-CITE_TAIL = re.compile(
-    r"\((?:[^()]*?\[\d{4}\][^()]*?)?(\d{4})\s*:\s*([^()]{1,60})\)\s*[.。]?\s*$")
-CITE_SPAN = re.compile(r"\(([^()]{3,60}?)\s*(\d{4})\s*:\s*([^()]{1,40})\)")
-YEAR_ONLY = re.compile(r"^(\d{4})\s*:\s*(.+)$")
+# 引用串里的年份与页码。年份后可带字母（`1987a`），前面可缀方括号首版年
+# （`Marx [1867] 1976`），后面也可缀（`1987a [1872]`）——**冒号可能落在方括号
+# 之后，年份后面根本不接冒号**。按 `(\d{4})\s*:` 找年份，MEGA 体例下的引文
+# 会整条落空：既进不了引擎，也不在 --years 的判定里。
+YEAR_RE = re.compile(r"(?<!\d)(\d{4})(?!\d)")
+BRACKET_YEAR = re.compile(r"\[\s*(\d{4})\s*\]")
+PAGE_AFTER_COLON = re.compile(r"[:：]\s*([^:：]{1,40})$")
+PAGE_AFTER_P = re.compile(r",\s*p{1,2}\.\s*([\divxlIVXLC\u2013\u2014\-,\s]{1,40})$")
+PAREN = re.compile(r"[（(]([^（）()]{3,120})[）)]")
+# 引用尾部的译者补注不是文献标签，比对与解析前先剥掉
+# （`1978: 357, emphasis added` 的年份页码仍要认得出来）。
+NOTE_TAIL = re.compile(
+    r",\s*(?:emphasis\s+(?:added|is\s+added)|translation\s+(?:is\s+)?"
+    r"(?:modified|amended)|着重号[^,()]{0,12})\s*$", re.I)
+
+# 英式单引号。闭引号与撇号同为 U+2019（`Marx’s`、`workers’`），不能简单配对。
+SQ_OPEN, SQ_CLOSE = "\u2018", "\u2019"
+# 段内有没有成对引号（两套单引号都算）。整段规则靠它区分「整段是引文」与
+# 「作者叙述 + 段中引文」。开引号前不能是字母数字，否则 `workers’ control`
+# 这种所有格会被当成开引号。
+QUOTED_SPAN = re.compile(r"(?<![A-Za-z0-9])['\u2018][^'\u2019\n]{12,}['\u2019]")
+
+
+def parse_cite(text):
+    """把一条括号引用拆成 {year, orig, page, label}；不是「年份＋页码」返回 None。
+
+    四种体例都要认。前两种是 Penguin 版常见写法，后两种是 MEGA 版：
+
+        (1978: 357)               (Marx [1867] 1976: 173–6)
+        (Marx, 1987a [1872]: 90)  (Marx, 1987a [1872], p. 90)
+
+    后两种的冒号（或 `, p.`）落在方括号首版年之后，年份与页码之间隔着 `[1872]`。
+    """
+    raw = text.strip().rstrip(".。").strip()   # 引用串后面常带句号
+    label = re.sub(r"^[（(]\s*|[）)]\s*$", "", raw).strip()
+    s = label
+    for _ in range(3):                       # 补注可能不止一层
+        s2 = NOTE_TAIL.sub("", s)
+        if s2 == s:
+            break
+        s = s2
+    m = PAGE_AFTER_COLON.search(s) or PAGE_AFTER_P.search(s)
+    if not m:
+        return None
+    page = m.group(1).strip()
+    # 冒号后是页码或章节号；`(Capital I, p. 163)` 这类冒号后跟散文的不是引用
+    if not re.match(r"(?:[\dIVXivx]|(?:ch|chap|chapter|pt|part|vol|section|§)\.?\s*[\dIVXivx]*)",
+                    page, re.I):
+        return None
+    head = s[:m.start()]
+    years = [(y.start(1), y.group(1)) for y in YEAR_RE.finditer(head)]
+    if not years:
+        return None
+    brackets = [(b.start(1), b.end(1)) for b in BRACKET_YEAR.finditer(head)]
+    orig = BRACKET_YEAR.search(head)
+    plain = [y for i, y in years if not any(a <= i < b for a, b in brackets)]
+    year = plain[-1] if plain else (orig.group(1) if orig else years[-1][1])
+    return {"year": year, "orig": orig.group(1) if orig else "",
+            "page": page, "label": label}
+
+
+def pick_year(cite, years):
+    """哪一年算「这条引的是马恩」。先版刻年（1987a），不在 --years 里再看
+    方括号首版年（[1872]）——MEGA 体例下想按年份收窄，靠的正是首版年。"""
+    if not cite:
+        return ""
+    for y in (cite["year"], cite["orig"]):
+        if y and y in years:
+            return y
+    return ""
+
+
+def volume_for(q, vmap):
+    """引用年份 → 《文集》卷次。先 `--map`，再退到首版年的通行映射。"""
+    for y in (q.get("year"), q.get("orig")):
+        if y and y in vmap:
+            return vmap[y]
+    for y in (q.get("year"), q.get("orig")):
+        if y and y in ORIG_MAP:
+            return ORIG_MAP[y]
+    return ""
+
+
+def tail_cite(text):
+    """段末的引用串：`… (1978: 357).`、`… (Marx, 1987a [1872]: 90)`。
+    返回 (起点, 解析结果)；起点用来把引用串从引文正文里截掉。"""
+    end = len(text.rstrip(" \t.。"))
+    for m in PAREN.finditer(text):
+        if m.end() >= end:
+            c = parse_cite(m.group(0))
+            if c:
+                return m.start(), c
+    return None
+
+
+def cite_after(md, pos):
+    """引号后紧跟的引用串（`…’(Marx 1976: 125)`，中间可隔空格）。"""
+    m = re.match(r"[ \t]*[（(]([^（）()]{3,90})[）)]", md[pos:pos + 120])
+    return m.group(1).strip() if m else ""
+
+
+def _sq_spans(line, min_len, clean, is_en):
+    """一行里的英式单引号引文，产出 (起, 止)，止含闭引号。
+
+    撇号与闭引号同码位，只能靠位置判：开引号须落词边界，闭引号后不能紧跟
+    字母；`workers’ control` 这种短候选（撇号后接空格）跳过去继续往右找，
+    不当作闭引号。引文里再出现开引号说明配错了对，放弃这个开引号。
+    """
+    for m in re.finditer(SQ_OPEN, line):
+        s = m.start()
+        if s and (line[s - 1].isalnum() or line[s - 1] in "'" + SQ_CLOSE):
+            continue                          # 词内，不是开引号
+        j = line.find(SQ_CLOSE, s + 1)
+        while j != -1:
+            nxt = line[j + 1:j + 2]
+            if nxt and nxt.isalpha():          # 撇号：workers’ control
+                j = line.find(SQ_CLOSE, j + 1)
+                continue
+            inner = line[s + 1:j]
+            if SQ_OPEN in inner:
+                break
+            t = clean(inner)
+            if len(t) >= min_len and is_en(t):
+                yield s, j + 1
+                break
+            j = line.find(SQ_CLOSE, j + 1)
+
+
+def _ascii_spans(line, min_len, clean, is_en):
+    """直单引号 `'…'` 的同一件事。撇号在英文里太密，只认**紧邻**的那一个：
+    往后找第二个必然落在某个所有格撇号上，宁可漏一条也不配错。"""
+    for m in re.finditer(r"(?<![A-Za-z0-9'’])'", line):
+        s = m.start()
+        j = line.find("'", s + 1)
+        if j == -1:
+            continue
+        nxt = line[j + 1:j + 2]
+        if nxt and nxt.isalpha():
+            continue                          # 闭引号后面接字母，是撇号
+        t = clean(line[s + 1:j])
+        if len(t) >= min_len and is_en(t):
+            yield s, j + 1
+
+
+def scan_british(md, quotes_mod, min_len=20):
+    """扫英式单引号引文（`‘…’`，也带上直单引号）。
+
+    引擎的行内规则只认双引号，Sage／T&F 通篇单引号的稿子会一条都抓不到。
+    产出与 `quotes.extract()` 同形的条目，交给 `find_quotes` 统一处理。
+    """
+    clean = getattr(quotes_mod, "clean", None) or (
+        lambda s: re.sub(r"\s+", " ", s).strip(" \t\"'—–-"))
+    is_en = getattr(quotes_mod, "is_english", None) or (
+        lambda s: len(s) >= min_len and len(re.findall(r"[A-Za-z]{2,}", s)) >= 4)
+    out, lines = [], md.splitlines(keepends=True)
+    offs, acc = [], 0
+    for ln in lines:
+        offs.append(acc)
+        acc += len(ln)
+    i, in_fence = 0, False
+    if lines and lines[0].strip() == "---":          # YAML front matter
+        for k in range(1, len(lines)):
+            if lines[k].strip() in ("---", "..."):
+                i = k + 1
+                break
+    while i < len(lines):
+        line = lines[i]
+        if re.match(r"^\s{0,3}(```|~~~)", line):
+            in_fence = not in_fence
+            i += 1
+            continue
+        if in_fence:
+            i += 1
+            continue
+        for s, e in list(_sq_spans(line, min_len, clean, is_en)) + \
+                list(_ascii_spans(line, min_len, clean, is_en)):
+            inner = line[s + 1:e - 1]
+            out.append({"start": offs[i] + s, "end": offs[i] + e,
+                        "kind": "inline", "text": clean(inner),
+                        "raw": line[s:e],
+                        "citation": cite_after(md, offs[i] + e),
+                        "line": i + 1})
+        i += 1
+    return out
+
 
 
 def load_marxref(path):
@@ -189,7 +374,12 @@ def blocks_of(md):
 
 
 def find_quotes(md, quotes_mod, years):
-    """返回 [{kind, block, text, citation, year}]，block 是段落下标。"""
+    """返回 [{kind, block, text, citation, year, orig}]，block 是段落下标。
+
+    引号内的串来自两条路：引擎的 `extract()`（双引号、引用块），以及本脚本的
+    英式单引号扫描。两条路都归到同一个形态再判年份，避免同一段被两种体例
+    各抓一次。
+    """
     body = strip_front(md)
     shift = len(md) - len(body)
     spans, pos = [], 0
@@ -203,32 +393,53 @@ def find_quotes(md, quotes_mod, years):
                 return i
         return None
 
+    def typed(c, kind=None):
+        """统一形态并判年份。引用块的出处常与引文同行（`> ‘…’ (Marx 1976: 125)`），
+        引擎只认独占一行或紧跟块后的，这类会被标成无引用而整条丢掉。所以这里
+        从条目尾部再找一次引用串；找到就顺手截掉——`1976`、`125` 留在正文里，
+        引擎的数字自检会拿它们去中文里找，白报一处"数字对不上"。"""
+        text, tc = c["text"], None
+        if c.get("kind") == "block":
+            tc = tail_cite(text)
+            if tc:
+                text = text[:tc[0]].strip().rstrip("'\"\u2019 ")
+        label = (c.get("citation") or "").strip() or (tc[1]["label"] if tc else "")
+        parsed = parse_cite(label) if label else None
+        year = pick_year(parsed, years)
+        if not text or not year:
+            return None
+        return {"kind": kind or ("block" if c["kind"] == "block" else "quoted"),
+                "line": c.get("line", 0), "text": text,
+                "citation": label, "year": year,
+                "orig": (parsed or {}).get("orig", ""),
+                "block": block_at(c.get("start", 0) - shift)}
+
     out = []
-    for c in quotes_mod.extract(md):
-        cite = (c.get("citation") or "").strip()
-        m = YEAR_ONLY.match(cite) or re.search(r"(\d{4})\s*:", cite)
-        year = m.group(1) if m else ""
-        if year in years:
-            out.append({"kind": "quoted", "line": c["line"], "text": c["text"],
-                        "citation": cite, "year": year,
-                        "block": block_at(c.get("start", 0) - shift)})
+    for c in list(quotes_mod.extract(md)) + scan_british(md, quotes_mod):
+        x = typed(c)
+        if x:
+            out.append(x)
     blocks = blocks_of(md)
     for i, b in enumerate(blocks):
-        m = CITE_TAIL.search(b)
-        if not m or m.group(1) not in years:
+        tc = tail_cite(b)
+        if not tc:
             continue
-        body = b[:m.start()].strip()
+        start, parsed = tc
+        year = pick_year(parsed, years)
+        if not year:
+            continue
+        body = b[:start].strip()
         if len(body) < 50:
             continue
-        # 整段规则的前提是「这一整段都是引文」。段内自带成对引号的，是
-        # 「作者叙述 + 段中引文」的混合段（如 "Interestingly, ... is to “secure the
-        # harmonious cooperation ...” (Marx 1990: 448)"）：那些引文由行内规则管，
-        # 整段拿去匹配只会把作者的话也算进马克思头上，得分低还没意义。
-        if '“' in body:
+        # 整段规则的前提是「这一整段都是引文」。段内自带成对引号（中英两套都算）的，
+        # 是「作者叙述 + 段中引文」的混合段（如 "Interestingly, ... is to “secure the
+        # harmonious cooperation ...” (Marx 1990: 448)"，英式排版则写成 ‘…’）：那些
+        # 引文由行内规则管，整段拿去匹配只会把作者的话也算进马克思头上。
+        if '“' in body or QUOTED_SPAN.search(body):
             continue
         out.append({"kind": "block", "line": 0, "text": body,
-                    "citation": f"({m.group(1)}: {m.group(2).strip()})",
-                    "year": m.group(1), "block": i})
+                    "citation": parsed["label"], "year": year,
+                    "orig": parsed["orig"], "block": i})
     # 去重：同一段被两条规则抓到，留 block 那条（更完整）
     seen, uniq = set(), []
     for q in out:
@@ -376,7 +587,7 @@ def main(argv=None):
               file=sys.stderr)
     matched = []
     for q in quotes:
-        expect = vmap.get(q["year"], "")
+        expect = volume_for(q, vmap)
         vols = [int(expect)] if (args.anchor == "vol" and expect) else None
         # 多要几个候选：跨句合并会把窗口重新打分，返回序不等于最终分数序
         hits = eng.match(q["text"], topk=max(args.topk, 6), volumes=vols)

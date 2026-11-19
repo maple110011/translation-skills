@@ -61,6 +61,7 @@ git tag dl/v1
 - **脚注改「就地锚定」**（2026-11-16）：`footnote_recover.py --apply` 不再插 `## 脚注` 节，改为把 `[^n]` 锚进正文、定义 `[^n]: …` 落文末且不带「第 N 页脚注 n：」前缀；旧稿自动迁移，判不出位置的进 `脚注_待锚.csv`（`--place` 回灌，`--anchor-bare` / `--anchor-math` 自动锚定）；`--check` 与两个 skill 的 `fidelity_check.py` 改为硬查「定义 + 正文引用」双向齐全、编号升序；`md2tex.py` 对「有定义没引用」默认 `exit 2`（`--allow-orphan-notes` 才降级）——之前正是这条静默降级把脚注排成了文末一节；
 - **图片版式**（2026-11-17）：新增 `scripts/figure_layout.py`（按 `content_list.json` 的 bbox 合并多联图、按原刊栏宽占比定宽、图号跟随原刊编号），`md2tex --fig-meta` 消费它产出的 `图片版式.csv`；公众号分支补裸图渲染（`figures` 块，px 宽度，`inline-block` 并排）；
 - **SKILL.md 精简**（2026-11-17）：流程细节下沉到 `references/`（`figures.md`、`delivery.md`、`wechat.md` 为本次新增），SKILL 只留流程、硬门槛与指向。
+- **英式引号 + MEGA 引用串**（2026-11-19）：`marx_quotes.py` 自带 `scan_british()`，扫 `‘…’`（及直单引号），与引擎 `quotes.extract()` 的结果合并——引擎的行内规则只认双引号，Sage／T&F 的稿子一条都抓不到（实测 41 个单引号、抽出 0 条）。引用串改由 `parse_cite()` 解析，认 `(1978: 357)`／`(Marx [1867] 1976: 173)`／`(Marx, 1987a [1872]: 90)`／`(…, p. 90)` 四种写法，年份后不接冒号也能定年；卷次锚定新增首版年兜底（`ORIG_MAP`）。整段规则跳过「段内自带成对引号」的段落时，`‘` 与 `“` 一并算——否则英式稿里作者的话会被算成马克思的话。`extract_terms.py` 的 `quoted` 信号同步认单引号。
 
 ---
 
