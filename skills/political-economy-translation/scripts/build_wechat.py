@@ -38,6 +38,7 @@
 """
 from __future__ import annotations
 
+import shutil
 import html
 import os
 import re
@@ -62,6 +63,41 @@ FONT = ("-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB',"
         "'Microsoft YaHei',sans-serif")
 
 
+# 公式走「占位 → 浏览器里 MathJax 渲染成行内 SVG」这条路（与东陆政经公众号助手
+# 同一方案，结论来自墨滴逆向 + 真实微信 A/B 实测）：
+#   - 微信不认 MathJax/KaTeX 脚本，`$…$` 粘进去就是字面美元符；
+#   - 内联 `<svg>`（字形全为 path、fontCache=none、宽度写 style）能原样粘过去；
+#   - 块级公式必须是 `<p>` 内嵌行内 svg，换成 section/div 会被微信补出前后空行。
+# 渲染在打开页面时完成，复制按钮取的是渲染后的 DOM。
+MATH_RE = re.compile(r"\$\$(.+?)\$\$|(?<!\\)\$([^$\n]+?)(?<!\\)\$", re.S)
+FENCE_RE = re.compile(r"```.*?```", re.S)
+CODE_RE = re.compile(r"`[^`\n]*`")
+
+
+def scan_math(body):
+    """按出现顺序取出公式，换成 `@@EQ<i>@@` 占位符。代码块里的 $ 不算公式。"""
+    holes = [(m.start(), m.end()) for pat in (FENCE_RE, CODE_RE)
+             for m in pat.finditer(body)]
+
+    def in_hole(a, b):
+        return any(h0 <= a and b <= h1 for h0, h1 in holes)
+
+    spans = []
+    for m in MATH_RE.finditer(body):
+        if in_hole(m.start(), m.end()):
+            continue
+        if m.group(1) is not None:
+            spans.append(("display", m.group(1).strip(), m.start(), m.end()))
+        else:
+            spans.append(("inline", m.group(2).strip(), m.start(), m.end()))
+    out, pos = [], 0
+    for i, (_, _, a, b) in enumerate(spans):
+        out.append(body[pos:a])
+        out.append("@@EQ%d@@" % i)
+        pos = b
+    out.append(body[pos:])
+    return "".join(out), [(k, tex) for k, tex, _, _ in spans]
+
 # ---------------------------------------------------------------- 解析 markdown
 def split_front(text: str):
     m = re.match(r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*\r?\n", text, re.S)
@@ -75,11 +111,53 @@ def split_front(text: str):
         except Exception:
             meta = {}
     if not meta:
+        # 没有 pyyaml 时的回落解析：`key: value` 之外，还要认块状列表
+        # （authors 就是列表，只认冒号行会把它读成空串，APA 条目就缺了作者）。
+        cur = None
         for line in raw.split("\n"):
+            mm = re.match(r"\s*-\s+(.*?)\s*$", line)
+            if mm and cur:
+                meta.setdefault(cur, [])
+                if not isinstance(meta[cur], list):
+                    meta[cur] = [meta[cur]] if meta[cur] else []
+                meta[cur].append(mm.group(1).strip().strip('"'))
+                continue
             mm = re.match(r"([a-z_]+):\s*\"?(.*?)\"?\s*$", line)
             if mm:
+                cur = mm.group(1) if not mm.group(2).strip() else None
                 meta[mm.group(1)] = mm.group(2)
     return meta, text[m.end():]
+
+
+# 公众号版不上版面的两样：标题与作者行。微信有自己的标题字段，作者由公众号
+# 主体承担；正文里再写一遍既重复，也挤掉开头的信息位。Markdown 交付稿两者都留，
+# 这个删节只发生在公众号通道。
+BYLINE_ASCII = re.compile(
+    r"^[A-Z][A-Za-z'’.\-]+(?:\s+[A-Z][A-Za-z'’.\-]*){0,3}"
+    r"(?:\s*[、,，]\s*[A-Z][A-Za-z'’.\-]+(?:\s+[A-Z][A-Za-z'’.\-]*){0,3})*"
+    r"(?:\s*(?:和|and)\s*[A-Z][A-Za-z'’.\-]+(?:\s+[A-Z][A-Za-z'’.\-]*){0,3})?$")
+# 看起来像"节标题"而不是"文题"的首个 H1：# 摘要、# Abstract、# 1. 引言、# 附录。
+# 没有这条兜底，删过标题的老稿会把第一节标题吃掉。
+SECTIONISH = re.compile(
+    r"^(?:摘\s*要|abstract|关键词|key\s*words?|引\s*言|introduction|绪\s*论|"
+    r"结\s*论|conclusions?|附\s*录|appendix|参考文献|references|"
+    r"\d+(?:\.\d+)*[.、\s])", re.I)
+BYLINE_CJK = re.compile(r"^[\u4e00-\u9fff·]{2,4}(?:\s*[、,，和]\s*[\u4e00-\u9fff·]{2,4}){0,5}$")
+
+
+def strip_lead(body: str):
+    """去掉 H1 标题与紧随其后的作者行。只认文首；正文中段的同名行不动。"""
+    out = body.lstrip("\n")
+    m = re.match(r"^#[ \t]+([^\n]*)\n+", out)
+    if m and not SECTIONISH.match(m.group(1).strip()):
+        out = out[m.end():]
+    m = re.match(r"^([^\n]{2,120})\n", out)
+    if m:
+        s = m.group(1).strip()
+        if s and not re.search(r"[。；：？！;:!?]", s) \
+                and (BYLINE_ASCII.match(s) or BYLINE_CJK.match(s)):
+            out = out[m.end():].lstrip("\n")
+    return out
 
 
 def paragraphs_of(body: str):
@@ -99,10 +177,13 @@ def paragraphs_of(body: str):
             flush()
             i += 1
             continue
-        m = re.match(r"^(#{2,6})\s+(.*)$", line)
+        # H1 也算标题：MinerU 常把每节都提成 H1（`# 摘要`、`# 1. 引言`），
+        # 只认 `##` 会让整篇标题带着 `#` 落进正文段落。层级折成两级，
+        # 一级/二级都排 h2，三级及以下排 h3。
+        m = re.match(r"^(#{1,6})\s+(.*)$", line)
         if m:
             flush()
-            out.append(("h3" if len(m.group(1)) == 3 else "h2", m.group(2).strip()))
+            out.append(("h3" if len(m.group(1)) >= 3 else "h2", m.group(2).strip()))
             i += 1
             continue
         if line.startswith("**") and line.rstrip().endswith("**") and not buf:
@@ -411,14 +492,37 @@ def attach_notes(blocks, notes):
     return out
 
 
-def prepare(body: str):
-    """正文 → (脚注定义, 已挂好脚注的块序列)。build 与 to_markdown 共用。"""
+def prepare(body: str, mathdir="_work/formula", math_mode="svg"):
+    """正文 → (脚注定义, 块序列, 公式片段表, 公式报告)。
+
+    公式在切块**之前**换成占位符 `@@EQ3@@`：占位符是纯 ASCII，`inline()` 转义时
+    原样穿过，最后统一替换成 SVG 或还原成 `$…$`。放在切块后做的话，行内公式会被
+    拆进不同的文本片段，替换就无从下手。
+    """
+    body = strip_lead(body)
+    math = []
+    if math_mode != "off":
+        body, math = scan_math(body)
     defs, body = harvest_footnotes(body)
     body = normalize_marks(body, defs)
     blocks = paragraphs_of(body)
     blocks = split_sections(blocks)
     blocks = attach_notes(blocks, defs)
-    return defs, blocks
+    return defs, blocks, math
+
+
+def subst_math(content, math):
+    """占位符 → `<span class="woap-math" data-latex>`；由页面里的 MathJax 接手渲染。"""
+    def rep(m):
+        i = int(m.group(1))
+        if i >= len(math):
+            return m.group(0)
+        kind, tex = math[i]
+        esc = html.escape(tex, quote=True)
+        return ('<span class="woap-math" data-display="%d" data-latex="%s"></span>'
+                % (1 if kind == "display" else 0, esc))
+
+    return re.sub(r"@@EQ(\d+)@@", rep, content)
 
 
 def _num_key(x):
@@ -543,12 +647,35 @@ def render_table(rows):
 
 
 # ---------------------------------------------------------------- APA
-def apa(meta):
-    """APA 7 期刊论文条目。题名只给原文，中译不进引用。"""
+def apa_authors(meta):
+    """APA 7 作者串：`Basu, Deepankar` → `Basu, D.`，三人及以上用 `, & ` 收尾。
+    只取第一位会让「文献来源」少掉其余作者，读者没法据它找到原文。"""
     authors = meta.get("authors") or []
     if isinstance(authors, str):
         authors = [authors]
-    author = (authors[0] if authors else "").strip()
+    out = []
+    for a in authors:
+        a = str(a).strip().strip('"')
+        if not a:
+            continue
+        if "," in a:
+            surname, given = [x.strip() for x in a.split(",", 1)]
+            initials = " ".join(f"{w[0]}." for w in re.split(r"[\s.]+", given) if w)
+            out.append(f"{surname}, {initials}".strip().rstrip(","))
+        else:
+            out.append(a)
+    if not out:
+        return ""
+    if len(out) == 1:
+        return out[0]
+    if len(out) == 2:
+        return f"{out[0]}, & {out[1]}"
+    return ", ".join(out[:-1]) + f", & {out[-1]}"
+
+
+def apa(meta):
+    """APA 7 期刊论文条目。题名只给原文，中译不进引用。"""
+    author = apa_authors(meta)
     year = meta.get("year")
     title = (meta.get("title") or "").strip()
     journal = (meta.get("journal") or "").strip()
@@ -586,7 +713,7 @@ def render_figures(figs):
     return sec("".join(cells), "margin:18px 0 8px;text-align:center;line-height:0;")
 
 
-def build(meta, blocks, translator, editor):
+def build(meta, blocks, translator, editor, math=None):
     if translator and editor and translator == editor:
         by = f"翻译&amp;编辑：{html.escape(translator)}"
     else:
@@ -624,7 +751,8 @@ def build(meta, blocks, translator, editor):
 
     root_style = (f"font-size:15px;line-height:1.85;letter-spacing:0.4px;color:{INK};"
                   f"font-family:{FONT};text-align:justify;")
-    return sec(header + "\n".join(parts), root_style)
+    inner = sec(header + "\n".join(parts), root_style)
+    return subst_math(inner, math) if math else inner
 
 
 BAR = """<div style="max-width:677px;margin:0 auto;padding:16px 20px 0;
@@ -636,6 +764,7 @@ BAR = """<div style="max-width:677px;margin:0 auto;padding:16px 20px 0;
 <script>
 // 只复制根 section：按钮与页面底色都不进剪贴板
 document.getElementById('copy').onclick = async () => {
+  if (window.__renderMath) window.__renderMath();   // 公式没渲染就复制，粘过去是空的
   const root = document.getElementById('wx-root');
   try {
     await navigator.clipboard.write([new ClipboardItem({
@@ -653,7 +782,66 @@ document.getElementById('copy').onclick = async () => {
 </script>"""
 
 
-def page(inner, title):
+MATHJAX_CFG = ("<script>window.MathJax={tex:{inlineMath:[['$','$']],"
+               "displayMath:[['$$','$$']],tags:'ams'},"
+               "svg:{fontCache:'none'},startup:{typeset:false}};</script>")
+
+
+def _asset(name):
+    path = os.path.join(ASSETS, name)
+    with open(path, encoding="utf-8") as fh:
+        # 内联脚本里出现 `</script` 会提前闭合标签，转义掉
+        return fh.read().replace("</script", "<\\/script")
+
+
+def math_scripts():
+    """把 MathJax 与包装脚本内联进 HTML。
+
+    不外链、不依赖同目录文件：这个 HTML 经常被单独拷走或直接双击打开，
+    少一个 js 就只剩空占位符，而且不会报错——比体积重要。"""
+    if not os.path.exists(os.path.join(ASSETS, "mathjax", "tex-svg-full.min.js")):
+        return ""                     # 没装资产就不渲染，公式退回原始 LaTeX
+    return "\n".join([
+        MATHJAX_CFG,
+        "<script>" + _asset(os.path.join("mathjax", "tex-svg-full.min.js")) + "</script>",
+        "<script>" + _asset("wechat-mathjax.js") + "</script>",
+    ])
+
+MATH_BOOT = """<script>
+window.__WX_FONT_SIZE__ = 15;
+window.__WX_TEXT_COLOR__ = '#1f1f1f';
+window.__renderMath = function () {
+  var left = document.querySelectorAll('span.woap-math');
+  var bad = 0;
+  Array.prototype.forEach.call(left, function (el) {
+    var tex = el.getAttribute('data-latex') || '';
+    var disp = el.getAttribute('data-display') === '1';
+    var r = (window.__WECHAT_MATHJAX__ && window.__WECHAT_MATHJAX__.render)
+      ? window.__WECHAT_MATHJAX__.render(tex, disp) : null;
+    if (r && r.svg) {
+      var box = document.createElement('span');
+      box.innerHTML = r.svg;
+      el.parentNode.replaceChild(box.firstChild, el);
+    } else {
+      bad += 1;                       // 渲染不了就露出源码，不静默丢公式
+      var s = document.createElement('span');
+      s.textContent = (disp ? '$$' : '$') + tex + (disp ? '$$' : '$');
+      el.parentNode.replaceChild(s, el);
+    }
+  });
+  if (bad) console.warn('公式渲染失败 ' + bad + ' 条，已退回原始 LaTeX');
+  return bad;
+};
+if (document.readyState !== 'loading') window.__renderMath();
+else document.addEventListener('DOMContentLoaded', window.__renderMath);
+</script>"""
+
+
+ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+
+
+def page(inner, title, has_math=False):
+    tail = (math_scripts() + "\n" + MATH_BOOT) if has_math else ""
     return f"""<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -663,11 +851,22 @@ def page(inner, title):
 <div style="max-width:677px;margin:0 auto;background:#fff;padding:8px 20px 48px;">
 <section id="wx-root">{inner}</section>
 </div>
+{tail}
 </body></html>
 """
 
 
-def to_markdown(meta, blocks, translator, editor):
+def restore_math(s, math):
+    """占位符还原成 `$…$` / `$$…$$`：纯文本备份要能再排版一次。"""
+    def rep(m):
+        i = int(m.group(1))
+        kind, tex = math[i] if i < len(math) else ("inline", m.group(0))
+        return ("$$%s$$" % tex) if kind == "display" else ("$%s$" % tex)
+
+    return re.sub(r"@@EQ(\d+)@@", rep, s or "")
+
+
+def to_markdown(meta, blocks, translator, editor, math=None):
     if translator and editor and translator == editor:
         out = [f"翻译&编辑：{translator}", ""]
     else:
@@ -691,12 +890,32 @@ def to_markdown(meta, blocks, translator, editor):
             out += [" ".join(f"![{a}]({p})" for a, p in payload), ""]
         elif kind == "table":
             out += payload + [""]
-    return "\n".join(out)
+    return restore_math("\n".join(out), math)
+
+
+SVG_SEG = re.compile(r"<svg\b.*?</svg>", re.S)
 
 
 def self_check(inner):
-    """粘贴前自检：任何一条不过，微信那边就会掉样式。"""
+    """粘贴前自检：任何一条不过，微信那边就会掉样式。
+
+    `<svg>` 段先摘出来单独查——公式 SVG 需要 `overflow:visible`（上下标超出
+    盒子是常态），而普通内容里出现 `overflow:` 仍是错。"""
     bad = []
+    svgs = SVG_SEG.findall(inner)
+    inner = SVG_SEG.sub("", inner)
+    inner = re.sub(r'<span class="woap-math"[^>]*></span>', "", inner)
+    for s in svgs:
+        if "transform=" in s:
+            bad.append("公式 SVG 里有 transform，微信会剥掉它导致字形堆叠")
+        if "class=" in s:
+            bad.append("公式 SVG 里有 class，微信不认")
+        if "width:" not in s or "height:" not in s:
+            bad.append("公式 SVG 尺寸没写进 style，微信会按默认大小排")
+        if "<path" not in s:
+            bad.append("公式 SVG 里没有 path，字形会丢")
+        if "<use" in s or "<symbol" in s or "<defs" in s:
+            bad.append("公式 SVG 还依赖 defs/symbol/use，微信剥离共享定义后缺字")
     if "<style" in inner:
         bad.append("输出里有 <style> 标签，微信会整块丢掉")
     if "class=" in inner:
@@ -714,18 +933,28 @@ def self_check(inner):
 
 
 def main(argv):
-    if len(argv) < 3:
+    flags = [a for a in argv[1:] if a.startswith("--")]
+    pos = [a for a in argv[1:] if not a.startswith("--")]
+    if len(pos) < 2:
         print(__doc__)
         return 2
-    src, outdir = argv[1], argv[2]
+    src, outdir = pos[0], pos[1]
+    math_mode = "on"
+    for f in flags:
+        if f.startswith("--math="):
+            math_mode = f.split("=", 1)[1]
+    if math_mode not in ("on", "off"):
+        print("--math 只接受 on / off")
+        return 2
+
     text = open(src, encoding="utf-8").read()
     meta, body = split_front(text)
     translator = str(meta.get("translator") or "").strip()
     editor = str(meta.get("editor") or "").strip() or translator
     os.makedirs(outdir, exist_ok=True)
 
-    defs, blocks = prepare(body)
-    inner = build(meta, blocks, translator, editor)
+    defs, blocks, math = prepare(body, math_mode=math_mode)
+    inner = build(meta, blocks, translator, editor, math)
 
     problems = self_check(inner)
     errs, warns = audit_notes(defs, blocks, inner)
@@ -742,9 +971,10 @@ def main(argv):
 
     title = (meta.get("title_zh") or meta.get("title") or "公众号版").strip()
     p1 = os.path.join(outdir, "wechat_article.html")
-    open(p1, "w", encoding="utf-8").write(page(inner, title))
+    open(p1, "w", encoding="utf-8").write(page(inner, title, has_math=bool(math)))
     p2 = os.path.join(outdir, "wechat_article.md")
-    open(p2, "w", encoding="utf-8").write(to_markdown(meta, blocks, translator, editor))
+    open(p2, "w", encoding="utf-8").write(
+        to_markdown(meta, blocks, translator, editor, math))
     print("写出：", p1)
     print("写出：", p2)
     return 0
