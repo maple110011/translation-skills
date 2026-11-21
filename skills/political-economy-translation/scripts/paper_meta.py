@@ -10,16 +10,21 @@ What goes in, and why each field earns its place:
 
 * Identity — title, authors, year, journal, DOI. Needed to cite the thing and
   to notice when two files are the same paper.
-* Provenance — source file, its hash, how the text was extracted. A hash is the
-  only way to answer "did I translate this PDF or an earlier version of it".
-* Process — date, glossary file, how many terms were pinned, whether a review
-  queue was raised. Lets a later pass know what state this translation is in.
+* Process — date, translator, how the text was extracted. Enough to say where
+  this file came from without keeping a chat log alive.
 * Fidelity — block/paragraph/citation/formula counts and the check verdict.
   Lets you filter a corpus by "translations that actually passed" instead of
   trusting filenames.
 
+Deliberately **not** here: copyright line, funding, ORCID, school of thought,
+source-file hash, glossary path, term count, review backlog, draft flag. Those
+were either never read back by anything, or are derivable from the files
+themselves; keeping them made every front matter block three times longer than
+the information it carried. If a one-off detail really has to survive, put a
+sentence in `notes`.
+
 Nothing here is invented. Fields the script cannot read are left empty rather
-than guessed, and `draft: true` marks a block that still needs a human pass.
+than guessed.
 
 Usage:
     python paper_meta.py --init paper_原文.md -o _work/meta.yaml
@@ -48,19 +53,14 @@ FIELDS = [
     ("journal", "期刊或出版社；书章填书名"),
     ("volume", ""), ("issue", ""), ("pages", ""),
     ("doi", ""),
+    ("keywords", "关键词，列表"),
+    ("jel", "JEL 分类号"),
+    ("notes", "特刊名、会议地点、资助与审批号等无处可放、又确实要留档的一句话"),
     ("type", "article | chapter | review | lecture | working-paper"),
-    ("school", "学派标记：Marxian | Sraffian | Regulation | Institutional | Heterodox | Mainstream"),
-    ("language", "源语言，默认 en"),
     ("translated_at", "翻译完成日期"),
     ("translator", ""),
-    ("source_file", "源 PDF/docx 文件名"),
-    ("source_sha256", "源文件哈希，用于判断原文是否换过版本"),
     ("extraction", "mineru-vlm | mineru-ocr | docx | native-md"),
-    ("glossary", "本篇项目术语表路径"),
-    ("terms_used", "项目术语表条目数"),
     ("fidelity", "块数、段落数、引用数、公式数、校验结论"),
-    ("review_open", "待校对清单中未决条数"),
-    ("draft", "true 表示元信息还没人工核过"),
 ]
 
 
@@ -198,20 +198,14 @@ def build(source_path, target_path=None):
         "journal": "",
         "volume": "", "issue": "", "pages": "",
         "doi": m.group(0) if m else "",
-        "type": "article",
-        "school": "",
-        "language": "en",
         "keywords": guess_keywords(body),
+        "jel": "",
+        "notes": "",
+        "type": "article",
         "translated_at": datetime.date.today().isoformat(),
         "translator": "",
-        "source_file": os.path.basename(source_path),
-        "source_sha256": "",
         "extraction": "",
-        "glossary": "",
-        "terms_used": 0,
         "fidelity": {**st, "status": ""},
-        "review_open": 0,
-        "draft": True,
     }
     return meta
 
@@ -259,21 +253,31 @@ def main(argv=None):
             print("✗ 没有 front matter")
             sys.exit(1)
         block = m.group(1)
+        # 著录类字段是"有则必须留档"，但不必每篇都有（没有 JEL 的论文不该
+        # 判失败），所以只做提示，不进 missing。
+        optional = {"keywords", "jel", "notes", "extraction"}
         missing = [k for k, _ in FIELDS
-                   if k not in ("review_open",) and not re.search(rf"^{k}:", block, re.M)]
+                   if k not in optional and not re.search(rf"^{k}:", block, re.M)]
+        soft = [k for k in optional if not re.search(rf"^{k}:", block, re.M)]
         empty = []
-        for k in ("title", "title_zh", "year", "source_file"):
+        for k in ("title", "title_zh", "year", "authors"):
             mm = re.search(rf"^{k}:\s*(.*)$", block, re.M)
-            if mm and mm.group(1).strip() in ("", '""'):
+            if mm and mm.group(1).strip() in ("", '""', "[]"):
                 empty.append(k)
         print(f"字段 {len(block.splitlines())} 行，缺失 {len(missing)}，空值 {len(empty)}")
         if missing:
             print("缺失：", "、".join(missing))
+        if soft:
+            print("未著录（有则补，无则略）：", "、".join(soft))
         if empty:
             print("空值：", "、".join(empty))
-        draft = re.search(r"^draft:\s*true", block, re.M)
-        if draft:
-            print("! draft 仍为 true：元信息还没人工核过")
+        # 旧版留下的一堆字段：还留着就提一句，别让两份口径混着走。
+        stale = [k for k in ("copyright", "school", "language", "orcid", "funding",
+                             "source_file", "source_sha256", "glossary", "terms_used",
+                             "review_open", "draft")
+                 if re.search(rf"^{k}:", block, re.M)]
+        if stale:
+            print("已废弃字段仍在（建议删掉，信息进 notes）：", "、".join(stale))
         sys.exit(0 if not missing and not empty else 1)
 
     ap.error("需要 --init、--inject 或 --check 之一。")
