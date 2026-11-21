@@ -55,7 +55,10 @@ def load(files):
                 if not reader.fieldnames:
                     continue
                 for r in reader:
-                    low = {(k or "").lower(): (v or "").strip()
+                    # 多余列（某一行的 alias 里带未转义逗号）会被 DictReader 收成 list，
+                    # 挂在 None 键下；合并成字符串，别让一条脏数据打断整份查询。
+                    low = {(k or "").lower():
+                           (",".join(v) if isinstance(v, list) else (v or "")).strip()
                            for k, v in r.items()}
                     src = low.get("src") or low.get("原文") or ""
                     dst = low.get("dst") or low.get("译文") or ""

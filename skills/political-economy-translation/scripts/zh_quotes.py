@@ -39,6 +39,10 @@ def convert(s):
     s = re.sub(r"```.*?```", stash, s, flags=re.S)
     s = re.sub(r"`[^`]*`", stash, s)
     s = re.sub(r"!\[[^\]]*\]\([^)]*\)", stash, s)
+    # HTML 标签与注释先整段保护：<table> 的 colspan="2" 里是属性定界符，
+    # 转成中文引号会让属性失效（表格塌成一行）。
+    s = re.sub(r"<!--.*?-->", stash, s, flags=re.S)
+    s = re.sub(r"<[^>]*>", stash, s)
 
     out, dq, sq = [], 0, 0
     for i, ch in enumerate(s):

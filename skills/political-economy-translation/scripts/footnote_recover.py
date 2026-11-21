@@ -137,8 +137,15 @@ def parse_footnotes(data):
             continue
         text = str(x.get("text", "") or "")
         m = re.match(r"\s*<sup>\s*(\w{1,4})\s*</sup>\s*", text)
-        marker = m.group(1).strip() if m else ""
-        body = text[m.end():].strip() if m else text.strip()
+        if m:
+            marker = m.group(1).strip()
+            body = text[m.end():].strip()
+        else:
+            # 有的期刊（Sage 的 RRPE 等）页底脚注不带 <sup>，编号是裸数字：'1 In section 5.6…'。
+            # 只认 1–2 位数字紧跟空格或点，避免把 '2020 was…' 这类年份当成编号。
+            m = re.match(r"\s*(\d{1,2})[\.\s]\s*", text)
+            marker = m.group(1) if m else ""
+            body = text[m.end():].strip() if m else text.strip()
         # 机构注里常有多个 <sup>2</sup>；转成纯文本，别把 HTML 字面带进 Markdown/TeX。
         body = norm(TAG_RE.sub(" ", re.sub(r"<sup>\s*(\w{1,4})\s*</sup>", r" \1 ", body)))
         p = plain(body)
