@@ -11,9 +11,20 @@
 第 7 步，`verify_pdf.py` 通过之后。挂的是**已验收的** PDF，不是中间产物；Markdown 译文与 PDF 是两份独立产物，只有 PDF 进 Zotero。
 
 ```bash
+# 只问来源：在不在库里、挂给哪条、原文附件叫什么。不写库、不弹授权窗。
+python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md --detect
+
+# 编译 + 挂回，一条命令走完（md2tex 会把 _work/pdf/paper.pdf 复制成 <stem>_zh.pdf）
+python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex --pdf --zotero
+
+# 分开跑也行
 python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md   # 单篇
 python scripts/zotero_attach.py --batch . --strict                # 一次交付多篇
 ```
+
+`--detect` 的输出叫「来源判定」，四段：状态（在库／不在库／歧义／查不了）、条目 key 与标题、判定依据（DOI、文件名还是标题相似度）、原文附件名。**交付时先跑这个**：不在库里就不必往下折腾授权；在库里就把 key 记下来，改稿重跑直接 `--parent-key`。
+
+退出码与挂载一致：0 命中、2 不在库、3 歧义。**Zotero 没开也算 2，但会明说「查不了」并指到那个开关**，不会假装"库里没有"——这两件事必须分清楚，否则会误判成该文献不在库。
 
 ---
 

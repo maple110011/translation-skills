@@ -656,6 +656,56 @@ def ensure_auth(api, cfg, args):
     return True, ""
 
 
+def source_report(pdf, md, fm, anchor, cands, api):
+    """回答一个问题：这篇是不是从 Zotero 库里拖出来的。只读，不写库、不弹窗。
+
+    交付时先问这个，比先挂后翻账省事：不在库里就不必折腾授权，
+    在库里就顺手把父条目 key 记下来，下次改稿直接 --parent-key。
+    """
+    print("  ── 来源判定 ──")
+    if not anchor:
+        if cands:
+            print("  状态：库里有多条候选，需要人选（%d 条）" % len(cands))
+            for k, t, r in cands:
+                print("    %s  %.3f  %s" % (k, r, t[:70]))
+        else:
+            print("  状态：不在库里")
+            tried = []
+            if fm.get("doi"):
+                tried.append("DOI %s" % fm["doi"])
+            if fm.get("source_pdf"):
+                tried.append("原文文件名 %s" % pathlib.Path(fm["source_pdf"]).name)
+            if fm.get("title"):
+                tried.append("英文标题")
+            print("  查过：%s" % ("、".join(tried) or "（front matter 里没有可用的锚）"))
+            print("  结论：PDF 照常交付，不挂 Zotero。")
+        return
+    print("  状态：在库里")
+    print("  条目：%s" % anchor.key)
+    print("  标题：%s" % anchor.title)
+    print("  依据：%s（%.2f）" % (anchor.via, anchor.score))
+    print("  打开：%s" % anchor.uri)
+    kids = attachment_children(api, anchor.key)
+    pfx = (NAME_PREFIX or "").strip().lower()
+    src = None
+    for c in kids:
+        d = c.get("data", {})
+        fn = (d.get("filename") or "")
+        if not fn.lower().endswith(".pdf"):
+            continue
+        if pfx and fn.lower().startswith(pfx):
+            continue
+        src = d
+        break
+    if src:
+        print("  原文附件：%s（%s）" % (src.get("filename"), src.get("key")))
+    elif fm.get("source_pdf"):
+        print("  原文附件：库里没有；front matter 记的是 %s"
+              % pathlib.Path(fm["source_pdf"]).name)
+    else:
+        print("  原文附件：库里只有条目，没有原文 PDF")
+
+
 def run_one(pdf, args, api, cfg):
     pdf = pathlib.Path(pdf).resolve()
     md = pathlib.Path(args.md) if args.md else guess_md(pdf)
@@ -670,6 +720,10 @@ def run_one(pdf, args, api, cfg):
         anchor, cands = resolve(api, args, fm, pdf)
     except LocalUnavailable as e:
         print("  锚定 → 本地 API 不可用：%s" % e)
+        if args.detect:
+            print("  ── 来源判定 ──")
+            print("  状态：查不了。先启动 Zotero，并在「设置 → 高级」勾上"
+                  "「允许此计算机上的其他应用程序与 Zotero 通信」，再重跑 --detect。")
         return {**base, "status": "pending", "rc": EXIT_PENDING, "note": str(e)}
 
     if not anchor:
@@ -678,11 +732,20 @@ def run_one(pdf, args, api, cfg):
             for k, t, r in cands:
                 print("    %s  %.3f  %s" % (k, r, t[:70]))
             print("  用 --parent-key <KEY> 指定后重跑。")
+            if args.detect:
+                source_report(pdf, md, fm, None, cands, api)
             return {**base, "status": "ambiguous", "rc": EXIT_AMBIG, "candidates": cands}
         print("  锚定 → 没找到父条目（给 --parent-key，或补 --title / --doi）")
+        if args.detect:
+            source_report(pdf, md, fm, None, [], api)
         return {**base, "status": "pending", "rc": EXIT_PENDING}
 
     print("  锚定 → %s  %s  （%s，%.2f）" % (anchor.key, anchor.title[:64], anchor.via, anchor.score))
+    if args.detect:
+        source_report(pdf, md, fm, anchor, [], api)
+        return {**base, "status": "detected", "rc": EXIT_OK,
+                "parent_key": anchor.key, "parent_title": anchor.title,
+                "via": anchor.via, "score": round(anchor.score, 3)}
     kids = attachment_children(api, anchor.key)
     want_name = attach_name(pdf, fm, args.name_prefix, kids)
     mode, existing, md5, legacy = plan(kids, pdf, want_name)
@@ -821,6 +884,8 @@ def main(argv=None):
     ap.add_argument("--strict", action="store_true", help="有待挂即返回非 0（交付门禁）")
     ap.add_argument("--auto", action="store_true", help="必须挂上，做不到就返回 1")
     ap.add_argument("--prepare-only", action="store_true", help="只锚定，不写库")
+    ap.add_argument("--detect", action="store_true",
+                    help="只报告来源：这篇在不在库里、挂给哪条、原文附件叫什么。不写库、不产物")
     ap.add_argument("--dry-run", action="store_true", help="只读：查条目，不写库、不产文件")
     ap.add_argument("--stage", action="store_true", help="把待挂 PDF 复制到 _zotero/inbox/ 一处")
     ap.add_argument("--attach-title", default=None, help="附件标题，默认与附件文件名一致")
@@ -854,7 +919,7 @@ def main(argv=None):
             continue
         results.append(run_one(pdf, args, api, cfg))
 
-    if not args.dry_run:
+    if not args.dry_run and not args.detect:
         zdir = zotero_dir(args)
         for r in results:
             if r["status"] in ("attached", "updated", "unchanged"):

@@ -1,6 +1,6 @@
 ---
 name: dl-translation
-description: 把英文的深度学习、机器学习、数学、统计学论文译成中文 Markdown，以准确为第一目标。公式与符号逐字符保真、定理/引理的条件与结论强度不走样、术语全文一致；没有通行中文译名的关键术语与概念保留英文原文、不造词，并在译文开头列「保留英文术语一览」；图、表按正文首次引用就近重定位，不再沿用 PDF 的浮动排版位置。译文开头另附「符号一览」。不做润色、不做本土化，允许翻译腔。输入可为 PDF、已提取的 Markdown、docx；输出正文段落与源文一一对应、引用原样，并对公式做逐条机械比对。Use when translating papers with formulas, theorem-proof structures, algorithm pseudocode and experiment tables (deep learning, machine learning, probability, statistics, optimization, mathematics) into Chinese under strict accuracy constraints, when untranslated key terms must be kept in English, when figures/tables must be moved next to their first citation, when a notation table has to be produced alongside the translation, and when a MinerU extraction step is needed first.
+description: 把英文的深度学习、机器学习、数学、统计学论文译成中文 Markdown，以准确为第一目标。公式与符号逐字符保真、定理/引理的条件与结论强度不走样、术语全文一致；没有通行中文译名的关键术语与概念保留英文原文、不造词，并在译文开头列「保留英文术语一览」；图、表按正文首次引用就近重定位，不再沿用 PDF 的浮动排版位置。译文开头另附「符号一览」。保真项（公式、符号、术语、引用、量词与模态）一律不动，但句法归中文：机械校验之后设一道独立的流畅化改写，只改语序、断句与句式，不改信息；不追文学性的「雅」，也不允许英文语序直搬。输入可为 PDF、已提取的 Markdown、docx；输出正文段落与源文一一对应、引用原样，并对公式做逐条机械比对；成品只留标题、作者、正文、附录，刊头、致谢与各类声明移入 YAML front matter；一次多篇时一篇交给一个子代理。Use when translating papers with formulas, theorem-proof structures, algorithm pseudocode and experiment tables (deep learning, machine learning, probability, statistics, optimization, mathematics) into Chinese under strict accuracy constraints, when untranslated key terms must be kept in English, when figures/tables must be moved next to their first citation, when a notation table has to be produced alongside the translation, and when a MinerU extraction step is needed first.
 agent_created: true
 ---
 
@@ -10,7 +10,7 @@ agent_created: true
 
 难点不在英文，在四件事：**公式不可改写**——差一个下标就不是同一个命题，而中文读起来毫无破绽；**定理的全部信息在条件与强度里**——省半句，结论就从"有条件成立"变成"无条件成立"；**符号全文复用而读者会回头查**——这就是开头那张符号表的作用；**没有通行译名的术语要保留英文**——造一个中文词，等于替读者做了一次不可逆的裁定。
 
-顺序是**先不错，再读得通**：不追信达雅、不做本土化、允许翻译腔。
+顺序是**先保真，再通顺**：不追"雅"、不做本土化，但**不容忍英文语序直搬**。保真项（公式、符号、术语、引用、量词、情态、概率模式）一个不动；语序、断句、名词化、被动、代词密度属于句法，一律按中文重铸。这两件事不在同一层上，可以同时守住——见第 4.5 步与 [references/fluency.md](references/fluency.md)。
 
 <what_this_skill_is_for>
 **适用**：期刊/会议论文、arXiv 预印本、技术报告、教材章节、讲义、学位论文的英译中；正文含公式推导、定理—证明结构、算法伪代码、实验表格；译文要给导师、审稿人、项目组或自己长期查阅。
@@ -19,7 +19,7 @@ agent_created: true
 </what_this_skill_is_for>
 
 <non_negotiable_rules>
-六条硬规则。违反任何一条，译文就不合格，不管读起来多通顺。**判据、反例与逐条清单在 [references/accuracy-rules.md](references/accuracy-rules.md)，这里只列不可让的边界。**
+七条硬规则。违反任何一条，译文就不合格，不管读起来多通顺。**判据、反例与逐条清单在 [references/accuracy-rules.md](references/accuracy-rules.md)，这里只列不可让的边界。**
 
 **1. 公式逐字符保真。** 不译、不改写、不"等价变形"、不重排。上下标、撇号、转置、范数、括号大小、间距命令、`\tag` 编号全部原样。`x^2-1` 不写成 `(x-1)(x+1)`，`\log` 不写成 `\ln`，`\|x\|_2` 不写成 `|x|`。只有空白与换行可动；定界符统一由 `normalize_math.py` 机械完成。
 
@@ -29,11 +29,13 @@ agent_created: true
 
 **4. 术语与符号全文一致；关键术语保留英文原文。** 动笔前定表，全文照表；同一英文词不得一处一个译法，也**不得一处保留英文、另一处译成中文**。没有通行中文译名的概念保留英文、逐字符照抄，不造词（见 `<english_terms>`）。同一符号不得"统一"成别的字母，`\hat{f}` 不得简写成 `f`。
 
-**5. 准确优先于通顺，不做润色。** 不合并句子、不调换从句顺序（若改变条件辖域）、不把被动改主动（若施事有意模糊）、不删重复、不改逻辑连接词（thus/hence/therefore 各有对应）。允许翻译腔，允许长句不拆；唯一底线是句子能读通，不能是病句。
+**5. 保真项不动，句法归中文。** 两个层次分开守：**信息层不许动**——不合并句子（若会改变条件辖域）、不删重复的限定、不加原文没有的因果与过渡、不软化的程度词（`at most`、`with probability at least $1-\delta$`、`up to a constant`、`it is easy to see`）、不改量词顺序与 `if`／`only if` 的辖域、不把定义句改写成断言。**句法层必须动**——长句该拆就拆、名词化还原成动词、施事明确时被动改主动、代词过密处还原成名词、状语前移、虚动词（进行／加以／予以）删掉。判据不是"没有病句"，而是**中文读者不必回看英文就能懂**；"读着像译文"是不合格，不是可接受的代价。顺序固定：机械校验过关 → 流畅化改写 → 重跑校验，细则见 [references/fluency.md](references/fluency.md)。
 
 **6. 不增不删，不替作者补步骤，不静默修正原文。** 不加原文没有的解释、背景、过渡句、译者按语。原文的符号前后不一致、假设与证明对不上、编号跳号——照原样译，写进"原文疑点"。两个例外：① **提取错误**（上下标压平、`O(n)` 误识为 `0(n)`、上标抽成 `<sup>`）以 PDF 为准改正并记账；② 译文开头的 YAML 元信息、符号一览、保留英文术语一览，用 HTML 注释包住，脚本会先剥掉，不算正文增写。
 
 **`keep` 术语的中文简述只能写进「保留英文术语一览」的简述列，正文任何位置（包括首次出现）都不许补括注或同位语**。哪怕只有一句、哪怕不带原文没有的信息，那也是正文增写：`fidelity_check.py` 会拿简述列去正文反查 `（简述）` 形态，一出现就是硬性失败。
+
+**7. 成品只留标题、作者、正文、附录。** 会议与期刊模板的首页、文末夹着一批只属于出版方的内容：会议名／刊名与卷期页码、版权与许可（`© 2024 The Authors`、`CC BY 4.0`）、DOI 与 OpenReview／arXiv 链接、关键词、致谢、资助、利益冲突、伦理声明、可复现性声明、数据可用性、作者简介、附录前的投稿说明——**一律不进译文**，著录信息进 YAML front matter。**标题（H1）与作者行保留**：读者拿到的是一篇署名论文，不是一份无署名的内部稿；作者行只去角标与星号标记（`Ma∗†` → `Ma`），删单位、邮箱与 ORCID。摘要属于正文，保留；**作者的附录要留**（证明、实现细节、补充实验是论文的一部分，不是版尾声明）。清单与去处见第 6 步。
 </non_negotiable_rules>
 
 <accuracy_first>
@@ -41,7 +43,9 @@ agent_created: true
 
 **不做的事**：不为顺口把两句话合成一句（"条件—结论"两句结构一合，条件常退化成插入语）；不把 `for all $n \ge n_0$`、"for sufficiently large $n$" 挪到句末或省掉；不把 `with high probability` 译成"大概率"（它是概率模式，不是口语里的"很可能"）；不把 `up to a constant` 译成"近似地"；不"统一"看似重复的符号；不在正文加译者注、"需要注意的是"或总结句；不在数学模式里写中文（原文已有的 `\text{}` 除外）；不给无通行译名的术语硬造中文词（"先验数据拟合网络"这类自造词，读者既查不到原文也没法与文献对上）；不把图表留在 PDF 的浮动位置上。
 
-**可以做的事**：拆长句、补汉语必需的虚词、把名词化表达还原成动词——只要信息量完全等价、不改变条件辖域与指代；保留原文的重复与啰嗦；读起来略生硬。
+**可以做的事**：拆长句、补汉语必需的虚词、把名词化表达还原成动词、施事明确时被动改主动、把过密的代词还原成名词、状语前移——只要信息量完全等价、不改变条件辖域与指代。保留原文的重复与啰嗦。
+
+**"生硬"不再当成可接受的常态。** 旧口径把"语序照英文、长句不拆"写成许可，结果是每句单独看都合格、整篇读不动。现在的口径是：生硬只在两种情况下可接受——**术语密度高到无法化解**（一句里三个 `keep` 术语），或者**原文本身就在堆条件**（`under assumptions A1–A5`）。其余场合把英文语序照搬过来，算没译完，不算"忠实"。
 </accuracy_first>
 
 <english_terms>
@@ -144,6 +148,21 @@ python scripts/figures.py relocate <stem>_zh.md --apply --csv _work/图表重定
 - 源优先级：**出版版 PDF > 作者提供的 tex/docx > MinerU 提取的 Markdown**。三者冲突以 PDF 为准，提取结果只是工作草稿。
 - 交付默认 Markdown（含开头符号一览与 YAML front matter）；**PDF 是可选交付，不是自动步骤**——用户没说格式就顺口问一句「要不要 PDF」，别事后补做。
 - 输出放源文件同目录，命名 `<stem>_zh.md`；中间产物放 `_work/`。用户没说清只问一次，不要为格式细节来回确认。
+- **一次多篇 → 一篇一个子代理**，不要在自己这里轮着译（见下）。
+
+### 多篇并行：一篇一个子代理
+
+同时交来两篇以上时，**为每篇起一个子代理**，让它从第 1 步跑到第 6 步。主代理不译正文，只做分发、核对与汇报。
+
+任务说明要自足：源路径与产物路径、目标读者、交付口径、术语来源（继承批次表还是新建）、以及"跑完把 `_work/` 证据与校验结论报回来"。子代理看不到这次对话，**没写进去的要求它不会知道**。
+
+三条理由都是实测踩出来的：
+
+- **术语与符号会串味。** 两篇的记号约定不一样（同是 `\hat{\tau}`，一篇指 CATE，一篇指估计量），在同一上下文里交替写，符号表必然互相污染。
+- **对账会混。** 两篇的 `_work/` 里 `公式差异.csv`、`符号缺漏.csv`、`脚注.csv` 名字完全一样，交替操作时读写错文件不会有任何报错。
+- **上下文会被两篇公式挤爆。** 数学论文的原文最长，两篇叠在一起，后半程只能靠印象译，而"靠印象译公式"等于改写。
+
+**跨篇术语统一仍然要做**：先抽各篇候选 → 合并去重 → 人工裁一次 → 把批次表分给各子代理继承（`references/workflow.md` 第 3 节）。收齐后主代理逐篇核对：`math_fidelity.py` 差异是否为 0、`fidelity_check.py --strict` 是否通过、`paper_meta.py --check` 是否干净、`_work/` 证据是否齐全。**不要只看子代理的回话**——回话是它的结论，产物才是事实。
 
 ## 第 1 步：取得可译的正文
 
@@ -185,6 +204,20 @@ python scripts/footnote_recover.py ./_work/extract -o ./_work \
 
 提完**必须对照 PDF 抽查**：段落数、公式、表格、脚注。数学论文的提取错误集中在三处——多行公式被切碎、正体斜体被抹平、参考文献年份并入正文。提取错了再译，等于把错误洗进译文。
 
+### 刊头与版尾先剔掉
+
+会议模板的首页与文末夹着一批只属于出版方的内容，**在动笔之前就从源文工作副本里剔掉**，别整篇译完再删：译了是白工，还会在「保留英文术语一览」里塞进 `Ethics Statement`、`Declaration of Conflicting Interests` 这类只有声明才有的条目。
+
+```bash
+python scripts/strip_meta.py <stem>_原文.md --meta _work/meta.yaml --check   # 先看清单
+python scripts/strip_meta.py <stem>_原文.md --meta _work/meta.yaml --apply   # 剔
+python scripts/strip_meta.py <stem>_zh.md --meta _work/meta.yaml --apply     # 译文侧同口径
+```
+
+脚本按两种特征认：**标题名**（`Ethics Statement`、`Acknowledgments`、`Author Biographies`…）与**段首标记**（ICLR/NeurIPS 体例不给标题，直接 `Acknowledgments. This paper is supported by…` 起一段）。认不出的特例手工删，删完把位置记进 `_work/<stem>_待校对.md`。
+
+**别删错东西**：`Appendix`／`Supplementary` 是论文的一部分，脚本不碰；`Data Availability` 里的代码与数据地址删块之前先搬进 `meta.yaml` 的 `links`——那是读者真正要用的东西，比声明正文值钱。**卷期、DOI、版权、关键词同样别丢**，`--dump-yaml` 会把能认的著录打印出来。
+
 ## 第 2 步：定术语与符号（动笔之前）
 
 这一步的目的是消灭"边译边定"——术语不一致的唯一根源。
@@ -211,6 +244,7 @@ python scripts/notation.py extract 原文.md -o _work/符号候选.csv   # 先�
 2. **段落一进一出。** 英文常把一个论点塞进一个长段，中文读者习惯分开——但不能分，只能在段内调节。
 3. **标题译，`#` 数量不变**，编号保留，标题里的术语照项目表。
 4. **行间公式整块不动**（含 `(3)`、`\tag{3}`）；**行内公式不改行间**，否则段落结构与公式编号都会错位。
+4b. **行内公式逐字复制，不要重写。** 翻译时先把原文的 `$…$` 整串拷进译文，再译它前后的文字——**不要**"按语义重写一个更规整的版本"。`\mathbb{P}_{obs}` 写成 `\mathbb{P}_{obs}` 而不是 `P_{obs}`，`\left[ … \right]` 不改成 `[ … ]`，`\mathrm{obs}` 不改成 `obs`。重写的后果是 `math_fidelity.py` 报出成百上千条"多出／缺失／内容不同"，而这些差异**修不回来**：公式与中文混排后，无法按序自动替换，只能逐句重抄。同理，**不要给纯文本的变量补 `$…$`**（原文写 `n` 就写 `n`），也不要把行内公式提成行间。
 5. **定理环境照标签译**：`**Theorem 2.1.**` → `**定理 2.1.**`，编号不变；`*Proof.*` 保留标记、内容照译。
 6. **伪代码/代码块**：结构不动，按 `<code_blocks>` 处理；被压成散文的先恢复版式再译。
 7. **表格**：表头译，数字、单位、`±`、星号显著性、括号里的标准误原样，表注照译。
@@ -219,7 +253,7 @@ python scripts/notation.py extract 原文.md -o _work/符号候选.csv   # 先�
 10. **引用块 `>` 层级保留、内容译**；参考文献条目、`\cite{}`、`[12]` 原样。
 11. **`keep` 术语照抄**，大小写、单复数、连字符与原文该处完全一致；不确定某符号指什么，回 `符号候选.csv` 与首次定义它的句子核对，不要凭印象。
 12. **图表先按原位译完，位置最后统一搬**（3.4 用脚本一次性重定位），边译边搬会让段落编号与进度对不上。
-13. **不写译者注**，需要说明的写进"原文疑点"。语体是学术书面语，但不为顺口改写逻辑关系（判据见 [references/accuracy-rules.md](references/accuracy-rules.md) 第 7 节）。
+13. **不写译者注**，需要说明的写进"原文疑点"。语体是学术书面语。**翻译时先只管译准，中文句法统一留到第 4.5 步做**——边译边润最容易把条件辖域改漂，而且改过什么自己也记不住。判据见 [references/accuracy-rules.md](references/accuracy-rules.md) 第 7 节。
 
 **3.4 全文译完后，把浮动对象移到引用段落附近**
 
@@ -249,6 +283,35 @@ python scripts/figures.py audit <stem>_原文.md <stem>_zh.md --csv _work/图目
 **口径要分清**：块结构、引用、公式、**代码块**（围栏未闭合／块数／行数）、正文卫生、脚注门禁是**真硬校验**（`--strict` 返回 1）；代码块内缩进与代码记号、语言标记丢失、"行首 Algorithm N 但无围栏"、疑似未译段、段长异常、术语一致、`notation check`、`figures audit` 是**建议性发现**（误报多，只打印不拦）。要零容忍给 `fidelity_check.py` 加 `--strict-soft`。`figures.py audit` 全绿之后，只剩"宽图会不会被压小"要眼睛看。
 
 **脚本判不了的事情，人工过一遍**：公式里每个符号指的事对不对、定理条件有没有少、数值与表格有没有被"简化"、中文能不能读通。清单见 [references/review-checklist.md](references/review-checklist.md)。
+
+## 第 4.5 步：流畅化改写
+
+**位置不能挪：门禁 A 过了才改，改完重跑门禁 B。**
+
+```
+第 3 步 翻译 → 第 4 步 校验（门禁 A）→ 本步 → 重跑第 4 步（门禁 B）→ 第 5 步 审校
+```
+
+先改后校验会把改写引入的公式破坏混进校验结果，分不清是翻译错还是改错；不重跑则最后交付的是**没人校验过的文本**。改写是整条流程里唯一"改对的地方可能改出新错"的环节，所以它必须有前后两道门禁夹着。
+
+**改什么**：语序、断句、主从、名词化→动词、被动→主动（施事明确时）、代词还原、状语前移、插入语归位、虚动词删除、并列项对齐。**不改什么**：公式与符号、术语（含 `keep` 串）、引用与文献、代码、量词与情态、概率模式、程度词、定理标签、数字单位、段落切分。一句话判据：**改完后只会中文的读者去复现代码、核对证明，会不会得出与读英文不同的结论。** 会，就是改坏了。
+
+三条执行约束：
+
+1. **只在句内改**——不跨段、不合并两段、不拆一段、不把句子挪到邻段（段界是 `fidelity_check.py` 的基准）。
+2. **一条一处**——一次处理一个病灶，不要"既然改了这句就顺手重写整段"；整段重写的 diff 无法复核。
+3. **保不住就退回**——某句改了两版仍拿不准是否等价，保留原译。**改不动的代价是生硬，改错的代价是不准，两者不等价。**
+
+**分块改，每块改完立刻跑门禁**，不要全篇一次性改写（出错时无法定位是哪一块引入的）。**每块动手前读已改写的上一块末尾三段**；第一块改完挑两三句定稿贴进 `_work/<stem>_流畅基准.md`，后面比照它——术语表管词，这份基准管句。每块改完跑这三条（`notation check` 与 `figures audit` 不受改写影响，不必重跑）：
+
+```bash
+python scripts/normalize_math.py <stem>_zh.md --inplace
+python scripts/math_fidelity.py <stem>_原文.md <stem>_zh.md --csv _work/公式差异.csv --strict
+python scripts/fidelity_check.py <stem>_原文.md <stem>_zh.md \
+    --glossary _work/<stem>_术语.csv --float-reflow --strict
+```
+
+**门禁 B 与门禁 A 结论不一致时，先怀疑改写，不要先怀疑脚本。** 验收只设读者成本标准，不设文采标准：遮住英文读，不需要回看就能懂；一句一个主谓核心；一段内"的"不超过六个、代词不超过三个；没有被……所……、没有"进行／加以／予以 + 名词"；定义仍是定义、断言仍是断言；量词顺序与 `if／only if` 辖域逐条核过。十种手术、四种"改着改着改出意思"的雷、完整验收清单见 [references/fluency.md](references/fluency.md)。
 
 ## 第 5 步：审校清单与回填
 
@@ -303,6 +366,10 @@ python scripts/paper_meta.py --check <stem>_zh.md                   # 查漏字�
 
 **`title` 常常要手改**：MinerU 的 H1 有一半时候是期刊名或 "Preprint"，不是论文标题；`authors` 也人工填，脚本不猜，猜错比空着麻烦。
 
+**著录信息全在 YAML**：会议名／刊名、卷期页码、DOI、`copyright`（版权行或许可）、`keywords`、`funding`、`links`（代码／数据地址）、`notes`。这些正是正文里删掉的块——**删正文不等于丢信息**。`paper_meta.py --check` 对它只提示不判失败（没有 ORCID 的论文不该因此报红）。
+
+**交付前确认成品是干净的**：`python scripts/strip_meta.py <stem>_zh.md --check` 返回 0；残留 `©`、`doi.org`、`Acknowledgments`、`Ethics Statement` 说明第 1 步漏跑了。成品的样子是：**标题 → 作者行 → 摘要 → 正文 → 参考文献 → 附录**，没有别的。
+
 **front matter、符号一览、术语一览都不算"增"**：它们是文件属性与清点，标准渲染不显示、脚本会先剥掉。但边界要守住——只放元信息与符号/英文串，不许塞内容摘要、译者按语。
 
 **交付时对话里只回复**：译文绝对路径；校验结论（公式几处逐字一致、结构是否通过、定理环境几条、符号表缺几条、`keep` 几条是否全部保住、浮动对象搬几处／几处无引用）；原文疑点与提取缺陷；没做的部分；**Zotero 挂载状态**。**不复述译文内容。**
@@ -331,11 +398,12 @@ python scripts/verify_pdf.py _work/pdf/paper.pdf --tex _work/pdf/paper.tex \
 文献多半是从 Zotero 里拖来的，译文 PDF 出完、`verify_pdf.py` 通过之后要挂回原条目——产物散在工作区，过三个月没人知道它对应哪一条。这一步**向外部系统写数据**，所以有独立的状态、退出码和账本。
 
 ```bash
-python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md   # 单篇
-python scripts/zotero_attach.py --batch . --strict                # 一次多篇
+python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md --detect   # 先查来源，只读
+python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md           # 单篇
+python scripts/zotero_attach.py --batch . --strict                        # 一次多篇
 ```
 
-走 **Zotero 本地 API**（`127.0.0.1:23119`），不碰 `zotero.sqlite`、不需要 zotero.org 账号：读（锚定、判重）不需授权；写（建附件、传文件）第一次弹窗点 **Always Allow**，key 存 `~/.workbuddy/zotero.json`。锚定按可靠性：`--parent-key` → DOI/arXiv → `source_pdf` 与附件文件名精确匹配 → 英文标题相似度（≥0.85 且唯一）；**中文标题不参与匹配**。状态六种 `attached`/`updated`/`unchanged`/`ambiguous`/`pending`/`error`，退出码 0/1/2/3，**`--strict` 把任何没挂上的都算失败**。写不进去时不要手工复制：脚本在 `_zotero/` 产出 `pending.md`（汇总表）与 `attach.js`（粘进 Zotero「工具 → 开发者 → 运行 JavaScript」一次挂完）。判重用 filename+md5，改稿重出直接重跑即原地覆盖，附件命名 `zh - <原文附件名>.pdf`。详见 [references/zotero.md](references/zotero.md)。
+走 **Zotero 本地 API**（`127.0.0.1:23119`），不碰 `zotero.sqlite`、不需要 zotero.org 账号：读（锚定、判重）不需授权；写（建附件、传文件）第一次弹窗点 **Always Allow**，key 存 `~/.workbuddy/zotero.json`。**先 `--detect` 再挂**：只读，报告「在库／不在库／歧义／查不了」、条目 key 与标题、判定依据、原文附件名，退出码 0/2/3；Zotero 没开时明说"查不了"，不会假装库里没有。锚定按可靠性：`--parent-key` → DOI/arXiv → `source_pdf` 与附件文件名精确匹配 → 英文标题相似度（≥0.85 且唯一）；**中文标题不参与匹配**。状态六种 `attached`/`updated`/`unchanged`/`ambiguous`/`pending`/`error`，退出码 0/1/2/3，**`--strict` 把任何没挂上的都算失败**。写不进去时不要手工复制：脚本在 `_zotero/` 产出 `pending.md`（汇总表）与 `attach.js`（粘进 Zotero「工具 → 开发者 → 运行 JavaScript」一次挂完）。判重用 filename+md5，改稿重出直接重跑即原地覆盖，附件命名 `zh - <原文附件名>.pdf`。详见 [references/zotero.md](references/zotero.md)。
 </workflow>
 
 <scripts>
@@ -355,9 +423,9 @@ python scripts/zotero_attach.py --batch . --strict                # 一次多篇
 | `scripts/lookup_term.py` | 按词查项目表与种子表；`dst=@keep` 显示「保留英文原文（不译）」 | `--glossary`、`--exact`、`--max` |
 | `scripts/review_queue.py` | 生成审校清单：要你定的、公式差异、符号表、术语不一致、候选术语 | `--manual`、`--init-manual`、`--math`、`--notation`、`--resolved` |
 | `scripts/review_apply.py` | 执行人的意见：改术语表与译文、重跑四步校验（结构对账带 `--strict`）、登记已决、重生成清单 | `--decisions`、`--resolved`、`--manifest`、`--math`、`--notation` |
-| `scripts/md2tex.py` | 译文 Markdown → XeLaTeX（`--pdf` 顺带编译两遍）：`[^n]` 默认排页底 `\footnote{}`、URL 走 `\url{}`、公式分组对齐、编号右对齐、引文跳转、书签与元信息；内置图片/裸图适配、**围栏块 → `codeblock`、算法 div → 逐行算法块、行内代码 → `\texttt`**、数学竖线保护、超宽表格自适应、图宽按 `--fig-meta` 还原原刊比例、图号按原刊编号、跨进程编译锁 | `--source-pdf`、`--pdf`、`--footnotes`、`--fig-meta`、`--title-en`、`--authors`、`--venue`、`--doi`、`--arxiv`、`--citekey` |
+| `scripts/md2tex.py` | 译文 Markdown → XeLaTeX（`--pdf` 顺带编译两遍）：`[^n]` 默认排页底 `\footnote{}`、URL 走 `\url{}`、公式分组对齐、编号右对齐、引文跳转、书签与元信息；内置图片/裸图适配、**围栏块 → `codeblock`、算法 div → 逐行算法块、行内代码 → `\texttt`**、数学竖线保护、超宽表格自适应、图宽按 `--fig-meta` 还原原刊比例、图号按原刊编号、跨进程编译锁；编译完把 PDF 复制成 `<stem>_zh.pdf` 并按需挂 Zotero | `--source-pdf`、`--pdf`、`--footnotes`、`--fig-meta`、`--title-en`、`--authors`、`--venue`、`--doi`、`--arxiv`、`--citekey`、`--zotero`、`--zotero-dry-run` |
 | `scripts/verify_pdf.py` | PDF 验收：编译 `!` 错误、`Overfull`、`includegraphics` 数、书签重复、文本层汉字与连字、**逐条核脚注是否进 PDF**、**代码块数与首行是否进 PDF** | `<PDF>`、`--tex`、`--md`、`--footnotes` |
-| `scripts/zotero_attach.py` | 把已验收的译文 PDF 挂回 Zotero 父条目（本地 API，filename+md5 判重，改稿原地覆盖，不碰 sqlite） | `<PDF>`、`--md`、`--batch`、`--strict`、`--parent-key`、`--title`、`--doi`、`--attach-title`、`--prepare-only`、`--dry-run`、`--stage` |
+| `scripts/zotero_attach.py` | 把已验收的译文 PDF 挂回 Zotero 父条目（本地 API，filename+md5 判重，改稿原地覆盖，不碰 sqlite）；`--detect` 只报来源 | `<PDF>`、`--md`、`--detect`、`--batch`、`--strict`、`--parent-key`、`--title`、`--doi`、`--attach-title`、`--prepare-only`、`--dry-run`、`--stage` |
 | `scripts/paper_meta.py` | 生成、写入、检查译文顶部的 YAML 元信息 | `--init`、`--inject`、`--check` |
 
 全部只用 Python 标准库，无需安装依赖。唯一外部依赖是 MinerU 的 token（仅从 PDF 提取时需要）。
@@ -397,6 +465,7 @@ python scripts/zotero_attach.py --batch . --strict                # 一次多篇
 | 文件 | 何时读 |
 |---|---|
 | [references/accuracy-rules.md](references/accuracy-rules.md) | 动笔前必读；拿不准某处算不算改写、条件有没有少、代码块怎么处理、语体怎么把握时 |
+| [references/fluency.md](references/fluency.md) | 第 4.5 步流畅化改写时；判断某处改动会不会改出意思、句子该不该拆 |
 | [references/notation.md](references/notation.md) | 搭符号表时；原文有 Notation 节、符号多义、表格竖线转义出问题时 |
 | [references/figures.md](references/figures.md) | 处理图与实验表格时；多面板图被拆散、图注游离、宽图读不清、要导出 HTML/docx 时 |
 | [references/terminology.md](references/terminology.md) | 定译法、判断学科分流、缩写处理、维护术语表时 |
