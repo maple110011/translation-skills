@@ -93,7 +93,7 @@ python $S/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md
 | poppler（`pdftotext` / `pdfinfo`） | 脚注交叉验证与 PDF 验收时 | 读取 PDF 文字层 |
 | TeX Live（`xelatex` + `ctex`） | 编译 PDF 时 | 中文排版编译 |
 | Zotero 10+ | 回挂文献库时 | 通过本地 API 挂载附件，未安装时自动跳过 |
-| `_marx_ref/` 本地语料 | 可选 | 政经 Skill 的马恩引文匹配，缺失不影响其余步骤 |
+| `_marx_ref/` 本地语料 | 可选 | 政经 Skill 的马恩引文匹配，缺失不影响其余步骤；构建工具见 `tools/marxref-build/` |
 
 ## 目录结构与文档导航
 

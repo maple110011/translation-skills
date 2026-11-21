@@ -6,7 +6,9 @@ __pycache__/
 Thumbs.db
 *.swp
 
-# Large data and build artifacts: never tracked here (see README "外部数据")
+# Large data and build artifacts: never tracked here
+# 语料、原文与索引成品一律不入库；理由与语料来源见
+# skills/political-economy-translation/references/development.md
 _marx_ref/
 MinerU输出/
 *.pdf
@@ -14,6 +16,14 @@ MinerU输出/
 *.7z
 *.log
 *.pid
+
+# 在 tools/marxref-build/ 就地构建时的产物（语料与原文，绝不可提交）
+tools/marxref-build/corpus/
+tools/marxref-build/raw/
+tools/marxref-build/pdf/
+tools/marxref-build/dist/
+tools/marxref-build/logs/
+tools/marxref-build/index/*.jsonl
 
 # WorkBuddy runtime leftovers
 *.pre-junction-backup/

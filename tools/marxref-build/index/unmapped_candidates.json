@@ -1,0 +1,1430 @@
+[
+ {
+  "key": "x1-MEA1-001",
+  "vol": 1,
+  "zh": "MEA1-001",
+  "zh_title": "第一卷说明",
+  "zh_len": 2584,
+  "zh_nums": 10,
+  "how": "未列入 works.csv",
+  "cands": [
+   [
+    0.7749999999999999,
+    0.7,
+    0.11772745910975443,
+    9,
+    "MECW09-002",
+    "The State of Trade, March 6, 1849",
+    10,
+    34
+   ],
+   [
+    0.7,
+    0.6,
+    0.1267909715407262,
+    6,
+    "MECW06-033",
+    "The Civil War in Switzerland",
+    10,
+    31
+   ],
+   [
+    0.625,
+    0.5,
+    0.36688910975436606,
+    5,
+    "MECW05-006",
+    "The German Ideology, Volume 1",
+    10,
+    12
+   ],
+   [
+    0.625,
+    0.5,
+    0.288135593220339,
+    6,
+    "MECW06-085",
+    "Rules of the Communist League (1847)",
+    10,
+    69
+   ]
+  ]
+ },
+ {
+  "key": "x1-MEA1-008",
+  "vol": 1,
+  "zh": "MEA1-008",
+  "zh_title": "弗·恩格斯　英国工人阶级状况　根据亲身观察和可靠材料（节选）　1892年德文第二版序言",
+  "zh_len": 10928,
+  "zh_nums": 35,
+  "how": "未列入 works.csv",
+  "cands": [
+   [
+    0.5285714285714286,
+    0.37142857142857144,
+    0.12054359336392517,
+    6,
+    "MECW06-021",
+    "German Socialism in Verse and Prose",
+    35,
+    437
+   ],
+   [
+    0.5285714285714286,
+    0.37142857142857144,
+    0.12738823803695284,
+    9,
+    "MECW09-056",
+    "Wage Labour and Capital",
+    35,
+    159
+   ],
+   [
+    0.5071428571428571,
+    0.34285714285714286,
+    0.14379893414040398,
+    4,
+    "MECW04-019",
+    "Draft of an Article on Friedrich List's book: Das National",
+    35,
+    165
+   ],
+   [
+    0.5071428571428571,
+    0.34285714285714286,
+    0.17119135270619565,
+    4,
+    "MECW04-030",
+    "Labour Movements",
+    35,
+    40
+   ]
+  ]
+ },
+ {
+  "key": "x1-MEA1-010",
+  "vol": 1,
+  "zh": "MEA1-010",
+  "zh_title": "弗·恩格斯　英国工人阶级状况　序言",
+  "zh_len": 1728,
+  "zh_nums": 4,
+  "how": "未列入 works.csv",
+  "cands": [
+   [
+    0.8208550929767192,
+    1.0,
+    0.0491971301674069,
+    6,
+    "MECW06-005",
+    "Circular Against Kriege",
+    4,
+    94
+   ],
+   [
+    0.8144226104639185,
+    1.0,
+    0.04019165464948597,
+    3,
+    "MECW03-018",
+    "From the Memoires de R. Levasseur (De La Sarthe). Paris, 1",
+    4,
+    134
+   ],
+   [
+    0.8125,
+    0.75,
+    0.211066324661048,
+    4,
+    "MECW04-038",
+    "The Late Butchery at Leipzig.-The German Working Men's Mov",
+    4,
+    3
+   ],
+   [
+    0.8125,
+    0.75,
+    0.21823692851730234,
+    5,
+    "MECW05-005",
+    "A Reply to Bruno Bauer's Anti-Critique",
+    4,
+    23
+   ]
+  ]
+ },
+ {
+  "key": "1:MEA1-011",
+  "vol": 1,
+  "zh": "MEA1-011",
+  "zh_title": "弗·恩格斯　英国工人阶级状况　导言",
+  "zh_len": 11174,
+  "zh_nums": 119,
+  "how": "未命中: Introduction",
+  "cands": [
+   [
+    0.6659663865546219,
+    0.5546218487394958,
+    0.29299630280305217,
+    4,
+    "MECW04-022",
+    "Introduction",
+    119,
+    27
+   ],
+   [
+    0.5336134453781513,
+    0.37815126050420167,
+    0.22441806752224297,
+    3,
+    "MECW03-029",
+    "The Condition of England. I. The Eighteenth Century",
+    119,
+    48
+   ],
+   [
+    0.42016806722689076,
+    0.226890756302521,
+    0.12946206161439447,
+    4,
+    "MECW04-037",
+    "On Trade (Engel's selection)",
+    119,
+    184
+   ],
+   [
+    0.40756302521008403,
+    0.21008403361344538,
+    0.25989672977624784,
+    3,
+    "MECW03-018",
+    "From the Memoires de R. Levasseur (De La Sarthe). Paris, 1",
+    119,
+    134
+   ]
+  ]
+ },
+ {
+  "key": "x1-MEA1-024",
+  "vol": 1,
+  "zh": "MEA1-024",
+  "zh_title": "人名索引",
+  "zh_len": 27962,
+  "zh_nums": 661,
+  "how": "未列入 works.csv",
+  "cands": [
+   [
+    0.37140695915279875,
+    0.16187594553706505,
+    0.13984985720930465,
+    5,
+    "MECW05-013",
+    "The German Ideology, Volume 2",
+    661,
+    585
+   ],
+   [
+    0.35665658093797276,
+    0.1422087745839637,
+    0.3084406989057536,
+    6,
+    "MECW06-021",
+    "German Socialism in Verse and Prose",
+    661,
+    437
+   ],
+   [
+    0.34190620272314676,
+    0.12254160363086233,
+    0.2727361398306738,
+    5,
+    "MECW05-014",
+    "The True Socialists",
+    661,
+    425
+   ],
+   [
+    0.3260211800302572,
+    0.10136157337367625,
+    0.3679452595565498,
+    4,
+    "MECW04-019",
+    "Draft of an Article on Friedrich List's book: Das National",
+    661,
+    165
+   ]
+  ]
+ },
+ {
+  "key": "x1-MEA1-025",
+  "vol": 1,
+  "zh": "MEA1-025",
+  "zh_title": "文学作品和神话中的人物索引",
+  "zh_len": 1938,
+  "zh_nums": 32,
+  "how": "未列入 works.csv",
+  "cands": [
+   [
+    0.5764190809345626,
+    0.71875,
+    0.00229921330838762,
+    5,
+    "MECW05-011",
+    "III. Saint Max",
+    32,
+    1918
+   ],
+   [
+    0.4609375,
+    0.28125,
+    0.21610169491525424,
+    6,
+    "MECW06-085",
+    "Rules of the Communist League (1847)",
+    32,
+    69
+   ],
+   [
+    0.4375,
+    0.25,
+    0.22232419410347595,
+    5,
+    "MECW05-007",
+    "Preface",
+    32,
+    21
+   ],
+   [
+    0.4375,
+    0.25,
+    0.16017852715100422,
+    7,
+    "MECW07-154",
+    "Articles of the Neue Rheinische Zeitung Company",
+    32,
+    102
+   ]
+  ]
+ },
+ {
+  "key": "x1-MEA1-026",
+  "vol": 1,
+  "zh": "MEA1-026",
+  "zh_title": "文献索引",
+  "zh_len": 33833,
+  "zh_nums": 340,
+  "how": "未列入 works.csv",
+  "cands": [
+   [
+    0.45923790500614714,
+    0.5264705882352941,
+    0.04013894936154714,
+    5,
+    "MECW05-011",
+    "III. Saint Max",
+    340,
+    1918
+   ],
+   [
+    0.44191176470588234,
+    0.25588235294117645,
+    0.16921322576934425,
+    5,
+    "MECW05-013",
+    "The German Ideology, Volume 2",
+    340,
+    585
+   ],
+   [
+    0.4264705882352941,
+    0.23529411764705882,
+    0.11065576451349142,
+    3,
+    "MECW03-013",
+    "Economic & Philosophic Manuscripts of 1844",
+    340,
+    578
+   ],
+   [
+    0.4264705882352941,
+    0.23529411764705882,
+    0.11065576451349142,
+    3,
+    "MECW03-014",
+    "Economic & Philosophic Manuscripts of 1844",
+    340,
+    578
+   ]
+  ]
+ },
+ {
+  "key": "x1-MEA1-027",
+  "vol": 1,
+  "zh": "MEA1-027",
+  "zh_title": "报刊索引",
+  "zh_len": 4401,
+  "zh_nums": 114,
+  "how": "未列入 works.csv",
+  "cands": [
+   [
+    0.3881578947368421,
+    0.18421052631578946,
+    0.2005102738165748,
+    9,
+    "MECW09-002",
+    "The State of Trade, March 6, 1849",
+    114,
+    34
+   ],
+   [
+    0.3815490335287534,
+    0.45614035087719296,
+    0.005221278519202227,
+    5,
+    "MECW05-011",
+    "III. Saint Max",
+    114,
+    1918
+   ],
+   [
+    0.375,
+    0.16666666666666666,
+    0.10236312043540959,
+    3,
+    "MECW03-018",
+    "From the Memoires de R. Levasseur (De La Sarthe). Paris, 1",
+    114,
+    134
+   ],
+   [
+    0.375,
+    0.16666666666666666,
+    0.49074487065120426,
+    6,
+    "MECW06-085",
+    "Rules of the Communist League (1847)",
+    114,
+    69
+   ]
+  ]
+ },
+ {
+  "key": "2:MEA2-017",
+  "vol": 2,
+  "zh": "MEA2-017",
+  "zh_title": "卡·马克思  英人在华的残暴行动",
+  "zh_len": 2042,
+  "zh_nums": 0,
+  "how": "未命中: English Atrocities in China",
+  "cands": [
+   [
+    0.25,
+    0.0,
+    0.35261612847522017,
+    6,
+    "MECW06-007",
+    "Letter from the Brussels Communist Correspondence Committe",
+    0,
+    14
+   ],
+   [
+    0.25,
+    0.0,
+    0.4066109119872561,
+    6,
+    "MECW06-009",
+    "Address of the German Democratic Communists of Brussels To",
+    0,
+    10
+   ],
+   [
+    0.25,
+    0.0,
+    0.39565975586126717,
+    6,
+    "MECW06-010",
+    "Government and Opposition In France",
+    0,
+    2
+   ],
+   [
+    0.25,
+    0.0,
+    0.1415009354861063,
+    6,
+    "MECW06-011",
+    "The Prussian Constitution",
+    0,
+    13
+   ]
+  ]
+ },
+ {
+  "key": "2:MEA2-019",
+  "vol": 2,
+  "zh": "MEA2-019",
+  "zh_title": "卡·马克思  鸦片贸易史",
+  "zh_len": 3799,
+  "zh_nums": 48,
+  "how": "未命中: History of the Opium Trade",
+  "cands": [
+   [
+    0.578125,
+    0.4375,
+    0.4897511924713162,
+    16,
+    "MECW16-005",
+    "Opium Trade. Free Trade and Monopoly",
+    48,
+    5
+   ],
+   [
+    0.484375,
+    0.3125,
+    0.49337662337662336,
+    16,
+    "MECW16-004",
+    "Trade or Opium?",
+    48,
+    9
+   ],
+   [
+    0.46875,
+    0.2916666666666667,
+    0.25326666666666664,
+    11,
+    "MECW11-016",
+    "Pauperism and free trade. The approaching commercial crisi",
+    48,
+    28
+   ],
+   [
+    0.453125,
+    0.2708333333333333,
+    0.17308305617567998,
+    9,
+    "MECW09-002",
+    "The State of Trade, March 6, 1849",
+    48,
+    34
+   ]
+  ]
+ },
+ {
+  "key": "2:MEA2-023",
+  "vol": 2,
+  "zh": "MEA2-023",
+  "zh_title": "卡·马克思  新的对华战争",
+  "zh_len": 8308,
+  "zh_nums": 31,
+  "how": "未命中: The New War in China",
+  "cands": [
+   [
+    0.782258064516129,
+    0.7096774193548387,
+    0.22886421861656703,
+    16,
+    "MECW16-095",
+    "The New Chinese War (September 1859)",
+    31,
+    61
+   ],
+   [
+    0.6612903225806451,
+    0.5483870967741935,
+    0.4045775505234965,
+    7,
+    "MECW07-081",
+    "The Bill on the Compulsory Loan and its Motivation",
+    31,
+    78
+   ],
+   [
+    0.6370967741935484,
+    0.5161290322580645,
+    0.12862672240284873,
+    11,
+    "MECW11-039",
+    "Critical Review of Proudhon's Book Idée générale de la Rév",
+    31,
+    280
+   ],
+   [
+    0.6129032258064516,
+    0.4838709677419355,
+    0.23653342443912995,
+    6,
+    "MECW06-005",
+    "Circular Against Kriege",
+    31,
+    94
+   ]
+  ]
+ },
+ {
+  "key": "x3-MEA3-001",
+  "vol": 3,
+  "zh": "MEA3-001",
+  "zh_title": "说明",
+  "zh_len": 3020,
+  "zh_nums": 4,
+  "how": "未列入 works.csv",
+  "cands": [
+   [
+    0.848580921017024,
+    1.0,
+    0.08801328942383353,
+    23,
+    "MECW23-048",
+    "Prefaces",
+    4,
+    61
+   ],
+   [
+    0.629246507847453,
+    0.75,
+    0.04344511098643419,
+    25,
+    "MECW25-009",
+    "Introductions",
+    4,
+    93
+   ],
+   [
+    0.625,
+    0.5,
+    0.1277117604770161,
+    21,
+    "MECW21-047",
+    "Outline of a Report on the Irish Question to the Communist",
+    4,
+    106
+   ],
+   [
+    0.625,
+    0.5,
+    0.47276142767689416,
+    22,
+    "MECW22-023",
+    "News Stories. After the defeat of the Paris Commune",
+    4,
+    20
+   ]
+  ]
+ },
+ {
+  "key": "3:MEA3-018",
+  "vol": 3,
+  "zh": "MEA3-018",
+  "zh_title": "卡·马克思  哥达纲领批判",
+  "zh_len": 13141,
+  "zh_nums": 7,
+  "how": "未命中: Critique of the Gotha Programme",
+  "cands": [
+   [
+    0.8928571428571428,
+    0.8571428571428571,
+    0.29560894407702343,
+    24,
+    "MECW24-011",
+    "Critique of the Gotha Program",
+    7,
+    136
+   ],
+   [
+    0.8928571428571428,
+    0.8571428571428571,
+    0.29560894407702343,
+    24,
+    "MECW24-013",
+    "Critique of the Gotha Program",
+    7,
+    136
+   ],
+   [
+    0.8928571428571428,
+    0.8571428571428571,
+    0.14391475287752845,
+    25,
+    "MECW25-003",
+    "Introductions",
+    7,
+    142
+   ],
+   [
+    0.7857142857142857,
+    0.7142857142857143,
+    0.14227866740290815,
+    20,
+    "MECW20-012",
+    "The Prussian Military Question and the German Workers' Par",
+    7,
+    117
+   ]
+  ]
+ },
+ {
+  "key": "3:MEA3-020",
+  "vol": 3,
+  "zh": "MEA3-020",
+  "zh_title": "卡·马克思  *给《祖国纪事》杂志编辑部的信",
+  "zh_len": 2081,
+  "zh_nums": 2,
+  "how": "未命中: Otechestvennye Zapiski",
+  "cands": [
+   [
+    1.0,
+    1.0,
+    0.30133217492035913,
+    24,
+    "MECW24-023",
+    "Letter to Editor of the Otecestvenniye Zapisky (Notes on t",
+    2,
+    7
+   ],
+   [
+    0.796386824927277,
+    1.0,
+    0.014941554898187772,
+    21,
+    "MECW21-045",
+    "History of Ireland (Engels)",
+    2,
+    320
+   ],
+   [
+    0.625,
+    0.5,
+    0.10793568464730291,
+    20,
+    "MECW20-002",
+    "Inaugural Address of the Working Men's International Assoc",
+    2,
+    28
+   ],
+   [
+    0.625,
+    0.5,
+    0.49080188679245285,
+    20,
+    "MECW20-043",
+    "Review of Volume One of Capital for the Neue Badische Land",
+    2,
+    3
+   ]
+  ]
+ },
+ {
+  "key": "3:MEA3-023",
+  "vol": 3,
+  "zh": "MEA3-023",
+  "zh_title": "卡·马克思  *法国工人党纲领导言（草案）",
+  "zh_len": 298,
+  "zh_nums": 2,
+  "how": "未命中: French Workers' Party",
+  "cands": [
+   [
+    1.0,
+    1.0,
+    0.1628415300546448,
+    20,
+    "MECW20-029",
+    "Proposals of the Standing Committee on the Programme of th",
+    2,
+    8
+   ],
+   [
+    1.0,
+    1.0,
+    0.16836158192090395,
+    20,
+    "MECW20-051",
+    "Original Draft Resolution on the Conflict in the Paris Sec",
+    2,
+    7
+   ],
+   [
+    1.0,
+    1.0,
+    0.2634836427939876,
+    20,
+    "MECW20-054",
+    "Notes for the Report on Value, Price and Profit",
+    2,
+    3
+   ],
+   [
+    1.0,
+    1.0,
+    0.12806188225182638,
+    20,
+    "MECW20-061",
+    "Agreement between Karl Marx and Otto Meissner, Publisher a",
+    2,
+    10
+   ]
+  ]
+ },
+ {
+  "key": "x3-MEA3-027",
+  "vol": 3,
+  "zh": "MEA3-027",
+  "zh_title": "*卡·马克思关于巴黎公社的发言记录",
+  "zh_len": 600,
+  "zh_nums": 6,
+  "how": "未列入 works.csv",
+  "cands": [
+   [
+    0.75,
+    0.6666666666666666,
+    0.22556390977443608,
+    22,
+    "MECW22-071",
+    "Record of Marx's Speech on the Paris Commune, May 23, 1871",
+    6,
+    3
+   ],
+   [
+    0.6788379981755462,
+    0.8333333333333334,
+    0.02537319744576479,
+    21,
+    "MECW21-047",
+    "Outline of a Report on the Irish Question to the Communist",
+    6,
+    106
+   ],
+   [
+    0.6654078213077128,
+    0.8333333333333334,
+    0.006570949830798042,
+    25,
+    "MECW25-003",
+    "Introductions",
+    6,
+    142
+   ],
+   [
+    0.6648514749079475,
+    0.8333333333333334,
+    0.005792064871126557,
+    22,
+    "MECW22-022",
+    "The Paris Commune (Third Address)",
+    6,
+    157
+   ]
+  ]
+ },
+ {
+  "key": "x3-MEA3-028",
+  "vol": 3,
+  "zh": "MEA3-028",
+  "zh_title": "*卡·马克思  同《世界报》记者谈话的记录",
+  "zh_len": 4779,
+  "zh_nums": 4,
+  "how": "未列入 works.csv",
+  "cands": [
+   [
+    1.0,
+    1.0,
+    0.10428122545168893,
+    23,
+    "MECW23-112",
+    "The Bakuninists at Work (1873)",
+    4,
+    65
+   ],
+   [
+    0.8230982967159332,
+    1.0,
+    0.0523376154023064,
+    25,
+    "MECW25-003",
+    "Introductions",
+    4,
+    142
+   ],
+   [
+    0.8179829359002406,
+    1.0,
+    0.0451761102603369,
+    23,
+    "MECW23-108",
+    "VIII. The Alliance in Russia",
+    4,
+    211
+   ],
+   [
+    0.8125,
+    0.75,
+    0.10170465428078912,
+    20,
+    "MECW20-028",
+    "Notes on the War in Germany (June-July 1866)",
+    4,
+    60
+   ]
+  ]
+ },
+ {
+  "key": "x3-MEA3-030",
+  "vol": 3,
+  "zh": "MEA3-030",
+  "zh_title": "人名索引",
+  "zh_len": 49445,
+  "zh_nums": 651,
+  "how": "未列入 works.csv",
+  "cands": [
+   [
+    0.4182027649769585,
+    0.22427035330261136,
+    0.35501450357563397,
+    21,
+    "MECW21-045",
+    "History of Ireland (Engels)",
+    651,
+    320
+   ],
+   [
+    0.4078341013824885,
+    0.21044546850998463,
+    0.3716970494267995,
+    24,
+    "MECW24-067",
+    "Conspectus of Bakunin's Statism and Anarchy",
+    651,
+    225
+   ],
+   [
+    0.39631336405529954,
+    0.19508448540706605,
+    0.18540113689199525,
+    25,
+    "MECW25-004",
+    "Part I. Philosophy",
+    651,
+    388
+   ],
+   [
+    0.39400921658986177,
+    0.19201228878648233,
+    0.20401973971958376,
+    25,
+    "MECW25-018",
+    "Notes and Fragments",
+    651,
+    603
+   ]
+  ]
+ },
+ {
+  "key": "x3-MEA3-031",
+  "vol": 3,
+  "zh": "MEA3-031",
+  "zh_title": "文学作品和神话中的人物索引",
+  "zh_len": 2290,
+  "zh_nums": 46,
+  "how": "未列入 works.csv",
+  "cands": [
+   [
+    0.3315217391304348,
+    0.10869565217391304,
+    0.14364571571948312,
+    24,
+    "MECW24-037",
+    "A Workers' Inquiry",
+    46,
+    109
+   ],
+   [
+    0.31521739130434784,
+    0.08695652173913043,
+    0.15042038885969522,
+    21,
+    "MECW21-019",
+    "Report on the Miners' Guilds in the Coalfields of Saxony",
+    46,
+    33
+   ],
+   [
+    0.29891304347826086,
+    0.06521739130434782,
+    0.20121254722783588,
+    20,
+    "MECW20-069",
+    "From the Minute Book of the General Council. Central Counc",
+    46,
+    75
+   ],
+   [
+    0.29891304347826086,
+    0.06521739130434782,
+    0.11990156552699094,
+    20,
+    "MECW20-074",
+    "From the Minute Book of the General Council. Central Counc",
+    46,
+    128
+   ]
+  ]
+ },
+ {
+  "key": "x3-MEA3-032",
+  "vol": 3,
+  "zh": "MEA3-032",
+  "zh_title": "文献索引",
+  "zh_len": 37482,
+  "zh_nums": 389,
+  "how": "未列入 works.csv",
+  "cands": [
+   [
+    0.4466580976863753,
+    0.2622107969151671,
+    0.2817665852283405,
+    24,
+    "MECW24-067",
+    "Conspectus of Bakunin's Statism and Anarchy",
+    389,
+    225
+   ],
+   [
+    0.44087403598971725,
+    0.2544987146529563,
+    0.26912030787788277,
+    21,
+    "MECW21-045",
+    "History of Ireland (Engels)",
+    389,
+    320
+   ],
+   [
+    0.4350899742930591,
+    0.2467866323907455,
+    0.15465806217351477,
+    25,
+    "MECW25-018",
+    "Notes and Fragments",
+    389,
+    603
+   ],
+   [
+    0.41580976863753216,
+    0.2210796915167095,
+    0.14054414830591094,
+    25,
+    "MECW25-004",
+    "Part I. Philosophy",
+    389,
+    388
+   ]
+  ]
+ },
+ {
+  "key": "4:MEA4-004",
+  "vol": 4,
+  "zh": "MEA4-004",
+  "zh_title": "弗·恩格斯   马克思和洛贝尔图斯",
+  "zh_len": 9003,
+  "zh_nums": 30,
+  "how": "未命中: Marx and Rodbertus",
+  "cands": [
+   [
+    0.8250000000000001,
+    0.7666666666666667,
+    0.21272121541478628,
+    26,
+    "MECW26-020",
+    "Prefaces",
+    30,
+    73
+   ],
+   [
+    0.8250000000000001,
+    0.7666666666666667,
+    0.21272121541478628,
+    27,
+    "MECW27-039",
+    "Prefaces",
+    30,
+    73
+   ],
+   [
+    0.7749999999999999,
+    0.7,
+    0.1007813549455962,
+    26,
+    "MECW26-030",
+    "On the History of the Prussian Peasants. Introduction to W",
+    30,
+    130
+   ],
+   [
+    0.6,
+    0.4666666666666667,
+    0.11106450697622777,
+    27,
+    "MECW27-018",
+    "In the Case of Brentano vs Marx",
+    30,
+    207
+   ]
+  ]
+ },
+ {
+  "key": "4:MEA4-005",
+  "vol": 4,
+  "zh": "MEA4-005",
+  "zh_title": "弗·恩格斯   *论封建制度的瓦解和民族国家的产生",
+  "zh_len": 6854,
+  "zh_nums": 9,
+  "how": "未命中: Decomposition of Feudalism",
+  "cands": [
+   [
+    0.8333333333333334,
+    0.7777777777777778,
+    0.2811897435897436,
+    26,
+    "MECW26-052",
+    "On the Decline of Feudalism and the Emergence of National ",
+    9,
+    19
+   ],
+   [
+    0.75,
+    0.6666666666666666,
+    0.1858308705907871,
+    27,
+    "MECW27-021",
+    "Introduction",
+    9,
+    44
+   ],
+   [
+    0.6666666666666667,
+    0.5555555555555556,
+    0.5207810956614239,
+    26,
+    "MECW26-005",
+    "The Book of Revelation (1883)",
+    9,
+    24
+   ],
+   [
+    0.6666666666666667,
+    0.5555555555555556,
+    0.10921664860730448,
+    26,
+    "MECW26-024",
+    "Karl Marx Before the Cologne Jury",
+    9,
+    92
+   ]
+  ]
+ },
+ {
+  "key": "4:MEA4-007",
+  "vol": 4,
+  "zh": "MEA4-007",
+  "zh_title": "弗·恩格斯   关于普鲁士农民的历史152",
+  "zh_len": 7535,
+  "zh_nums": 64,
+  "how": "未命中: Prussian Peasantry",
+  "cands": [
+   [
+    0.47265625,
+    0.296875,
+    0.1692763911666255,
+    26,
+    "MECW26-026",
+    "On The History of the Communist League",
+    64,
+    55
+   ],
+   [
+    0.47265625,
+    0.296875,
+    0.2042946614971667,
+    27,
+    "MECW27-021",
+    "Introduction",
+    64,
+    44
+   ],
+   [
+    0.4609375,
+    0.28125,
+    0.1271923161324083,
+    27,
+    "MECW27-078",
+    "On the History of Early Christianity (Engels)",
+    64,
+    57
+   ],
+   [
+    0.44921875,
+    0.265625,
+    0.17803558348888313,
+    26,
+    "MECW26-020",
+    "Prefaces",
+    64,
+    73
+   ]
+  ]
+ },
+ {
+  "key": "4:MEA4-010",
+  "vol": 4,
+  "zh": "MEA4-010",
+  "zh_title": "弗·恩格斯   美国工人运动7",
+  "zh_len": 5417,
+  "zh_nums": 14,
+  "how": "未命中: Labour Movement in America",
+  "cands": [
+   [
+    0.7321428571428572,
+    0.6428571428571429,
+    0.12799187203175577,
+    26,
+    "MECW26-020",
+    "Prefaces",
+    14,
+    73
+   ],
+   [
+    0.7321428571428572,
+    0.6428571428571429,
+    0.14217101464490053,
+    26,
+    "MECW26-044",
+    "On the Question of Free Trade, Engels' preface (1888)",
+    14,
+    56
+   ],
+   [
+    0.7321428571428572,
+    0.6428571428571429,
+    0.12799187203175577,
+    27,
+    "MECW27-039",
+    "Prefaces",
+    14,
+    73
+   ],
+   [
+    0.6785714285714286,
+    0.5714285714285714,
+    0.10936364370507955,
+    26,
+    "MECW26-061",
+    "Lawyers' Socialism",
+    14,
+    100
+   ]
+  ]
+ },
+ {
+  "key": "4:MEA4-012",
+  "vol": 4,
+  "zh": "MEA4-012",
+  "zh_title": "弗·恩格斯   保护关税制度和自由贸易",
+  "zh_len": 11601,
+  "zh_nums": 48,
+  "how": "未命中: Protectionism and Free Trade",
+  "cands": [
+   [
+    0.90625,
+    0.875,
+    0.3044722061834024,
+    26,
+    "MECW26-044",
+    "On the Question of Free Trade, Engels' preface (1888)",
+    48,
+    56
+   ],
+   [
+    0.53125,
+    0.375,
+    0.12704931497848013,
+    25,
+    "MECW25-003",
+    "Introductions",
+    48,
+    142
+   ],
+   [
+    0.53125,
+    0.375,
+    0.12986387856535173,
+    26,
+    "MECW26-030",
+    "On the History of the Prussian Peasants. Introduction to W",
+    48,
+    130
+   ],
+   [
+    0.53125,
+    0.375,
+    0.14535226090987682,
+    27,
+    "MECW27-004",
+    "Foreign Policy of Russian Tsardom",
+    48,
+    95
+   ]
+  ]
+ },
+ {
+  "key": "4:MEA4-020",
+  "vol": 4,
+  "zh": "MEA4-020",
+  "zh_title": "弗·恩格斯   《〈人民国家报〉国际问题论文集（1871—1875）》序",
+  "zh_len": 1874,
+  "zh_nums": 11,
+  "how": "未命中: Preface to the Collection",
+  "cands": [
+   [
+    0.9318181818181818,
+    0.9090909090909091,
+    0.29783852511125236,
+    27,
+    "MECW27-069",
+    "Preface to the Pamphlet Internationales aus dem \"Volksstaa",
+    11,
+    13
+   ],
+   [
+    0.7954545454545454,
+    0.7272727272727273,
+    0.3594859006330328,
+    27,
+    "MECW27-093",
+    "Engels, Frederick",
+    11,
+    37
+   ],
+   [
+    0.6588926535177658,
+    0.8181818181818182,
+    0.013358805833963018,
+    26,
+    "MECW26-042",
+    "The Role of Force in History",
+    11,
+    142
+   ],
+   [
+    0.5909090909090908,
+    0.45454545454545453,
+    0.13841494940542137,
+    26,
+    "MECW26-037",
+    "Johann Philipp Becker",
+    11,
+    22
+   ]
+  ]
+ },
+ {
+  "key": "4:MEA4-021",
+  "vol": 4,
+  "zh": "MEA4-021",
+  "zh_title": "弗·恩格斯   《论俄国的社会问题》跋",
+  "zh_len": 8325,
+  "zh_nums": 16,
+  "how": "未命中: Postscript to On Social Relations in Russia",
+  "cands": [
+   [
+    0.578125,
+    0.4375,
+    0.24745853397538792,
+    26,
+    "MECW26-009",
+    "Introduction and prefaces",
+    16,
+    45
+   ],
+   [
+    0.578125,
+    0.4375,
+    0.2184924675870033,
+    26,
+    "MECW26-044",
+    "On the Question of Free Trade, Engels' preface (1888)",
+    16,
+    56
+   ],
+   [
+    0.578125,
+    0.4375,
+    0.10430631601368198,
+    27,
+    "MECW27-004",
+    "Foreign Policy of Russian Tsardom",
+    16,
+    95
+   ],
+   [
+    0.5695870920730878,
+    0.625,
+    0.09117192890232283,
+    25,
+    "MECW25-003",
+    "Introductions",
+    16,
+    142
+   ]
+  ]
+ },
+ {
+  "key": "4:MEA4-026",
+  "vol": 4,
+  "zh": "MEA4-026",
+  "zh_title": "弗·恩格斯   卡·马克思《1848年至1850年的法兰西阶级斗争》一书导言",
+  "zh_len": 13875,
+  "zh_nums": 49,
+  "how": "未命中: Introduction to Marx's The Class Struggles in France",
+  "cands": [
+   [
+    0.6173469387755102,
+    0.4897959183673469,
+    0.15195321483720473,
+    25,
+    "MECW25-003",
+    "Introductions",
+    49,
+    142
+   ],
+   [
+    0.5867346938775511,
+    0.4489795918367347,
+    0.15531948238033402,
+    26,
+    "MECW26-030",
+    "On the History of the Prussian Peasants. Introduction to W",
+    49,
+    130
+   ],
+   [
+    0.5867346938775511,
+    0.4489795918367347,
+    0.3761895724317436,
+    27,
+    "MECW27-021",
+    "Introduction",
+    49,
+    44
+   ],
+   [
+    0.5714285714285714,
+    0.42857142857142855,
+    0.1738438600228033,
+    27,
+    "MECW27-004",
+    "Foreign Policy of Russian Tsardom",
+    49,
+    95
+   ]
+  ]
+ }
+]

@@ -14,7 +14,7 @@
 | `skills/<skill>/references/` | 细则与判例，按需查阅（索引见各目录 `README.md`） | 改规则细节、补踩坑记录 |
 | `skills/<skill>/scripts/` | 全部可执行逻辑 | 改行为 |
 | `docs/` | 设计决策存档：**为什么这么做**，只增不改 | 做过取舍、踩过坑，写一条 |
-| `tools/` | Windows 目录联接脚本、马恩索引构建工具 | 换机器、改索引 |
+| `tools/` | Windows 目录联接脚本、马恩索引构建工具（`marxref-build/`：脚本、管线文档、篇目元数据，**不含语料**） | 换机器、改索引、重建语料 |
 
 ---
 
@@ -34,7 +34,7 @@
 | MinerU 提取（无源码时） | `references/mineru.md` + `scripts/mineru_extract.py` | 两份文案不同，口径必须一致 |
 | 图表／浮动对象 | dl：`references/figures.md`；政经：`SKILL.md` 的「图表归位」一节 | 政经还没抽成独立文件，改一边时另一边也看一眼 |
 | 符号一览 | `references/notation.md` + `scripts/notation.py` | dl 专有 |
-| 马恩引文核对 | `references/marx-ref.md` + `scripts/marx_quotes.py` | 政经专有；依赖 `_marx_ref/`（可选） |
+| 马恩引文核对 | `references/marx-ref.md` + `scripts/marx_quotes.py` | 政经专有；依赖 `_marx_ref/`（可选），构建工具与语料来源见 `tools/marxref-build/README.md` |
 | 公众号排版 | 政经 `SKILL.md` 公众号章节 + `scripts/build_wechat.py` | 白名单只认内联样式，别改成 class |
 | 加一个新脚本 | `scripts/` + **两处** SKILL.md 的脚本表 | 表里不登记，模型就不知道它存在 |
 | 改一条判据 | 先翻 `docs/` 有没有记过为什么这么定 | 没记就补一条决策记录再改 |

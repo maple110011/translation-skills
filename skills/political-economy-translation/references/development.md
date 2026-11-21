@@ -9,13 +9,14 @@
 
 **本仓库不包含任何马恩原著文本，仅包含索引构建脚本。**
 
-- 不含《马克思恩格斯文集》（人民出版社 2009）中文译文、MECW 英文原文，也不含任何由原文衍生的 PDF、HTML、句级语料 `jsonl`、对齐表、页码映射或检索索引成品。工作区里的 `_marx_ref/`（约 919 MB）整份被 `.gitignore` 排除，从未提交。
-- 与本 skill 的引文工具相关的只有**脚本代码**：`scripts/marx_quotes.py`（从英文文献找引文并对到文集译文）、`marx_adopt.py`（采用表转决定表）、`references/marx-ref.md`（方法说明），以及 `tools/marxref-build/` 下 27 个索引构建脚本（约 160 KB）。这些文件里没有一句原著原文，中文长串均为注释与算法说明。
+- 不含《马克思恩格斯文集》（人民出版社 2009）中文译文、MECW 英文原文，也不含任何由原文衍生的 PDF、HTML、句级语料 `jsonl`、对齐表、页码映射或检索索引成品。工作区里的 `_marx_ref/`（约 331 MB）整份被 `.gitignore` 排除，从未提交。
+- 与本 skill 的引文工具相关的只有**脚本、文档与篇目元数据**：`scripts/marx_quotes.py`（从英文文献找引文并对到文集译文）、`marx_adopt.py`（采用表转决定表）、`references/marx-ref.md`（方法说明），以及 `tools/marxref-build/` 下 32 个脚本、2 个启停 `.bat`、`PIPELINE.md`／`接口使用说明.md`／重锚记录三份文档、`works.csv` 与 `index/*.json`（只有文件名、篇目名、日期与映射决策）。这些文件里没有一句原著原文，中文长串均为注释与算法说明。
+- **语料怎么来**：`tools/marxref-build/README.md` 写明了三路公开来源（MARX-ZH-CN 仓库的中英 HTML、hf-mirror 上的各卷 PDF）、落位目录与构建顺序，按它自建即可复现索引。
 - `_marx_ref/` 是 `marx_quotes.py` 的**可选依赖**，通过 `--marxref` 或环境变量 `MARX_REF` 指定；没有它，其余流程照常运行，只是跳过引文匹配。
 
 不入库的三条理由：
 
-1. **体积**：当前 919 MB（PDF 332 MB、分卷中间文件 332 MB、句级索引 jsonl 109 MB、HTML 88 MB）。GitHub 建议仓库 <1 GB、单文件 >100 MiB 会被阻断；Git 还会保留每一次历史版本，一旦 push 过想清除得重写历史。
+1. **体积**：当前 331 MB（句级语料 `corpus/` 149 MB、原始 HTML `raw/` 87 MB、PDF 与文字层 `pdf/` 75 MB、网页与前端资源 20 MB）。GitHub 建议仓库 <1 GB、单文件 >100 MiB 会被阻断；Git 还会保留每一次历史版本，一旦 push 过想清除得重写历史。
 2. **版权**：MECW 英文版多为 CC0，但《马克思恩格斯文集》（人民出版社 2009）的中文译文是受版权保护的整理成果，放进**公开**仓库有侵权风险。这条比体积更硬。
 3. **职责**：语料是数据、不是代码，更新频率与发布节奏和 skill 完全不同，不该跟着 skill 一起打 tag。
 
