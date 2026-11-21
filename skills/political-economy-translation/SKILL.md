@@ -1,8 +1,8 @@
 ---
 name: political-economy-translation
-description: 将英文政治经济学文献（马克思主义价值理论、斯拉法/剩余方法、劳动过程理论、金融化、全球价值链、平台劳动等）翻译为中文 Markdown，并做机械对账。输入可为 PDF、已提取的 Markdown、docx；输出段落与源文一一对应、Markdown 结构不变、引用原样、公式统一为 $$…$$ 与 $…$ 的译文。This skill should be used when translating political-economy papers, book chapters, review essays, or lecture notes into Chinese under strict fidelity constraints, when a MinerU extraction step is needed first, and when a batch of accumulated glossary CSVs has to be consolidated before translating.
+description: 将英文政治经济学文献（马克思主义价值理论、斯拉法/剩余方法、劳动过程理论、金融化、全球价值链、平台劳动等）翻译为中文 Markdown，并做机械对账。输入可为 PDF、已提取的 Markdown、docx；输出段落与源文一一对应、Markdown 结构不变、引用原样、公式统一为 $$…$$ 与 $…$ 的译文；成品只留标题、作者、正文、附录，刊头与声明移入 YAML front matter；一次多篇时一篇交给一个子代理。This skill should be used when translating political-economy papers, book chapters, review essays, or lecture notes into Chinese under strict fidelity constraints, when a MinerU extraction step is needed first, and when a batch of accumulated glossary CSVs has to be consolidated before translating.
 agent_created: true
-version: 2026-11-19.1
+version: 2026-11-21.2
 ---
 
 # 政治经济学文献翻译
@@ -18,17 +18,19 @@ version: 2026-11-19.1
 </what_this_skill_is_for>
 
 <non_negotiable_rules>
-五条硬规则。违反任何一条，译文就不合格，不管读起来多通顺。**边界与判例见 [references/translation-rules.md](references/translation-rules.md)。**
+六条硬规则。违反任何一条，译文就不合格，不管读起来多通顺。**边界与判例见 [references/translation-rules.md](references/translation-rules.md)。**
 
 **1. 忠实原文，不增不删。** 段落与源文严格一一对应：不合并两段、不把一段拆成两段、不省略"重复"的过渡句、不加原文没有的解释、背景、评价。译者想补充的内容一律不进正文。
 
 **2. 保留 Markdown 结构。** `#` 层数与顺序、有序/无序列表及层级、`>` 引用深度、表格行列、图片路径、脚注标记、代码块、`**粗体**` `*斜体*` `` `代码` `` 全部原样。只译文字，不动标记。
 
-**3. 在忠实的前提下做到信达雅。** 调语序、拆长句、补虚词与量词、把名词化还原成动词、把被动改主动，都属于"润色"而非"增删"。判据：改写后信息量完全等价，且中文读者不必回看英文就能懂。**禁止为通顺模糊掉限定词**（`only`、`merely`、`tendentially`、`in the long run`、`as such`）——它们在政治经济学里是承重的。
+**3. 在忠实的前提下做到信达雅。** 调语序、拆长句、补虚词与量词、把名词化还原成动词、把被动改主动，都属于"润色"而非"增删"。判据：改写后信息量完全等价，且中文读者不必回看英文就能懂。**禁止为通顺模糊掉限定词**（`only`、`merely`、`tendentially`、`in the long run`、`as such`）——它们在政治经济学里是承重的。**顺序固定：准确 → 通顺 → 文气，不可倒做**；润色的门禁、留痕与复检见 [references/refinement.md](references/refinement.md)。
 
 **4. 文献引用保持原样，不翻译。** `(Shaikh, 2016, p. 42)`、`Marx (1867)`、`[12]`、`ibid.`、`op. cit.`、参考文献条目整条、引文中的书名与篇名，逐字符保留。分界：**正文叙述里的学者姓名音译，括号内引用原样**。
 
 **5. 公式定界符统一。** 行间一律 `$$…$$`，行内一律 `$…$`；`\[…\]`→`$$…$$`，`\(…\)`→`$…$`。公式内容不译、不改写、不重排，`\text{…}` 内英文保留。由 `scripts/normalize_math.py` 机械完成。
+
+**6. 成品只留标题、作者、正文、附录。** 刊名与卷期页码、版权行、复用指引、DOI、刊物网址、出版社标记、收稿／接受日期、JEL 分类、关键词、致谢、资助、利益冲突声明、伦理／可复现性声明、ORCID、作者简介——**一律不进译文**，它们要么进 YAML front matter，要么本来就不必给读者看。**标题（H1）与作者行保留**：读者拿到的是一篇署名文章，不是一份无署名的内部稿；作者行只留姓名，删单位角标、通讯邮箱与 ORCID。摘要属于正文，保留。清单、去处与脚本见 [references/delivery.md](references/delivery.md) 第四节。
 </non_negotiable_rules>
 
 <workflow>
@@ -39,6 +41,22 @@ version: 2026-11-19.1
 - 源优先级：**出版版 PDF > 作者 docx/tex > MinerU 提取的 Markdown**。冲突以 PDF 为准，提取结果只是工作草稿。
 - 交付默认 Markdown；**顺口问一句要不要 PDF**，公众号排版稿也是可选分支（见第 6 步）。两条发布线都以同一份 `[^n]` 译稿为源，互不干扰。
 - 输出放源文件同目录，命名 `<原文名>_zh.md`；中间产物放 `_work/`。用户没说清只问一次。
+- **一次多篇 → 一篇一个子代理**，不要在自己这里轮着译（见下）。
+
+### 多篇并行：一篇一个子代理
+
+同时交来两篇以上时，**为每篇起一个子代理**，让它从第 1 步跑到第 6 步。主代理不译正文，只做分发、核对与汇报。
+
+任务说明要自足：该篇的源路径与产物路径、目标读者、交付口径（第 0 步那几条）、术语来源（继承批次表还是新建）、以及"跑完把 `_work/` 证据与校验结论报回来"。子代理看不到这次对话，**没写进去的要求它不会知道**。
+
+三条理由都是实测踩出来的：
+
+- **术语会串味。** 同一上下文里两篇互相感染，第二篇会悄悄继承第一篇的临时决定，而那未必适用。
+- **对账会混。** 两篇的 `_work/` 里 `脚注.csv`、`公式差异.csv`、`术语.csv` 名字几乎一样，交替操作时读写错文件不会有任何报错。
+- **上下文会被两篇正文挤爆。** 单篇长文的原文已占掉大半个窗口；两篇叠在一起，后半程只能靠印象译，质量掉得比读得慢更明显。
+
+**跨篇术语统一仍然要做**，顺序是：先抽各篇候选 → 合并去重 → 人工裁一次 → 把共同表分给各子代理继承（`references/workflow.md` 第四节）。收齐后主代理逐篇核对：`fidelity_check.py --strict` 是否通过、`paper_meta.py --check` 是否干净、`_work/` 证据是否齐全。**不要只看子代理的回话**——回话是它的结论，产物才是事实。
+
 
 ## 第 1 步：取得可译的正文
 
@@ -73,6 +91,20 @@ python scripts/footnote_recover.py ./_work/extract -o ./_work \
 **`[^n]` 是唯一交付形态**：公众号版 `build_wechat.py` 认它（归一成 `<sup>` 并挂到所注段落之后），PDF 版 `md2tex.py` 默认排成页底 `\footnote{}`。交付稿里不许留字面 `<sup>n</sup>`——`footnote_recover.py --check`、`fidelity_check.py --strict`、`build_wechat.py` 的 `audit_notes()`、`md2tex.py` 的开头门禁、`verify_pdf.py` 都会拦。
 
 `--pdf` 的交叉验证只用来发现提取包被污染或跨页续文被截断：**双栏期刊的脚注在栏底不在页底**，`pdftotext -layout` 的缩进特征会失效，未确认不等于提取包有错（详见 `_work/脚注_交叉验证.md`）。判据与编号规则见 [references/footnotes.md](references/footnotes.md)。无脚注的文献清单 0 条即 PASS，但仍要翻两页页底确认；纯 Markdown 输入无提取包时可加 `--skip-footnote-check` 并写明理由。
+
+### 刊头与版尾先剔掉
+
+期刊 PDF 的首页与文末夹着一批只属于原刊的内容，**在动笔之前就从源文工作副本里剔掉**，别整篇译完再删：译了是白工，还会在术语表里留下 `Conflicting Interests`、`Article reuse guidelines` 这类只有声明才用的词条。
+
+```bash
+python scripts/strip_meta.py _work/<stem>_原文_正文.md --meta _work/meta.yaml --check   # 先看清单
+python scripts/strip_meta.py _work/<stem>_原文_正文.md --meta _work/meta.yaml --apply   # 剔
+python scripts/strip_meta.py <stem>_zh.md --meta _work/meta.yaml --apply                # 译文侧同口径
+```
+
+顺序是「脚注恢复 → 剔刊头版尾 → 切书目」：作者简介常排在书目之后，先剔掉，书目才真的是最后一节。剔的是**源文工作副本**（`_work/` 里那份），MinerU 原始提取包不动；两侧同口径跑一遍，块序列仍一一对应，`fidelity_check.py` 不必另造"发布口径副本"。
+
+脚本按标题名与版头特征认，认不出的特例（作者单位写成一段、声明夹在正文中间）手工删，删完把位置记进 `_work/<stem>_待校对.md`。**卷期、DOI、版权、JEL、关键词、资助别丢**——`--dump-yaml` 会把能认的著录打印出来，并进 `meta.yaml`。
 
 **参考文献先切出去，不进翻译上下文。** 书目整条保持英文原样，让模型读它没有收益，代价却实在——一百条英文著录过一遍，总有一条被"顺手"译掉书名或调换姓序。`split_refs.py` 把书目区换成一行 `<!-- REFS-ORIGINAL lines=74 -->`，译文里原样留着，交付前由脚本拼回。命令与三条判定条件见 [references/mineru.md](references/mineru.md) 第七节；没有书目或判定不切时跳过这一步。
 
@@ -169,6 +201,21 @@ python scripts/semantic_audit.py <stem>_正文.md <stem>_正文_zh.md -o _work/<
 
 人工复核清单（详细版见 [references/review-checklist.md](references/review-checklist.md)）：每段都译了吗；限定词保住了吗；术语与表一致吗（含复数、所有格、缩写）；中文像中文吗（成串的"的"、连续的"被"）；数字年份页码逐个对过吗；原文含糊处记进报告了吗（**不要替作者圆场**）。
 
+### 精校轮：先准确，再通顺，最后才是文气
+
+润色是整条流程里唯一"改对的地方可能改出新错"的环节，所以要独立成一轮、带门禁、留痕。三层不可倒序：**L1 保真**（量与否定、模态、时点、指代、术语、引文——**原文说了算**，术语表和前译都不是权威）→ **L2 句法**（语序、断句、名词化→动词、被动→主动、代词还原——译者全权）→ **L3 文气**（节奏、用词轻重——可整层跳过，跳过仍可交付）。**L1 的候选就是上面语义审读的产出，不重做**；这一轮新增的是 L2／L3 与"裁决—编辑—复检"这条线。
+
+四个动作，每个带一次检查：
+
+1. **候选只记录，不动正文**：散装候选统一进 `_work/<stem>_精校候选.csv`（`段号,层,类型,原文片段,现译,建议,依据,裁决,动作`），不改文件。散在对话里就无法统计覆盖率，也无法回退。
+2. **裁决回原文**：只认"原文这句话说了什么"。四种错误裁决要挡掉——"术语表这么定所以对"（表定词形，不定此句意思）、"前面十处都这么译"（一致性≠正确性）、"作者用词不严谨我按本意译"（替作者改）、"加半句限定更清楚"（是增）。`dismiss` 也要写依据，空着的驳回和没查过没有区别。
+3. **最小编辑**：只改被裁决指出的那一处（顺手改邻句会污染 diff）；跨段一律不做（段界是对账基准）；`[^n]`、`$$…$$`、`(Shaikh, 2016, p. 42)`、`<!-- REFS-ORIGINAL … -->`、`#` 与列表符号、图片路径一个不碰。diff 行数超过候选条数三倍，说明改过头了。一段 L1 偏离超过三处，重译比逐处改便宜。
+4. **复检**：三层任何一层动过都重跑第 4 步那四条命令，不许"只是改了措辞"免检。脚本只保证"与改前一致"，改过引文、数字、限定词的地方要回原文再核——脚本不保证"与原文一致"。
+
+同一处被两个来源给出冲突建议（术语表要 A、语义审读要 B）时，不要挑一个、也不要折中成第三种：进 `_work/<stem>_精校冲突.csv` 交人裁决。
+
+收据写成**段号区间**，写清每层各几条，让人一眼看出有没有跳段：`精校覆盖 §1–§58（L1 偏离 5、疑点 2、L2 26、L3 9、驳回 7）`。完整判据、错误裁决表与冲突处理见 [references/refinement.md](references/refinement.md)。
+
 ## 第 5 步：审校清单与回填
 
 三类判断不能替用户做，也不该悄悄做掉：**语义歧义**、**学派立场**、**原文疑误**。
@@ -200,7 +247,13 @@ python scripts/review_apply.py --target <stem>_zh.md --glossary _work/<stem>_术
 
 ## 第 6 步：交付与归档
 
-**先把书目拼回去**：`python scripts/split_refs.py --restore _work/<stem>_正文_zh.md -o <stem>_zh.md`（sha256 对不上就停）。产物清单、YAML 元信息四组字段、**发布稿口径**（删作者名与单位、作者说明、致谢、ORCID、资助、利益冲突声明；删完脚注重编号；删了正文，基准也要跟着删）、归档与对话回复内容，见 [references/delivery.md](references/delivery.md)。
+**先把书目拼回去**：`python scripts/split_refs.py --restore _work/<stem>_正文_zh.md -o <stem>_zh.md`（sha256 对不上就停）。
+
+**再把句子里的人名补成中文名**：`python scripts/zh_cite_names.py <stem>_zh.md --apply`。判据只有一条——**这个名字在句子里有没有职务**：有（主语、宾语、定语、"用……的话说"）就译，写成 `斯蒂德曼（Steedman, 1977: ch. 6）`；没有、只是标出处，纯括号照抄原文 `（Marx 1992: 534）`，**一个字都不动**。脚本只做前者（`--brackets` 是给普及本留的例外开关，默认关）。规则全文见 [references/translation-rules.md](references/translation-rules.md) 规则 4「学者姓名：句中留中文，括号附原名」。译名从 `verified_names.csv` 取，查不到不猜、列进 `_work/<stem>_人名待补.md`，补表后重跑（幂等）。
+
+**再确认一遍成品是干净的**：`python scripts/strip_meta.py <stem>_zh.md --check` 应该返回 0（没有可剔的块）；残留 `©`、`doi.org`、`JEL`、`关键词`、`作者简介` 说明第 1 步漏跑了。成品的样子是：**标题 → 作者行 → 摘要 → 正文 → 附录 → 参考文献**，没有别的。
+
+产物清单、YAML 元信息（著录信息全在这里：卷期页码、DOI、版权、关键词、JEL、资助）、发布口径的完整清单与归档、对话回复内容，见 [references/delivery.md](references/delivery.md)。
 
 **不要在正文末尾追加"译者说明""术语对照表""译后记"**，除非用户明确要求——它们会让译文与原文结构不再一一对应。
 
@@ -208,25 +261,30 @@ python scripts/review_apply.py --target <stem>_zh.md --glossary _work/<stem>_术
 
 ```bash
 python scripts/md2tex.py <stem>_zh.md _work/pdf/paper.tex \
-    --source-pdf paper.pdf --fig-meta _work/图片版式.csv --pdf
+    --source-pdf paper.pdf --fig-meta _work/图片版式.csv --pdf --zotero
 python scripts/verify_pdf.py _work/pdf/paper.pdf --tex _work/pdf/paper.tex \
     --md <stem>_zh.md --footnotes _work/脚注.csv
 ```
 
-默认 `--footnotes footnote`：`[^n]` 渲染成页底 `\footnote{}`，脚注格式保留在 PDF 里；要尾注用 `--footnotes endnote`。`verify_pdf.py` 查编译 `!` 错误、`Overfull \vbox`、图片数、书签、文本层汉字与连字，并逐条核 `脚注.csv` 的内容是否进了 PDF。与 `dl-translation` 同一份实现，踩过的坑见 [references/pdf-latex.md](references/pdf-latex.md)。
+编译完自动复制一份到译稿旁边，名字是 `<stem>_zh.pdf`（`_work/pdf/paper.pdf` 只是中间产物）；`--zotero` 会接着把这份挂回库，见第 7 步。
+
+**首页只放中文标题、英文原题、作者**，一条横线之后就是正文——不加「文献类型／原文题目／原文作者／DOI」那张表，正文开头的 H1 与作者行也会跳过（首页已经排过，正文里再来一遍就是重复）。`dl-translation` 那边保留信息表，两边口径不同。
+
+默认 `--footnotes footnote`：`[^n]` 渲染成页底 `\footnote{}`，脚注格式保留在 PDF 里；要尾注用 `--footnotes endnote`。`verify_pdf.py` 查编译 `!` 错误、`Overfull \vbox`、图片数、书签、文本层汉字与连字，逐条核 `脚注.csv` 的内容是否进了 PDF（中文对照从译稿的 `[^n]:` 定义取，`脚注.csv` 的 zh 列空着也能核），并**正面确认日志里出现了 `Output written`**——XeTeX 的内部错误只进 stdout、不写 `.log`，只看 `!` 行会把"编到第 11 页就死了"判成通过（实测过）。与 `dl-translation` 同一份实现，踩过的坑见 [references/pdf-latex.md](references/pdf-latex.md)。
 
 ### 可选：公众号版
 
-`python scripts/build_wechat.py <stem>_zh.md <输出目录>` 出可直接粘贴的排版稿（去标题、去参考文献、脚注改就地引用框、正文保留上标、表格压进 637px）。**白名单与内联样式**——`<style>`/class 会被编辑器整段删掉，所以样式必须写在 `style=""` 里、单位必须 px；粘贴方法与两道自检见 [references/wechat.md](references/wechat.md)。
+`python scripts/build_wechat.py <stem>_zh.md <输出目录>` 出可直接粘贴的排版稿（**去标题、去作者行**、去参考文献、脚注改就地引用框、正文保留上标、表格压进 637px、**公式渲染成内联 SVG**）。公式这条路只有在浏览器里才走得通——微信过滤 `<script>`，`$…$` 粘过去就是字面美元符；脚本把公式留成占位符，把 MathJax 内联进 HTML，打开页面时渲染，复制按钮取渲染后的 DOM。六条结构约束（`fontCache:none`、不靠 `transform`、尺寸写 `style`、**块级公式必须 `<p>` 内嵌行内 svg** 否则微信前后加空行）与两个已知限制（二次编辑易丢公式、公式多时 Chrome 粘贴可能卡）见 [references/wechat.md](references/wechat.md)。**白名单与内联样式**——`<style>`/class 会被编辑器整段删掉，所以样式必须写在 `style=""` 里、单位必须 px；粘贴方法与两道自检见 [references/wechat.md](references/wechat.md)。
 
 ## 第 7 步：回挂 Zotero（有 PDF 时）
 
 ```bash
-python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md   # 单篇
-python scripts/zotero_attach.py --batch . --strict                # 多篇
+python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md --detect   # 先查来源，只读
+python scripts/zotero_attach.py <stem>_zh.pdf --md <stem>_zh.md           # 单篇挂回
+python scripts/zotero_attach.py --batch . --strict                        # 多篇交付门禁
 ```
 
-走 **Zotero 本地 API**（`127.0.0.1:23119`），不碰 `sqlite`、不需要账号：读（锚定、判重）不需授权；写第一次弹窗点 **Always Allow**，key 存 `~/.workbuddy/zotero.json`。锚定顺序：`--parent-key` → DOI/arXiv → `source_pdf` 与附件文件名匹配 → 英文标题相似度（≥0.85 且唯一）；**中文标题不参与匹配**。状态六种 `attached`/`updated`/`unchanged`/`ambiguous`/`pending`/`error`，退出码 0/1/2/3，**`--strict` 把任何没挂上的都算失败**（交付门禁用这个）。写不进去时不要手工复制：脚本在 `_zotero/` 产出 `pending.md` 与 `attach.js`（粘进 Zotero「工具 → 开发者 → 运行 JavaScript」一次挂完）。判重用 filename+md5，改稿重出直接重跑即原地覆盖；附件命名 `zh - <原文附件名>.pdf`，标题与文件名一致。详见 [references/zotero.md](references/zotero.md)。
+走 **Zotero 本地 API**（`127.0.0.1:23119`），不碰 `sqlite`、不需要账号：读（锚定、判重）不需授权；写第一次弹窗点 **Always Allow**，key 存 `~/.workbuddy/zotero.json`。**先 `--detect` 再挂**：它只读，报告「在库／不在库／歧义／查不了」、条目 key 与标题、判定依据、原文附件名，退出码 0/2/3；Zotero 没开时明说"查不了"，不会假装库里没有。锚定顺序：`--parent-key` → DOI/arXiv → `source_pdf` 与附件文件名匹配 → 英文标题相似度（≥0.85 且唯一）；**中文标题不参与匹配**，**front matter 里不存 source_file／source_pdf，全靠 DOI 与标题反查**。状态六种 `attached`/`updated`/`unchanged`/`ambiguous`/`pending`/`error`，退出码 0/1/2/3，**`--strict` 把任何没挂上的都算失败**（交付门禁用这个）。写不进去时不要手工复制：脚本在 `_zotero/` 产出 `pending.md` 与 `attach.js`（粘进 Zotero「工具 → 开发者 → 运行 JavaScript」一次挂完）。判重用 filename+md5，改稿重出直接重跑即原地覆盖；附件命名 `zh - <原文附件名>.pdf`，标题与文件名一致。详见 [references/zotero.md](references/zotero.md)。
 </workflow>
 
 <scripts>
@@ -237,16 +295,18 @@ python scripts/zotero_attach.py --batch . --strict                # 多篇
 | `scripts/footnote_recover.py` | 从 `content_list.json` 恢复页底脚注；`--apply` 把 `[^n]` 锚进正文、定义落文末、迁移旧稿、中文回填、交叉验证与内容级门禁；判不出位置的进 `脚注_待锚.csv`（与 dl 同一实现） | `-o`、`--source`、`--target`、`--apply`、`--place`、`--anchor-bare`、`--anchor-math`、`--translations`、`--check`、`--pdf`、`--pdf-out`、`--skip-footnote-check` |
 | `scripts/footnotes.py` | 兼容入口：把旧参数转发给 `footnote_recover.py`；不再作为主流程 | 旧参数 |
 | `scripts/figure_layout.py` | 多联图合并成一行、按原刊占比定宽、子图标签归并；产 `图片版式.csv`（与 dl 同一实现） | `<extract>`、`--md`、`-o`、`--apply` |
-| `scripts/md2tex.py` | 译稿 → XeLaTeX／PDF；`[^n]` 默认页底真脚注，URL 走 `\url{}`，图宽按 `--fig-meta`、图号按原刊编号，跨进程锁 | `--pdf`、`--footnotes`、`--fig-meta`、`--source-pdf`、`--title-en` |
+| `scripts/md2tex.py` | 译稿 → XeLaTeX／PDF；`[^n]` 默认页底真脚注，URL 走 `\url{}`，图宽按 `--fig-meta`、图号按原刊编号，跨进程锁；编译完把 PDF 复制成 `<stem>_zh.pdf` 并按需挂 Zotero | `--pdf`、`--footnotes`、`--fig-meta`、`--source-pdf`、`--title-en`、`--zotero`、`--zotero-dry-run` |
 | `scripts/verify_pdf.py` | PDF 验收：编译错误、`Overfull`、图片数、书签、文本层、逐条核脚注 | `<PDF>`、`--tex`、`--md`、`--footnotes` |
 | `scripts/build_wechat.py` | 译稿 → 公众号排版稿；脚注归一、挂到所注段落后、样式与内容双自检 | `<译稿.md>` `<输出目录>` |
 | `scripts/_test_footnotes.py` | 公众号脚注层的回归测试（13 种写法 + 1 条必须报警的失败用例） | 无 |
 | `scripts/_test_marx_quotes.py` | 引号体例与引用体例的回归测试（英式单引号、MEGA 式引用串、撇号、去重） | 无 |
+| `scripts/_test_md2tex_head.py` | 「标题下这一行是不是作者名」的回归测试：该删的作者行删掉，中文摘要首句不能被误删 | 无 |
 | `scripts/extract_terms.py` | 挖候选术语，标注已收录/新增，可生成项目表模板 | `--glossary`、`--min-count`、`--top`、`--write-project` |
 | `scripts/mine_terms_from_pairs.py` | 有平行译文时从「原文—译稿」句对反推实际用过的译法 | `--auto`、`--pairs`、`--min-count`、`--known` |
 | `scripts/lookup_term.py` | 按词查项目表与总表，避免整份读入 | `--glossary`、`--exact` |
 | `scripts/filter_terms.py` | 剔除通用词与噪声，按证据强度分主表与待核 | `--names`、`--min-docs`、`--keep-more` |
 | `scripts/zh_quotes.py` | ASCII 引号 → 中文引号，跳过 front matter／参考文献／公式／代码 | `--inplace`、`--check`、`--all` |
+| `scripts/zh_cite_names.py` | 句中人名补中文名：`Steedman（1977）` → `斯蒂德曼（Steedman, 1977）`；纯括号引用 `（Marx 1992: 534）` 默认不动。译名只从 `verified_names.csv` 取，查不到列清单不猜 | `--apply`、`--brackets`、`--glossary`、`--report` |
 | `scripts/style_check.py` | 扫口语化痕迹，按句列出可疑处，不自动改 | `-o`、`--max`、`--style` |
 | `scripts/semantic_audit.py` | 按段比对数值：年份、小数、百分比、千分位、页码区间 | `-o` |
 | `scripts/marx_quotes.py` | 把马恩引文对到《文集》译文，带卷次/章/页与可信度；认双/单引号两种引号体例与 MEGA 式引用串 | `--source`、`--target`、`--marxref`、`--years`、`--map`、`--anchor` |
@@ -254,7 +314,7 @@ python scripts/zotero_attach.py --batch . --strict                # 多篇
 | `scripts/review_queue.py` | 生成待校对清单：术语不一致、候选、人工判断项、马恩引文 | `--glossary`、`--manual`、`--init-manual`、`--marx`、`--marx-note` |
 | `scripts/review_apply.py` | 执行人的意见：改术语表与译文、重跑校验、登记已决、重生成清单 | `--decisions`、`--resolved`、`--manifest`、`--suggest` |
 | `scripts/paper_meta.py` | 生成、写入、检查译文顶部的 YAML 元信息 | `--init`、`--inject`、`--check` |
-| `scripts/zotero_attach.py` | 把已验收的译文 PDF 挂回 Zotero 父条目（本地 API，filename+md5 判重，不碰 sqlite） | `<PDF>`、`--md`、`--batch`、`--strict`、`--parent-key`、`--title`、`--doi`、`--attach-title`、`--prepare-only`、`--dry-run`、`--stage` |
+| `scripts/zotero_attach.py` | 把已验收的译文 PDF 挂回 Zotero 父条目（本地 API，filename+md5 判重，不碰 sqlite）；`--detect` 只报来源 | `<PDF>`、`--md`、`--detect`、`--batch`、`--strict`、`--parent-key`、`--title`、`--doi`、`--attach-title`、`--prepare-only`、`--dry-run`、`--stage` |
 | `scripts/normalize_math.py` | 统一 `\[…\]`→`$$…$$`、`\(…\)`→`$…$`，跳过代码块与 `\\[2pt]` | `--inplace`、`-o`、`--check` |
 | `scripts/fidelity_check.py` | 与原文对账：结构、引用、公式、未译段、术语；硬查脚注「正文 `[^n]` + 文末 `[^n]:`」双全、无 `## 脚注` 残留；`--strict-soft` 升级建议项 | `--glossary`、`--strict`、`--strict-soft`、`--skip-footnote-check` |
 | `scripts/merge_glossary.py` | 合并多份术语表，做姓名规范化与权威译名裁决，输出四态分流 | `-o`、`--verified`、`--no-normalize` |
@@ -302,6 +362,7 @@ python scripts/zotero_attach.py --batch . --strict                # 多篇
 |---|---|
 | [references/translation-rules.md](references/translation-rules.md) | 动笔前；拿不准某处算不算增删、引用该如何处理时 |
 | [references/semantic-review.md](references/semantic-review.md) | 第 4 步语义审读时；想知道"哪些类词表查不了、怎么读"时 |
+| [references/refinement.md](references/refinement.md) | 要润色、要改已译稿；判断某处改动会不会改出新错时 |
 | [references/style-sheet.md](references/style-sheet.md) | 第 3 步之前；定全篇语体约定、怀疑前后段行文不一致时 |
 | [references/style/default.md](references/style/default.md) | 开新篇复制为项目文件；想改跨篇默认值（连续几篇都变了）时 |
 | [references/figures.md](references/figures.md) | 图表归位、多联图并排、图片尺寸、发布口径基准 |
