@@ -294,8 +294,16 @@ def do_restore(args) -> int:
         return 2
 
     head, _, tail = refs.partition("\n")
-    if args.heading and HEADING.match(head):
-        refs = f"{args.heading}\n{tail}"
+    if args.heading:
+        new = args.heading.strip()
+        if not new.startswith("#"):
+            # 沿用原标题的井号级别。文档里写的是 `--heading 参考文献`（不带井号），
+            # 旧实现原样拼上去，结果那行没有 `#`，Markdown 里就成了普通段落——
+            # 译文里凭空多出一行"参考文献"，后面紧跟一串书目条目。
+            hm = HEADING.match(head)
+            lvl = (hm.group("hashes") if hm else "") or "##"
+            new = "%s %s" % (lvl, new)
+        refs = f"{new}\n{tail}"
 
     replacement = refs.rstrip("\n").split("\n")
     # Keep the blank line that separates the bibliography from whatever follows

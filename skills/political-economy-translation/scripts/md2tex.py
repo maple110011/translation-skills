@@ -16,6 +16,7 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -43,6 +44,11 @@ ap.add_argument("--allow-orphan-notes", action="store_true",
 ap.add_argument("--fig-meta", default=None,
                 help="figure_layout.py 产出的 图片版式.csv：按原刊 bbox 占比给每张图定宽，"
                      "附录里只占半栏的图就不会被拉满整栏")
+ap.add_argument("--zotero", action="store_true",
+                help="编译完顺手把 <stem>_zh.pdf 挂回 Zotero（调 zotero_attach.py，"
+                     "自动按 DOI/文件名/标题锚定父条目；Zotero 没开就留 pending）")
+ap.add_argument("--zotero-dry-run", action="store_true",
+                help="配合 --zotero：只报来源与判重，不写库")
 args = ap.parse_args()
 
 # 原刊里每张图占正文栏宽的比例。没有这一层时一律 0.93\linewidth，附录的小图
@@ -73,6 +79,37 @@ def _pdf_pages(path):
         return mm.group(1) if mm else '?'
     except Exception:
         return '?'
+
+
+def _kpse(name):
+    """在 texmf 里找一个文件；没有 kpsewhich 就当找不到。"""
+    exe = shutil.which('kpsewhich')
+    if not exe:
+        return ''
+    try:
+        r = subprocess.run([exe, name], capture_output=True, text=True, timeout=20)
+        return r.stdout.strip()
+    except Exception:
+        return ''
+
+
+def main_font():
+    """西文字体的 \\setmainfont 行。
+
+    别按字体名写 ``\\setmainfont{TeX Gyre Termes}``：TeX Gyre 只装在 texmf 里，
+    没有装进系统字体目录，Windows 上按名字查不到，日志里就是每个字号一条
+    ``! Package fontspec Error: The font "TeX Gyre Termes" cannot be found``
+    （16 页的稿子能刷出几十条），生成的 PDF 会悄悄回落到默认字体。
+    按文件名 + ``Extension=.otf`` 走 kpathsea，就跟系统装没装字体无关。
+    """
+    for base in ('texgyretermes', 'texgyrepagella', 'texgyrebonum'):
+        if _kpse(base + '-regular.otf'):
+            return (r'\setmainfont{%s}[Extension=.otf,' % base + '\n'
+                    r'  UprightFont=*-regular,BoldFont=*-bold,'
+                    r'ItalicFont=*-italic,BoldItalicFont=*-bolditalic,' + '\n'
+                    r'  Ligatures={TeX,NoCommon}]')
+    # 既没有 TeX Gyre 也没有系统 Times 时，fontspec 的默认（Latin Modern）也够用。
+    return r'\setmainfont{Times New Roman}[Ligatures={TeX,NoCommon}]'
 
 
 MD = pathlib.Path(args.md)
@@ -237,41 +274,181 @@ SYM = {'α': r'$\alpha$', 'β': r'$\beta$', 'γ': r'$\gamma$', 'δ': r'$\delta$'
        '⊙': r'$\odot$', '⊗': r'$\otimes$', '□': r'$\square$', '→': r'$\rightarrow$',
        '×': r'$\times$', '±': r'$\pm$', '≤': r'$\leq$', '≥': r'$\geq$',
        '≈': r'$\approx$', '∈': r'$\in$', '∝': r'$\propto$', '∼': r'$\sim$',
-       '·': r'$\cdot$', '∞': r'$\infty$', '∑': r'$\sum$', '√': r'$\surd$'}
+       '·': r'$\cdot$', '∞': r'$\infty$', '∑': r'$\sum$', '√': r'$\surd$',
+       # 裸 < > 在文本模式会排成 ¡ ¿（西班牙语倒叹号），表格里的
+       # 「μ2 < μ1」于是变成一句看不懂的话。一律进数学模式。
+       '<': r'$<$', '>': r'$>$'}
+
+
+NAMED_ENT = {'&lt;': '<', '&gt;': '>', '&amp;': '&', '&quot;': '"',
+             '&apos;': "'", '&nbsp;': ' '}
+
+
+def deent(s):
+    """把 HTML 命名实体与数字实体还原成字符。
+
+    表格里 `&lt;` `&gt;` 不还原，PDF 上就印出字面的 `μ2 &lt; μ1`——
+    表 1 的三行判据全部读不出来。
+    """
+    s = re.sub(r'&(?:lt|gt|amp|quot|apos|nbsp);',
+               lambda m: NAMED_ENT[m.group(0)], s)
+    s = re.sub(r'&#x([0-9A-Fa-f]+);', lambda m: chr(int(m.group(1), 16)), s)
+    s = re.sub(r'&#(\d+);', lambda m: chr(int(m.group(1))), s)
+    return s
 
 
 def esc(s):
     # MinerU 把 HTML 表格里的单引号等抽成数字实体；不解码会原样排成
     # \&\#x27; 并把单元格撑得很宽。
-    s = re.sub(r'&#x([0-9A-Fa-f]+);', lambda m: chr(int(m.group(1), 16)), s)
-    s = re.sub(r'&#(\d+);', lambda m: chr(int(m.group(1))), s)
-    return ''.join(SYM.get(c) or REP.get(c, c) for c in s)
+    return ''.join(SYM.get(c) or REP.get(c, c) for c in deent(s))
+
+
+TD = re.compile(r'<t[dh]([^>]*)>(.*?)</t[dh]>', re.S)
+SPAN = re.compile(r'colspan\s*=\s*"?(\d+)', re.I)
+
+
+def td_cells(row_html):
+    """一行单元格：[(文本, 跨列数)]。
+
+    colspan 必须认。表头「第 I 部类」「第 II 部类」各跨 2 列，丢掉之后两个
+    部类名挤到相邻的两列上，下面的 5 列数据与表头整体错位一格——表头说
+    「第 II 部类」，可它下面那两列其实是第 I 部类的剥削率与剥削形式。
+    """
+    out = []
+    for m in TD.finditer(row_html):
+        cs = SPAN.search(m.group(1))
+        out.append((m.group(2).strip(), int(cs.group(1)) if cs else 1))
+    return out
+
+
+def tab_row(row):
+    """把一行 [(文本, 跨列数)] 排成 tabular 的一行。"""
+    parts = []
+    for text, span in row:
+        t = inline(deent(text))
+        parts.append(r'\multicolumn{%d}{c}{%s}' % (span, t) if span > 1 else t)
+    return ' & '.join(parts)
 
 
 lines = text.split('\n')
-try:
-    ref_start = next(k for k, l in enumerate(lines)
-                     if l.strip() in ('## 参考文献', '## REFERENCES', '## References'))
-except StopIteration:
+FN_DEF = re.compile(r'^\s*\[\^[^\]]+\]:')
+# 书目节：标题级别不定（split_refs --restore 默认给 `# 参考文献`，手写稿常是
+# `## References`），中英混用也常见。旧版只认 `## ` 开头的三种写法，认不出就
+# 把整段书目当正文排——PDF 里几十条文献挤成流水段落，标题还在。
+REF_HEAD = re.compile(r'^\s{0,3}(#{1,6})\s*\**\s*'
+                      r'(参考文献|references?|bibliography|works\s+cited|'
+                      r'literature\s+cited|文献)\s*\**\s*$', re.I)
+HEADING = re.compile(r'^\s{0,3}(#{1,6})\s')
+ref_start, ref_lvl = -1, 6
+for k, l in enumerate(lines):
+    hr = REF_HEAD.match(l)
+    if hr:                          # 取最后一个：附录里的 "see References" 不算
+        ref_start, ref_lvl = k, len(hr.group(1))
+if ref_start < 0:
     ref_start = len(lines)
 
 ref_end = len(lines)
 for k in range(ref_start + 1, len(lines)):
-    if lines[k].startswith('## '):
+    # 脚注定义跟在书目后面（`<!-- 脚注定义 -->` + `[^n]:`），属于正文资源，
+    # 不能被当书目条目吃掉——吃掉就等于全篇脚注静默消失。
+    if lines[k].lstrip().startswith('<!--') or FN_DEF.match(lines[k]):
         ref_end = k
         break
-refs = [l.strip() for l in lines[ref_start + 1:ref_end] if l.strip()]
+    hk = HEADING.match(lines[k])
+    if hk and len(hk.group(1)) <= ref_lvl:
+        ref_end = k
+        break
+refs = [l.strip() for l in lines[ref_start + 1:ref_end]
+        if l.strip() and not l.lstrip().startswith('<!--') and not FN_DEF.match(l)]
+def is_author_line(s):
+    """一行是不是作者名列表（`A、B 和 C` / `A, B and C`）。
+
+    只在标题正下方判一次：那时它几乎必然是作者行。放进正文里判会误伤
+    「Basu（2024）认为……」这类句子（带句读、带括号年份）。
+
+    两道关：先看形态（无句读、无数字、片段数 1–6、每段像个名字），再用
+    front matter 的 `authors` 反向核对——每个片段的首词都应出现在作者串里。
+    只看形态不够：`劳动强化会提高剥削率吗` 这种没标点的短句也符合形态，
+    中文摘要第一句会被当成作者行删掉。
+    """
+    s = (s or "").strip()
+    if not s or len(s) > 220 or '\n' in s:
+        return False
+    if re.search(r'[。．！？；;：:（）()\d]', s):
+        return False
+    parts = [p.strip() for p in re.split(r'[、,，]|\s+和\s+|\s+and\s+|\s*&\s*', s)]
+    parts = [p for p in parts if p]
+    if not (1 <= len(parts) <= 6):
+        return False
+    if len(parts) == 1:
+        # 单个作者（`张三` / `John Smith`）与"一句短话"最容易混。收得更紧：
+        # 中文最多 8 字（姓名 + 可能的「·」），西文最多 4 个词。
+        p = parts[0]
+        if re.search(r'[\u4e00-\u9fff]', p):
+            if len(p) > 8:
+                return False
+        elif len(p.split()) > 4:
+            return False
+    for p in parts:
+        if len(p.split()) > 5:
+            return False
+        if re.search(r'[\u4e00-\u9fff]', p):
+            if len(p) > 14:          # 中文姓名 2–4 字，带「·」的译名也短
+                return False
+        elif len(p) > 60:
+            return False
+        if not re.match(r"^[A-Za-z\u4e00-\u9fff]", p):
+            return False
+    known = (AUTHORS or "").lower()
+    line_cjk = bool(re.search(r'[\u4e00-\u9fff]', s))
+    known_cjk = bool(re.search(r'[\u4e00-\u9fff]', known))
+    # 只在两边文字系统相同时核对姓氏：YAML 里写 `Zhang, San`、正文作者行写
+    # 「张三」是常态，硬对只会对不上，反而把真作者行留在正文里。
+    if known and line_cjk == known_cjk:
+        heads = [p.split()[0].lower() for p in parts if p.split()]
+        if heads and not any(h in known for h in heads):
+            return False
+    return True
+
+
+def drop_title_block(ls):
+    """去掉译文开头的 H1 与紧随其后的作者行。
+
+    首页的标题、英文题名、作者都由 front matter 排好了（preamble 的中心区），
+    正文里再来一遍就是重复——读者会看到标题下面又挂一行作者名。
+    只动开头这一处，正文中间的同形行不碰。
+    """
+    k = 0
+    while k < len(ls) and not ls[k].strip():
+        k += 1
+    if k < len(ls) and re.match(r'^#\s+\S', ls[k]):
+        k += 1
+        while k < len(ls) and not ls[k].strip():
+            k += 1
+        if k < len(ls) and is_author_line(ls[k]):
+            k += 1
+    return ls[k:]
+
+
 body_lines = lines[:ref_start] + ['@@REFS@@'] + lines[ref_end:]
+body_lines = drop_title_block(body_lines)
 
 CITE = re.compile(r'[（(]([^（）()]{0,150}?\b(?:19|20)\d{2}[^（）()]{0,30}?)[）)]')
-PART = re.compile(r'^\s*([A-Z][A-Za-zÀ-ÿ’\'\-]+)'
+# 引用里的名字可能已经写成「中文名 英文姓, 年份」（zh_cite_names.py 的产物），
+# 中文那截要跳过才认得出后面那个能跟参考文献对上的姓氏。
+# 年份后面跟着的定位符（`: 534`、`: ch. 6`、`, emphasis added`）要吃掉，
+# 否则带页码的引用一个锚都建不起来——那正是大多数引用。
+PART = re.compile(r'^\s*(?:[\u4e00-\u9fff][\u4e00-\u9fff、·]{0,11}\s+)?'
+                  r'([A-Z][A-Za-zÀ-ÿ’\'\-]+)'
                   r'((?:\s+et\s+al\.)|(?:\s*(?:\\?&)\s*[A-Z][A-Za-zÀ-ÿ’\'\-]+))?'
-                  r'\s*,?\s*((?:19|20)\d{2})[。．.]?\s*$')
+                  r'\s*,?\s*((?:19|20)\d{2})[a-z]?'
+                  r'(?:\s*[:：,]\s*[^;；]*)?[。．.]?\s*$')
 
 pairs = set()
 for line in body_lines:
     for g in CITE.finditer(line):
-        for part in g.group(1).split(';'):
+        # 全角分号也要切：加了中文名之后，引用之间的分隔符会跟着中文化。
+        for part in re.split(r'[;；]', g.group(1)):
             mm = PART.match(part)
             if mm:
                 pairs.add((mm.group(1).lower(), mm.group(3)))
@@ -304,9 +481,10 @@ def link_group(match, already=False):
         return whole
     op, cl = ('（', '）') if whole[0] == '（' else ('(', ')')
     uniq = {k for k in keys if k}
-    cjk = re.search(r'[\u4e00-\u9fff]', inner)
-    if len(uniq) == 1 and not cjk:
-        # 整组只有一条文献且是纯引文：整段（含括号）都可点
+    # 不再用"括号里有汉字就不整段链接"当判据：中文人名（`马克思 Marx, 1992`）
+    # 本身就会带汉字，那样会让加了中文名的稿子整篇失去引文跳转。
+    if len(uniq) == 1:
+        # 整组只有一条文献：整段（含括号）都可点
         txt = whole if already else esc(whole)
         return r'\hyperlink{%s}{%s}' % (next(iter(uniq)), txt)
     # 多条/混合：逐条链接，左右括号并进首尾两条，尽量扩大可点区域
@@ -326,7 +504,10 @@ def link_group(match, already=False):
     return ''.join(res)
 
 
-NARR = re.compile(r'([A-Z][A-Za-zÀ-ÿ’\'\-]+)((?:\s+et\s+al\.)?)\s*[（(]((?:19|20)\d{2})[）)]')
+# 叙述式：`Marx (1867) argued`，以及加了中文名之后的 `马克思（Marx, 1867）`——
+# 后者括号里多一个逗号，`\s*,?\s*` 把它吃掉。
+NARR = re.compile(r'([A-Z][A-Za-zÀ-ÿ’\'\-]+)((?:\s+et\s+al\.)?)\s*,?\s*'
+                  r'[（(]\s*((?:19|20)\d{2})[a-z]?(?:[:：][^（）()]{0,40})?[）)]')
 
 
 def link_narr(match, already=False):
@@ -380,7 +561,7 @@ def inline(s, nolink=False):
             pieces.append('\x01M%d\x02' % (len(store) - 1))
             continue
         if part.startswith('$') and part.endswith('$') and len(part) > 2:
-            store.append(part)
+            store.append(fix_math(part))
             pieces.append('\x01M%d\x02' % (len(store) - 1))
             continue
         for sub in re.split(r'(\*\*[^*]+\*\*)', part):
@@ -564,6 +745,22 @@ def emit_group(blocks):
     out.append(r'\endgroup')
 
 
+BF_MATH = re.compile(r'\\bf(?![A-Za-z])')
+
+
+def fix_math(s):
+    r"""数学里的旧式 ``\bf`` 换成 ``\bm``。
+
+    XeTeX 下 ``${\bf \dot{\mu}}_1$`` 会直接死在
+    ``! Internal error: bad native font flag in map_char_to_glyph``：
+    ``\bf`` 把编码切到 TU 文本字体，再用它排 ``\mu``，XeTeX 内部断言失败。
+    这个错误**不写进 .log**（log 里 0 条 ``!``），只在 stdout 打一行，
+    所以验收脚本会误判通过，而 PDF 其实只编到崩溃那一页就断了。
+    ``\bm`` 是 bm 包给的数学粗体，语义一样、不切换字体编码。
+    """
+    return BF_MATH.sub(r'\\bm', s)
+
+
 def emit_display(body, tight=False):
     mt = re.search(r'\\tag\{([^}]*)\}\s*$', body)
     tag = ''
@@ -571,6 +768,7 @@ def emit_display(body, tight=False):
         t = mt.group(1).strip().replace('□', r'$\square$')
         tag = r'\tag{%s}' % t
         body = body[:mt.start()].rstrip()
+    body = fix_math(body)
     # 局部重设公式间距：字体/环境切换可能把全局设置还原成类默认值
     out.append(r'\begingroup\setlength{\abovedisplayskip}{4pt}\setlength{\belowdisplayskip}{4pt}'
                r'\setlength{\abovedisplayshortskip}{4pt}\setlength{\belowdisplayshortskip}{4pt}')
@@ -843,8 +1041,8 @@ while i < len(body_lines):
         caption, i = take_caption(i)
         joined = '\n'.join(blob)
         rows = re.findall(r'<tr>(.*?)</tr>', joined, re.S)
-        cells = [[c.strip() for c in re.findall(r'<td[^>]*>(.*?)</td>', r, re.S)] for r in rows]
-        ncol = max(len(c) for c in cells)
+        cells = [td_cells(r) for r in rows]
+        ncol = max(sum(sp for _t, sp in c) for c in cells)
         # table[H] + tabular 不能跨页：几十行的附录表会被整块截断，而编译
         # 仍是 0 错误，日志里只有一句 Overfull \vbox，最容易漏。拆成多个
         # 各自可落页的 table；续块重复表头，caption 只挂第一块。
@@ -860,7 +1058,7 @@ while i < len(body_lines):
             out.append(r'\toprule')
             body_rows = ([cells[0]] + chunk) if ci else chunk
             for k, row in enumerate(body_rows):
-                out.append(' & '.join(inline(c) for c in row) + r' \\')
+                out.append(tab_row(row) + r' \\')
                 if k == 0:
                     out.append(r'\midrule')
             out.append(r'\bottomrule\end{tabular}}')
@@ -1115,9 +1313,12 @@ for idx, r in enumerate(refs):
 refs_head = r'\phantomsection\pdfbookmark[1]{参考文献}{bmref}' + '\n' + r'\section*{参考文献}' + '\n\n'
 refs_tex = refs_head + '\n'.join(reflines)
 
-preamble = r'''\documentclass[UTF8,11pt,a4paper,fontset=%(fontset)s]{ctexart}
+MAIN_FONT = main_font()
+preamble = r'''\documentclass[UTF8,12pt,a4paper,fontset=%(fontset)s]{ctexart}
+%% 12pt：11pt 的中文正文在 A4 上每行 44 字、字面偏小，打印与屏读都吃力。
+%% 版心 17cm（左右各 2cm），一行约 40 字，是中文论文的常见密度。
 \usepackage{geometry}
-\geometry{left=2.3cm,right=2.3cm,top=2.5cm,bottom=2.2cm}
+\geometry{left=2.0cm,right=2.0cm,top=2.2cm,bottom=2.0cm}
 \usepackage{amsmath,amssymb,amsfonts,bm}
 \usepackage{graphicx}
 \usepackage{float}
@@ -1144,7 +1345,12 @@ preamble = r'''\documentclass[UTF8,11pt,a4paper,fontset=%(fontset)s]{ctexart}
 %% 阅读器按 ActualText 的字符宽度去算高亮框，于是"能复制、但框选只亮几个字母"。
 %% 取而代之的是关掉 f-连字（NoCommon），保证 ffi→ffi 而不是 U+FB00。
 \usepackage{fancyhdr}
-\setmainfont{TeX Gyre Termes}[Ligatures={TeX,NoCommon}]
+%(mainfont)s
+%% 撇号 U+2019 默认被 xeCJK 归进中文标点类，跟西文字母相邻时按全角排，
+%% 结果书目里 Marx's、St. Martin's 全变成「Marx’ s」——中间多一个空隙。
+%% 只把它一个字符移出标点类：中文双引号 “” 仍按 CJK 处理（挤在汉字边上），
+%% 西文撇号回到正常字距。
+\xeCJKDeclareCharClass{Default}{"2019}
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\small\itshape %(te)s}
@@ -1171,19 +1377,15 @@ preamble = r'''\documentclass[UTF8,11pt,a4paper,fontset=%(fontset)s]{ctexart}
 \vspace{8pt}
 {\normalsize %(au)s\par}
 \end{center}
-\vspace{4pt}
-{\small
-\noindent\begin{tabular}{@{}p{0.13\linewidth}p{0.8\linewidth}@{}}
-文献类型 & %(doctype)s（%(venue)s）\\
-原文题目 & %(te)s\\
-原文作者 & %(au)s\\
-DOI & %(doiline)s\\
-\end{tabular}}\par
-\vspace{2pt}
+%% 首页只放标题、英文题名、作者，不放「文献类型／原文题目／原文作者／DOI」那张表。
+%% 这些信息在 front matter 里都有，正文读者不需要一进来先看一遍著录；dl 那边
+%% 保留信息表（读者要先判断"这是什么论文"），两边的口径不同，不要同步。
+\vspace{6pt}
 \noindent\rule{\linewidth}{0.6pt}
 
 \vspace{8pt}
 ''' % dict(fontset='windows' if sys.platform == 'win32' else 'fandol',
+           mainfont=MAIN_FONT,
            tz=TITLE_ZH,
            tz1=TITLE_ZH.split('？')[0] + '？' if '？' in TITLE_ZH else TITLE_ZH,
            tz2=TITLE_ZH.split('？')[1] if '？' in TITLE_ZH else '',
@@ -1196,6 +1398,13 @@ DOI & %(doiline)s\\
            srcfile=esc(SRC_NAME))
 
 body = body.replace('@@REFS@@', refs_tex)
+# 最后再兜一道：数学内容是从 MinerU 的 OCR 原样搬过来的，\bf 不一定只在
+# inline()/emit_display() 那两条路径上出现。正文粗体走 \textbf、页面标题走
+# \bfseries，都不会被这个替换碰到。
+n_fix = len(BF_MATH.findall(body))
+if n_fix:
+    body = fix_math(body)
+    print('数学里的 \\bf 改成 \\bm：%d 处（不换掉会触发 XeTeX 内部错误）' % n_fix)
 
 TEX.parent.mkdir(parents=True, exist_ok=True)
 TEX.write_text(preamble + body + '\n\\end{document}\n', encoding='utf-8')
@@ -1248,12 +1457,39 @@ if args.pdf:
                                capture_output=True, cwd=str(base))
             if r.returncode != 0:
                 log = TEX.with_suffix('.log')
-                tail = log.read_text(encoding='utf-8', errors='ignore')[-1500:] if log.exists() else ''
-                raise SystemExit('xelatex 失败（第 %d 遍）\n%s' % (i + 1, tail))
+                tail = log.read_text(encoding='utf-8', errors='ignore')[-1200:] if log.exists() else ''
+                # XeTeX 的内部错误（比如 bad native font flag）只写 stdout，
+                # 不写 .log。只看 log 会给出"什么都没有"的报错。
+                out = (r.stdout or b'').decode('utf-8', 'ignore')
+                bang = [ln for ln in out.splitlines() if ln.startswith('!')][:5]
+                raise SystemExit('xelatex 失败（第 %d 遍）rc=%d\n%s\n--- 日志尾部 ---\n%s'
+                                 % (i + 1, r.returncode, '\n'.join(bang) or '（stdout 里没有 ! 行）', tail))
     finally:
         _release_xelatex_lock(lock)
     pdf = TEX.with_suffix('.pdf')
     print('PDF:', pdf, ('（%s 页）' % _pdf_pages(pdf)) if pdf.exists() else '未生成')
+    # 交付约定与 Zotero 挂载都按 <stem>_zh.pdf 找。TEX 常放在 _work/pdf/ 下，
+    # 编译产物于是叫 paper.pdf——复制一份到译稿旁边，少一步手工搬。
+    out_pdf = MD.parent / (MD.stem + '.pdf')
+    if pdf.is_file() and pdf.resolve() != out_pdf.resolve():
+        try:
+            shutil.copyfile(pdf, out_pdf)
+            print('交付副本:', out_pdf)
+        except OSError as e:
+            print('! 复制交付副本失败：%s' % e)
+    if args.zotero and out_pdf.is_file():
+        # 单独起进程：zotero_attach 会拿授权 key、上传文件，失败要能自己退出，
+        # 不能把 md2tex 的编译结果带崩。
+        script = pathlib.Path(__file__).with_name('zotero_attach.py')
+        cmd = [sys.executable, str(script), str(out_pdf), '--md', str(MD)]
+        if args.zotero_dry_run:
+            cmd.append('--dry-run')
+        print('\n=== 挂回 Zotero ===')
+        rc = subprocess.run(cmd).returncode
+        if rc != 0:
+            print('Zotero 挂载未完成（rc=%d）：PDF 已出，重跑 '
+                  '`python scripts/zotero_attach.py %s --md %s` 即可。'
+                  % (rc, out_pdf.name, MD.name))
     log = TEX.with_suffix('.log')
     if log.exists():
         over = [ln for ln in log.read_text(encoding='utf-8', errors='ignore').split('\n')

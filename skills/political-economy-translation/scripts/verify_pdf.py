@@ -27,6 +27,19 @@ LIGATURES = "\ufb00\ufb01\ufb02\ufb03\ufb04"
 CJK = re.compile(r"[\u4e00-\u9fff]")
 
 
+def fn_key(s, n=12):
+    """脚注内容比对用的键：去公式、去标记、去空白，取前 n 个字符。
+
+    行内公式在 PDF 里会被排成普通符号，`$n$ 商品` 在文本层是 `n商品`，
+    所以整段丢公式而不是把 `$` 留着。
+    """
+    s = re.sub(r"\$[^$]*\$", "", s or "")
+    s = re.sub(r"<[^>]+>", "", s)
+    s = re.sub(r"[*_`~]", "", s)
+    s = re.sub(r"\s+", "", s)
+    return s[:n]
+
+
 def run(cmd):
     try:
         r = subprocess.run(cmd, capture_output=True, timeout=300)
@@ -55,6 +68,11 @@ def main(argv=None):
     pinfo = run(["pdfinfo", str(pdf)])
     m = re.search(r"Pages:\s+(\d+)", pinfo)
     info.append("页数 %s" % (m.group(1) if m else "?"))
+    if not m:
+        # 拿不到页数多半是 PDF 没写完（编译中途死了）。不能默认通过。
+        problems.append("pdfinfo 读不到页数：PDF 可能被截断，或没装 poppler")
+    elif int(m.group(1)) < 2:
+        problems.append("只有 %s 页：正文可能整段没排出来" % m.group(1))
 
     if log.is_file():
         t = log.read_text(encoding="utf-8", errors="ignore")
@@ -68,6 +86,12 @@ def main(argv=None):
                     % (len(errs), len(vbox), len(wide)))
         if errs:
             problems.append("日志里有 %d 行 `!` 错误：%s" % (len(errs), errs[:2]))
+        # XeTeX 的内部错误（bad native font flag、字体编码错乱）只进 stdout，
+        # .log 里一行 `!` 都没有，末尾也没有 "Output written"。所以这里必须
+        # 正面确认日志写完了，否则"0 错误"其实是"编到一半死了"。
+        if "Output written" not in t:
+            problems.append("日志里没有 `Output written`：编译中途停止（XeTeX 内部错误"
+                            "只写 stdout 不写 log，日志末尾会停在某一页页码上）")
         if vbox:
             problems.append("Overfull \\vbox %d 处：长表/整块数据可能被截断" % len(vbox))
         if wide:
@@ -121,14 +145,27 @@ def main(argv=None):
                     rows = list(csv.DictReader(fh))
                 needed = [r for r in rows if r.get("category") == "footnote"
                           and (r.get("marker") or "").isdigit()]
-                miss = []
+                # 中文对照从译稿的 [^n]: 定义取。脚注.csv 的 zh 列是回填的、
+                # 常常空着；拿里面的英文原句去 PDF 文本层里找必然 0 命中，
+                # 报出来的却是「脚注没进 PDF」——这是假警报。
+                zh_of = {}
+                if args.md and pathlib.Path(args.md).is_file():
+                    md_text = pathlib.Path(args.md).read_text(encoding="utf-8", errors="ignore")
+                    for mm in re.finditer(r"^\[\^([^\]]+)\]:[ \t]*(.+)$", md_text, re.M):
+                        zh_of[mm.group(1)] = mm.group(2)
+                miss, no_zh = [], []
                 for r in needed:
-                    key = (r.get("zh") or r.get("plain") or "")[:14]
-                    key = re.sub(r"\s+", "", re.sub(r"<[^>]+>", "", key))
-                    if key and key not in big:
-                        miss.append("[^%s] %s…" % (r.get("marker", "?"), key))
-                info.append("脚注：清单 %d 条内容脚注，PDF 文本层命中 %d 条"
-                            % (len(needed), len(needed) - len(miss)))
+                    mk = r.get("marker", "?")
+                    key = fn_key(zh_of.get(mk) or r.get("zh") or "")
+                    if not key:
+                        no_zh.append(mk)
+                        continue
+                    if key not in big:
+                        miss.append("[^%s] %s…" % (mk, key))
+                info.append("脚注：清单 %d 条内容脚注，核对 %d 条，命中 %d 条%s"
+                            % (len(needed), len(needed) - len(no_zh),
+                               len(needed) - len(no_zh) - len(miss),
+                               "（%d 条无中文对照，只核条数）" % len(no_zh) if no_zh else ""))
                 if miss:
                     problems.append("PDF 文本层缺 %d 条脚注内容：%s"
                                     % (len(miss), "；".join(miss[:5])))

@@ -16,6 +16,7 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -42,6 +43,11 @@ ap.add_argument("--allow-orphan-notes", action="store_true",
                      "默认这是硬错误——那正是 PDF 里脚注变成文末一节的原因")
 ap.add_argument("--fig-meta", default=None,
                 help="figure_layout.py 产出的 图片版式.csv：按原刊 bbox 占比给每张图定宽")
+ap.add_argument("--zotero", action="store_true",
+                help="编译完顺手把 <stem>_zh.pdf 挂回 Zotero（调 zotero_attach.py，"
+                     "自动按 DOI/文件名/标题锚定父条目；Zotero 没开就留 pending）")
+ap.add_argument("--zotero-dry-run", action="store_true",
+                help="配合 --zotero：只报来源与判重，不写库")
 args = ap.parse_args()
 
 # 原刊里每张图占正文栏宽的比例。没有这一层时一律 0.93\linewidth，附录的小图
@@ -72,6 +78,36 @@ def _pdf_pages(path):
         return mm.group(1) if mm else '?'
     except Exception:
         return '?'
+
+
+def _kpse(name):
+    """在 texmf 里找一个文件；没有 kpsewhich 就当找不到。"""
+    exe = shutil.which('kpsewhich')
+    if not exe:
+        return ''
+    try:
+        r = subprocess.run([exe, name], capture_output=True, text=True, timeout=20)
+        return r.stdout.strip()
+    except Exception:
+        return ''
+
+
+def main_font():
+    """西文字体的 \\setmainfont 行。
+
+    别按字体名写 ``\\setmainfont{TeX Gyre Termes}``：TeX Gyre 只装在 texmf 里，
+    没有装进系统字体目录，Windows 上按名字查不到，日志里就是每个字号一条
+    ``! Package fontspec Error: The font "TeX Gyre Termes" cannot be found``
+    （16 页的稿子能刷出几十条），生成的 PDF 会悄悄回落到默认字体。
+    按文件名 + ``Extension=.otf`` 走 kpathsea，就跟系统装没装字体无关。
+    """
+    for base in ('texgyretermes', 'texgyrepagella', 'texgyrebonum'):
+        if _kpse(base + '-regular.otf'):
+            return (r'\setmainfont{%s}[Extension=.otf,' % base + '\n'
+                    r'  UprightFont=*-regular,BoldFont=*-bold,'
+                    r'ItalicFont=*-italic,BoldItalicFont=*-bolditalic,' + '\n'
+                    r'  Ligatures={TeX,NoCommon}]')
+    return r'\setmainfont{Times New Roman}[Ligatures={TeX,NoCommon}]'
 
 
 MD = pathlib.Path(args.md)
@@ -246,18 +282,35 @@ def esc(s):
 
 
 lines = text.split('\n')
-try:
-    ref_start = next(k for k, l in enumerate(lines)
-                     if l.strip() in ('## 参考文献', '## REFERENCES', '## References'))
-except StopIteration:
+FN_DEF = re.compile(r'^\s*\[\^[^\]]+\]:')
+# 书目节：标题级别不定（split_refs --restore 默认给 `# 参考文献`，手写稿常是
+# `## References`），中英混用也常见。旧版只认 `## ` 开头的三种写法，认不出就
+# 把整段书目当正文排——PDF 里几十条文献挤成流水段落，标题还在。
+REF_HEAD = re.compile(r'^\s{0,3}(#{1,6})\s*\**\s*'
+                      r'(参考文献|references?|bibliography|works\s+cited|'
+                      r'literature\s+cited|文献)\s*\**\s*$', re.I)
+HEADING = re.compile(r'^\s{0,3}(#{1,6})\s')
+ref_start, ref_lvl = -1, 6
+for k, l in enumerate(lines):
+    hr = REF_HEAD.match(l)
+    if hr:                          # 取最后一个：附录里的 "see References" 不算
+        ref_start, ref_lvl = k, len(hr.group(1))
+if ref_start < 0:
     ref_start = len(lines)
 
 ref_end = len(lines)
 for k in range(ref_start + 1, len(lines)):
-    if lines[k].startswith('## '):
+    # 脚注定义跟在书目后面（`<!-- 脚注定义 -->` + `[^n]:`），属于正文资源，
+    # 不能被当书目条目吃掉——吃掉就等于全篇脚注静默消失。
+    if lines[k].lstrip().startswith('<!--') or FN_DEF.match(lines[k]):
         ref_end = k
         break
-refs = [l.strip() for l in lines[ref_start + 1:ref_end] if l.strip()]
+    hk = HEADING.match(lines[k])
+    if hk and len(hk.group(1)) <= ref_lvl:
+        ref_end = k
+        break
+refs = [l.strip() for l in lines[ref_start + 1:ref_end]
+        if l.strip() and not l.lstrip().startswith('<!--') and not FN_DEF.match(l)]
 body_lines = lines[:ref_start] + ['@@REFS@@'] + lines[ref_end:]
 
 CITE = re.compile(r'[（(]([^（）()]{0,150}?\b(?:19|20)\d{2}[^（）()]{0,30}?)[）)]')
@@ -383,7 +436,7 @@ def inline(s, nolink=False):
             pieces.append('\x01M%d\x02' % (len(store) - 1))
             continue
         if part.startswith('$') and part.endswith('$') and len(part) > 2:
-            store.append(part)
+            store.append(fix_math(part))
             pieces.append('\x01M%d\x02' % (len(store) - 1))
             continue
         for sub in re.split(r'(\*\*[^*]+\*\*)', part):
@@ -594,6 +647,22 @@ def emit_group(blocks):
     out.append(r'\endgroup')
 
 
+BF_MATH = re.compile(r'\\bf(?![A-Za-z])')
+
+
+def fix_math(s):
+    r"""数学里的旧式 ``\bf`` 换成 ``\bm``。
+
+    XeTeX 下 ``${\bf \dot{\mu}}_1$`` 会直接死在
+    ``! Internal error: bad native font flag in map_char_to_glyph``：
+    ``\bf`` 把编码切到 TU 文本字体，再用它排 ``\mu``，XeTeX 内部断言失败。
+    这个错误**不写进 .log**（log 里 0 条 ``!``），只在 stdout 打一行，
+    所以验收脚本会误判通过，而 PDF 其实只编到崩溃那一页就断了。
+    ``\bm`` 是 bm 包给的数学粗体，语义一样、不切换字体编码。
+    """
+    return BF_MATH.sub(r'\\bm', s)
+
+
 def emit_display(body, tight=False):
     mt = re.search(r'\\tag\{([^}]*)\}\s*$', body)
     tag = ''
@@ -601,6 +670,7 @@ def emit_display(body, tight=False):
         t = mt.group(1).strip().replace('□', r'$\square$')
         tag = r'\tag{%s}' % t
         body = body[:mt.start()].rstrip()
+    body = fix_math(body)
     # 局部重设公式间距：字体/环境切换可能把全局设置还原成类默认值
     out.append(r'\begingroup\setlength{\abovedisplayskip}{4pt}\setlength{\belowdisplayskip}{4pt}'
                r'\setlength{\abovedisplayshortskip}{4pt}\setlength{\belowdisplayshortskip}{4pt}')
@@ -1258,9 +1328,12 @@ for idx, r in enumerate(refs):
 refs_head = r'\phantomsection\pdfbookmark[1]{参考文献}{bmref}' + '\n' + r'\section*{参考文献}' + '\n\n'
 refs_tex = refs_head + '\n'.join(reflines)
 
-preamble = r'''\documentclass[UTF8,11pt,a4paper,fontset=%(fontset)s]{ctexart}
+MAIN_FONT = main_font()
+preamble = r'''\documentclass[UTF8,12pt,a4paper,fontset=%(fontset)s]{ctexart}
+%% 12pt、版心 17cm：11pt + 2.3cm 边距时中文每行挤到 44 字、字面偏小，
+%% 打印与屏读都吃力。改完一行约 40 字，页数会多两页左右，是字大了的正常代价。
 \usepackage{geometry}
-\geometry{left=2.3cm,right=2.3cm,top=2.5cm,bottom=2.2cm}
+\geometry{left=2.0cm,right=2.0cm,top=2.2cm,bottom=2.0cm}
 \usepackage{amsmath,amssymb,amsfonts,bm}
 \usepackage{graphicx}
 \usepackage{float}
@@ -1297,7 +1370,12 @@ preamble = r'''\documentclass[UTF8,11pt,a4paper,fontset=%(fontset)s]{ctexart}
 %% 阅读器按 ActualText 的字符宽度去算高亮框，于是"能复制、但框选只亮几个字母"。
 %% 取而代之的是关掉 f-连字（NoCommon），保证 ffi→ffi 而不是 U+FB00。
 \usepackage{fancyhdr}
-\setmainfont{TeX Gyre Termes}[Ligatures={TeX,NoCommon}]
+%(mainfont)s
+%% 撇号 U+2019 默认被 xeCJK 归进中文标点类，跟西文字母相邻时按全角排，
+%% 结果书目里 Marx's、St. Martin's 全变成「Marx’ s」——中间多一个空隙。
+%% 只把它一个字符移出标点类：中文双引号 “” 仍按 CJK 处理（挤在汉字边上），
+%% 西文撇号回到正常字距。
+\xeCJKDeclareCharClass{Default}{"2019}
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\small\itshape %(te)s}
@@ -1337,6 +1415,7 @@ DOI & %(doiline)s\\
 
 \vspace{8pt}
 ''' % dict(fontset='windows' if sys.platform == 'win32' else 'fandol',
+           mainfont=MAIN_FONT,
            tz=TITLE_ZH,
            tz1=TITLE_ZH.split('？')[0] + '？' if '？' in TITLE_ZH else TITLE_ZH,
            tz2=TITLE_ZH.split('？')[1] if '？' in TITLE_ZH else '',
@@ -1349,6 +1428,13 @@ DOI & %(doiline)s\\
            srcfile=esc(SRC_NAME))
 
 body = body.replace('@@REFS@@', refs_tex)
+# 最后再兜一道：数学内容是从 MinerU 的 OCR 原样搬过来的，\bf 不一定只在
+# inline()/emit_display() 那两条路径上出现。正文粗体走 \textbf、页面标题走
+# \bfseries，都不会被这个替换碰到。
+n_fix = len(BF_MATH.findall(body))
+if n_fix:
+    body = fix_math(body)
+    print('数学里的 \\bf 改成 \\bm：%d 处（不换掉会触发 XeTeX 内部错误）' % n_fix)
 
 TEX.parent.mkdir(parents=True, exist_ok=True)
 TEX.write_text(preamble + body + '\n\\end{document}\n', encoding='utf-8')
@@ -1401,12 +1487,39 @@ if args.pdf:
                                capture_output=True, cwd=str(base))
             if r.returncode != 0:
                 log = TEX.with_suffix('.log')
-                tail = log.read_text(encoding='utf-8', errors='ignore')[-1500:] if log.exists() else ''
-                raise SystemExit('xelatex 失败（第 %d 遍）\n%s' % (i + 1, tail))
+                tail = log.read_text(encoding='utf-8', errors='ignore')[-1200:] if log.exists() else ''
+                # XeTeX 的内部错误（比如 bad native font flag）只写 stdout，
+                # 不写 .log。只看 log 会给出"什么都没有"的报错。
+                out = (r.stdout or b'').decode('utf-8', 'ignore')
+                bang = [ln for ln in out.splitlines() if ln.startswith('!')][:5]
+                raise SystemExit('xelatex 失败（第 %d 遍）rc=%d\n%s\n--- 日志尾部 ---\n%s'
+                                 % (i + 1, r.returncode, '\n'.join(bang) or '（stdout 里没有 ! 行）', tail))
     finally:
         _release_xelatex_lock(lock)
     pdf = TEX.with_suffix('.pdf')
     print('PDF:', pdf, ('（%s 页）' % _pdf_pages(pdf)) if pdf.exists() else '未生成')
+    # 交付约定与 Zotero 挂载都按 <stem>_zh.pdf 找。TEX 常放在 _work/pdf/ 下，
+    # 编译产物于是叫 paper.pdf——复制一份到译稿旁边，少一步手工搬。
+    out_pdf = MD.parent / (MD.stem + '.pdf')
+    if pdf.is_file() and pdf.resolve() != out_pdf.resolve():
+        try:
+            shutil.copyfile(pdf, out_pdf)
+            print('交付副本:', out_pdf)
+        except OSError as e:
+            print('! 复制交付副本失败：%s' % e)
+    if args.zotero and out_pdf.is_file():
+        # 单独起进程：zotero_attach 会拿授权 key、上传文件，失败要能自己退出，
+        # 不能把 md2tex 的编译结果带崩。
+        script = pathlib.Path(__file__).with_name('zotero_attach.py')
+        cmd = [sys.executable, str(script), str(out_pdf), '--md', str(MD)]
+        if args.zotero_dry_run:
+            cmd.append('--dry-run')
+        print('\n=== 挂回 Zotero ===')
+        rc = subprocess.run(cmd).returncode
+        if rc != 0:
+            print('Zotero 挂载未完成（rc=%d）：PDF 已出，重跑 '
+                  '`python scripts/zotero_attach.py %s --md %s` 即可。'
+                  % (rc, out_pdf.name, MD.name))
     log = TEX.with_suffix('.log')
     if log.exists():
         over = [ln for ln in log.read_text(encoding='utf-8', errors='ignore').split('\n')
